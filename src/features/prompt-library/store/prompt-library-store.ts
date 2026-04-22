@@ -1,7 +1,7 @@
 import { createJSONStorage, persist } from 'zustand/middleware'
 import { createStore } from 'zustand/vanilla'
 
-import { SEED_PROMPTS } from '@/features/prompt-library/lib/prompt-library-data'
+import { INITIAL_PROMPTS } from '@/features/prompt-library/lib/prompt-library-data'
 import {
   EMPTY_PROMPT_DRAFT,
   createPromptDraft,
@@ -31,9 +31,9 @@ const createInitialComposerState = (): ComposerState => ({
 })
 
 const createInitialState = (): PromptLibraryStateShape => ({
-  prompts: SEED_PROMPTS,
+  prompts: INITIAL_PROMPTS,
   query: '',
-  selectedPromptId: SEED_PROMPTS[0]?.id ?? null,
+  selectedPromptId: INITIAL_PROMPTS[0]?.id ?? null,
   composer: createInitialComposerState(),
   confirmDeleteId: null as string | null,
   hasHydrated: false,
