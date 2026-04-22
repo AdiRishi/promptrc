@@ -35,8 +35,9 @@ const Toaster = ({ ...props }: ToasterProps) => {
       toastOptions={{
         classNames: {
           toast:
-            'cn-toast border border-primary/70 bg-card/95 font-sans text-[12px] text-foreground shadow-[0_10px_30px_rgba(0,0,0,0.4),0_0_30px_rgba(255,180,84,0.15)]',
-          title: 'tracking-[0.04em]',
+            'cn-toast border border-primary/70 bg-card/95 px-[18px] py-[10px] font-sans text-[12px] text-primary shadow-[0_10px_30px_rgba(0,0,0,0.4),0_0_30px_rgba(255,180,84,0.15)] backdrop-blur-md',
+          title:
+            "text-center leading-[1.55] tracking-[0.04em] before:mr-1 before:text-accent-foreground before:content-['>']",
           icon: 'text-accent-foreground',
         },
       }}

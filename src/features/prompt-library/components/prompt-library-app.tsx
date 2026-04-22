@@ -1,8 +1,9 @@
 'use client'
 
-import { useCallback, useDeferredValue, useEffect, useEffectEvent, useMemo } from 'react'
+import { useCallback, useDeferredValue, useEffect, useEffectEvent, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 
+import { PromptHelpOverlay } from '@/features/prompt-library/components/prompt-help-overlay'
 import {
   PromptLibraryProvider,
   usePromptLibraryMeta,
@@ -39,6 +40,9 @@ function PromptLibraryScreen() {
   const hasHydrated = usePromptLibraryStore((state) => state.hasHydrated)
   const actions = usePromptLibraryStore((state) => state.actions)
   const { searchInputRef, titleInputRef } = usePromptLibraryMeta()
+  const [isHelpOpen, setIsHelpOpen] = useState(false)
+  const toggleHelp = useCallback(() => setIsHelpOpen((open) => !open), [])
+  const closeHelp = useCallback(() => setIsHelpOpen(false), [])
 
   const deferredQuery = useDeferredValue(query)
   const filteredPrompts = useMemo(
@@ -121,7 +125,7 @@ function PromptLibraryScreen() {
     }
 
     actions.incrementUses(activePrompt.id)
-    toast(`copied -> ${activePrompt.title}`)
+    toast(`copied → ${activePrompt.title}`)
   }, [actions, activePrompt])
 
   const saveComposer = useCallback(() => {
@@ -151,7 +155,7 @@ function PromptLibraryScreen() {
     const duplicatedPrompt = actions.duplicatePrompt(activePrompt.id)
 
     if (duplicatedPrompt) {
-      toast(`duplicated -> ${duplicatedPrompt.title}`)
+      toast(`duplicated → ${duplicatedPrompt.title}`)
     }
   }, [actions, activePrompt])
 
@@ -175,7 +179,7 @@ function PromptLibraryScreen() {
     const removedPrompt = actions.deletePrompt(activePrompt.id, nextSelectedPromptId)
 
     if (removedPrompt) {
-      toast(`removed -> ${removedPrompt.title}`)
+      toast(`removed → ${removedPrompt.title}`)
     }
   }, [actions, activePrompt, confirmDeleteId, flatPromptIds, prompts])
 
@@ -254,6 +258,7 @@ function PromptLibraryScreen() {
     activePrompt,
     composerMode: composer.mode,
     filteredPromptIds: flatPromptIds,
+    isHelpOpen,
     onCancelComposer: actions.cancelComposer,
     onCopyActivePrompt: copyActivePrompt,
     onDeletePrompt: deletePrompt,
@@ -268,6 +273,7 @@ function PromptLibraryScreen() {
       actions.startEdit(activePrompt.id)
     },
     onStartNew: actions.startNew,
+    onToggleHelp: toggleHelp,
     searchInputRef,
     selectedPromptId,
   })
@@ -333,6 +339,8 @@ function PromptLibraryScreen() {
 
         <PromptShortcutsPanel shortcuts={shortcuts} />
       </div>
+
+      <PromptHelpOverlay isOpen={isHelpOpen} onClose={closeHelp} />
     </div>
   )
 }
@@ -341,6 +349,7 @@ type PromptLibraryHotkeysOptions = {
   activePrompt: PromptRecord | null
   composerMode: 'view' | 'new' | 'edit'
   filteredPromptIds: string[]
+  isHelpOpen: boolean
   selectedPromptId: string | null
   searchInputRef: React.RefObject<HTMLInputElement | null>
   onStartNew: () => void
@@ -351,12 +360,14 @@ type PromptLibraryHotkeysOptions = {
   onDeletePrompt: () => void
   onCopyActivePrompt: () => void | Promise<void>
   onSelectPrompt: (promptId: string | null) => void
+  onToggleHelp: () => void
 }
 
 function usePromptLibraryHotkeys({
   activePrompt,
   composerMode,
   filteredPromptIds,
+  isHelpOpen,
   selectedPromptId,
   searchInputRef,
   onStartNew,
@@ -367,8 +378,18 @@ function usePromptLibraryHotkeys({
   onDeletePrompt,
   onCopyActivePrompt,
   onSelectPrompt,
+  onToggleHelp,
 }: PromptLibraryHotkeysOptions) {
   const onKeyDown = useEffectEvent((event: KeyboardEvent) => {
+    if (isHelpOpen) {
+      if (event.key === 'Escape' || event.key === '?') {
+        event.preventDefault()
+        onToggleHelp()
+      }
+
+      return
+    }
+
     const target = event.target as HTMLElement | null
     const isTyping =
       !!target &&
@@ -492,7 +513,7 @@ function usePromptLibraryHotkeys({
         break
       case '?':
         event.preventDefault()
-        toast('n . new / / . search / j k . move / e . edit / d . dup / x . delete / Cmd+C . copy')
+        onToggleHelp()
         break
       default:
         break
