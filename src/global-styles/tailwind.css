@@ -135,6 +135,8 @@
     .terminal-app {
         position: relative;
         isolation: isolate;
+        font-size: 13px;
+        line-height: 1.55;
     }
 
     .terminal-app::before {

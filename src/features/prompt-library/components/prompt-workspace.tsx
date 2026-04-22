@@ -227,7 +227,7 @@ function PromptViewer({
       </CardHeader>
 
       <CardContent className="px-8 py-7">
-        <CardTitle className="mb-3 text-[clamp(1.8rem,4vw,2.25rem)] leading-none font-semibold tracking-[-0.02em] before:mr-2 before:text-accent-foreground before:content-['>']">
+        <CardTitle className="mb-[10px] text-[26px] leading-[1.15] font-semibold tracking-[-0.01em] before:mr-2 before:text-accent-foreground before:content-['>']">
           {prompt.title}
         </CardTitle>
 
