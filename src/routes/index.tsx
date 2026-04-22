@@ -3,7 +3,6 @@ import { createFileRoute } from '@tanstack/react-router'
 import { PromptLibraryApp } from '@/features/prompt-library/components/prompt-library-app'
 
 export const Route = createFileRoute('/')({
-  ssr: false,
   component: HomeRoute,
   head: () => ({
     meta: [

@@ -146,7 +146,7 @@ function PromptCommandBar({
 
         <div className="relative min-w-0 flex-1">
           <input
-            className="w-full bg-transparent text-[14px] outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-0 focus-visible:ring-ring/50"
+            className="w-full bg-transparent text-[14px] outline-none placeholder:text-muted-foreground focus:text-transparent focus:caret-transparent focus:placeholder:text-transparent focus:selection:bg-primary/30 focus:selection:text-foreground"
             onBlur={() => onFocusChange(false)}
             onChange={(event) => {
               const nextValue = event.target.value
