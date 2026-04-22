@@ -274,24 +274,24 @@ function PromptLibraryScreen() {
 
   return (
     <div className="terminal-app min-h-screen overflow-hidden bg-background text-foreground">
-      <div className="relative z-10 flex items-center gap-3 border-b border-border bg-card/95 px-4 py-3 text-[11px] tracking-[0.05em] md:px-5">
+      <div className="relative z-10 flex items-center gap-[10px] border-b border-border bg-muted px-4 py-[10px]">
         <div className="flex items-center gap-1.5" aria-hidden="true">
           <span className="size-2.5 rounded-full bg-[rgb(255,95,87)]" />
           <span className="size-2.5 rounded-full bg-[rgb(255,189,46)]" />
           <span className="size-2.5 rounded-full bg-[rgb(40,200,64)]" />
         </div>
 
-        <div className="min-w-0 text-muted-foreground">
+        <div className="ml-[14px] min-w-0 text-[12px] tracking-[0.05em] text-muted-foreground">
           <span className="font-medium text-foreground">~/.promptrc</span>{' '}
-          <span className="text-primary">.</span> zsh
+          <span className="text-primary">·</span> zsh
         </div>
 
-        <div className="ml-auto text-muted-foreground">
+        <div className="ml-auto text-[11px] tracking-[0.04em] text-muted-foreground">
           {prompts.length} {prompts.length === 1 ? 'entry' : 'entries'}
         </div>
       </div>
 
-      <div className="relative z-10 grid min-h-[calc(100vh-49px)] grid-cols-1 md:grid-cols-[280px_minmax(0,1fr)] xl:grid-cols-[320px_minmax(0,1fr)_280px]">
+      <div className="relative z-10 grid min-h-[calc(100vh-42px)] grid-cols-1 md:grid-cols-[280px_minmax(0,1fr)] xl:grid-cols-[320px_minmax(0,1fr)_280px]">
         <PromptTreePanel
           categoryKeys={categoryKeys}
           filteredCount={flatPromptIds.length}
