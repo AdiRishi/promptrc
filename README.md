@@ -46,6 +46,7 @@ The app runs at `http://localhost:8080`.
 
 ```text
 src/
+  design-inspiration/        → Temporary copied inspiration UI mounted at /design-inspiration
   routes/                     → File-based routes and layout shells
   components/ui/              → shadcn/ui primitives
   lib/
@@ -71,6 +72,7 @@ src/
 ## Where to extend
 
 - Add new pages in `src/routes/`
+- Delete `src/design-inspiration/` and `src/routes/design-inspiration.tsx` when the inspiration route is no longer useful
 - Introduce loaders or server functions where TanStack Start fits your app best
 - Add your own data layer without unwinding generated bindings or database-specific glue
 - Expand the design system with `pnpm shadcn add <component-name>`

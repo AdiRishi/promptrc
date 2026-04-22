@@ -1,4 +1,4 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { Link, createFileRoute } from '@tanstack/react-router'
 
 import { buttonVariants } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
@@ -33,14 +33,19 @@ function App() {
       </section>
 
       <div>
-        <a
-          className={cn(buttonVariants({ variant: 'outline' }))}
-          href="https://tanstack.com/start/latest/docs/framework/react/overview"
-          rel="noreferrer"
-          target="_blank"
-        >
-          Open TanStack docs
-        </a>
+        <div className="flex flex-wrap gap-3">
+          <Link className={cn(buttonVariants({ variant: 'outline' }))} to="/design-inspiration">
+            Open design inspiration
+          </Link>
+          <a
+            className={cn(buttonVariants({ variant: 'outline' }))}
+            href="https://tanstack.com/start/latest/docs/framework/react/overview"
+            rel="noreferrer"
+            target="_blank"
+          >
+            Open TanStack docs
+          </a>
+        </div>
       </div>
     </main>
   )
