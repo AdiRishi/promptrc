@@ -1,7 +1,5 @@
-import { TanStackDevtools } from '@tanstack/react-devtools'
 import { type QueryClient } from '@tanstack/react-query'
 import { HeadContent, Scripts, createRootRouteWithContext } from '@tanstack/react-router'
-import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
 
 import appCss from '@/global-styles/tailwind.css?url'
 
@@ -18,10 +16,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       {
         name: 'description',
         content:
-          'A polished TanStack Start starter with React Query, Tailwind CSS, and sharp developer ergonomics.',
+          'A terminal-inspired prompt library for storing, searching, and reusing your best AI prompts.',
       },
       {
-        title: 'TanStack Start Launchpad',
+        title: 'promptrc',
       },
     ],
     links: [
@@ -43,17 +41,6 @@ function RootDocument({ children }: { children: React.ReactNode }) {
       </head>
       <body>
         {children}
-        <TanStackDevtools
-          config={{
-            position: 'bottom-right',
-          }}
-          plugins={[
-            {
-              name: 'Tanstack Router',
-              render: <TanStackRouterDevtoolsPanel />,
-            },
-          ]}
-        />
         <Scripts />
       </body>
     </html>

@@ -1,52 +1,24 @@
-import { Link, createFileRoute } from '@tanstack/react-router'
+import { createFileRoute } from '@tanstack/react-router'
 
-import { buttonVariants } from '@/components/ui/button'
-import { cn } from '@/lib/utils'
+import { PromptLibraryApp } from '@/features/prompt-library/components/prompt-library-app'
 
-export const Route = createFileRoute('/')({ component: App })
+export const Route = createFileRoute('/')({
+  ssr: false,
+  component: HomeRoute,
+  head: () => ({
+    meta: [
+      {
+        title: 'promptrc',
+      },
+      {
+        name: 'description',
+        content:
+          'A terminal-inspired prompt library for storing, searching, and reusing your best AI prompts.',
+      },
+    ],
+  }),
+})
 
-const commands = ['pnpm dev', 'pnpm typecheck', 'pnpm test', 'pnpm check'] as const
-
-function App() {
-  return (
-    <main className="mx-auto flex min-h-screen w-full max-w-3xl flex-col justify-center gap-8 px-6 py-16">
-      <section className="space-y-4">
-        <p className="text-sm font-medium text-muted-foreground">TanStack Start Launchpad</p>
-        <h1 className="text-4xl font-semibold tracking-tight text-foreground md:text-5xl">
-          A barebones TanStack Start starter.
-        </h1>
-        <p className="max-w-2xl text-base leading-7 text-muted-foreground">
-          React Query, routing, Tailwind, and the existing DX are wired up. Add your routes,
-          loaders, server functions, or data layer from here.
-        </p>
-      </section>
-
-      <section className="space-y-3 rounded-xl border bg-card p-5">
-        <h2 className="text-sm font-medium text-foreground">Useful commands</h2>
-        <ul className="space-y-2">
-          {commands.map((command) => (
-            <li key={command} className="font-mono text-sm text-muted-foreground">
-              {command}
-            </li>
-          ))}
-        </ul>
-      </section>
-
-      <div>
-        <div className="flex flex-wrap gap-3">
-          <Link className={cn(buttonVariants({ variant: 'outline' }))} to="/design-inspiration">
-            Open design inspiration
-          </Link>
-          <a
-            className={cn(buttonVariants({ variant: 'outline' }))}
-            href="https://tanstack.com/start/latest/docs/framework/react/overview"
-            rel="noreferrer"
-            target="_blank"
-          >
-            Open TanStack docs
-          </a>
-        </div>
-      </div>
-    </main>
-  )
+function HomeRoute() {
+  return <PromptLibraryApp />
 }
