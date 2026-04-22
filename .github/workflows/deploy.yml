@@ -1,0 +1,40 @@
+name: Deploy promptrc
+
+on:
+  repository_dispatch:
+  workflow_run:
+    workflows: ['CI']
+    types: [completed]
+    branches: [main]
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    name: Build & Deploy
+    if: github.event_name == 'repository_dispatch' || github.event.workflow_run.conclusion == 'success'
+    steps:
+      - uses: actions/checkout@v6
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: '.node-version'
+          cache: 'pnpm'
+
+      - run: pnpm install --frozen-lockfile
+        env:
+          NODE_ENV: development
+
+      - run: pnpm build
+        env:
+          NODE_ENV: production
+          VITE_SITE_URL: ${{ vars.SITE_URL }}
+
+      - name: Deploy
+        uses: cloudflare/wrangler-action@v3
+        with:
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          workingDirectory: '.output'
+          wranglerVersion: '4'
+          packageManager: 'pnpm'
+          command: deploy

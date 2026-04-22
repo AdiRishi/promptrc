@@ -1,25 +1,6 @@
-# TanStack Start Launchpad
+# promptrc
 
-**A clean TanStack Start starter with React Query, Tailwind v4, shadcn/ui, and strong day-one DX.**
-
-[![TanStack Start](https://img.shields.io/badge/TanStack_Start-1.x-blue?logo=react)](https://tanstack.com/start)
-[![TanStack Query](https://img.shields.io/badge/TanStack_Query-5.x-ff4154)](https://tanstack.com/query)
-[![TypeScript](https://img.shields.io/badge/TypeScript-Strict-blue?logo=typescript)](https://www.typescriptlang.org/)
-[![Uses pnpm](https://img.shields.io/badge/pnpm-10.x-orange?logo=pnpm)](https://pnpm.io/)
-
-## What's included
-
-- **[TanStack Start](https://tanstack.com/start)** for SSR-ready routing, server functions, and app structure
-- **TanStack Query** with app-wide provider setup and router SSR query integration
-- **[Tailwind CSS v4](https://tailwindcss.com/)** plus **[shadcn/ui](https://ui.shadcn.com/)** primitives for fast, polished UI work
-- **TanStack Router devtools** and **React Query devtools** for quick feedback while building
-- **Strict TypeScript, ESLint, and Prettier** with import sorting and Tailwind class ordering
-- **Lucide icons** and a small starter surface that stays out of the way
-
-## Prerequisites
-
-- Node.js 20+ (LTS)
-- pnpm 10.x (pinned via `packageManager` in `package.json`)
+Terminal-inspired prompt library built with TanStack Start, React 19, Tailwind v4, and Nitro.
 
 ## Quick start
 
@@ -30,57 +11,70 @@ pnpm dev
 
 The app runs at `http://localhost:8080`.
 
-## Tech stack
-
-| Layer     | Technology                              |
-| --------- | --------------------------------------- |
-| Framework | TanStack Start (React 19 + Vite 8)      |
-| Routing   | TanStack Router (type-safe, file-based) |
-| Data      | TanStack Query                          |
-| Styling   | Tailwind CSS v4 + shadcn/ui             |
-| Testing   | Vitest + Testing Library                |
-| Runtime   | Nitro                                   |
-| Language  | TypeScript 6 (strict)                   |
-
-## Project structure
-
-```text
-src/
-  design-inspiration/        → Temporary copied inspiration UI mounted at /design-inspiration
-  routes/                     → File-based routes and layout shells
-  components/ui/              → shadcn/ui primitives
-  lib/
-    query-client.ts           → Shared React Query client
-    app-provider.tsx          → App-wide provider wrapper
-  global-styles/tailwind.css  → Theme tokens and Tailwind layers
-```
-
 ## Scripts
 
-| Command          | Description                                  |
-| ---------------- | -------------------------------------------- |
-| `pnpm dev`       | Start the TanStack Start dev server on 8080  |
-| `pnpm dev:web`   | Alias of `pnpm dev`                          |
-| `pnpm build`     | Create the production build                  |
-| `pnpm preview`   | Preview the built app locally                |
-| `pnpm test`      | Run Vitest                                   |
-| `pnpm typecheck` | Run `tsc --noEmit`                           |
-| `pnpm lint`      | Run ESLint                                   |
-| `pnpm format`    | Format the repo with Prettier                |
-| `pnpm check`     | Format and apply ESLint fixes in one command |
+| Command               | Description                                  |
+| --------------------- | -------------------------------------------- |
+| `pnpm dev`            | Start the local dev server on port 8080      |
+| `pnpm build`          | Build the app and generate deploy assets     |
+| `pnpm preview`        | Preview the production build locally         |
+| `pnpm deploy`         | Deploy the built Worker from `.output`       |
+| `pnpm deploy:dry-run` | Validate the Worker bundle without deploying |
+| `pnpm test`           | Run Vitest                                   |
+| `pnpm typecheck`      | Run `tsc --noEmit`                           |
+| `pnpm check`          | Format and lint with auto-fix                |
 
-## Where to extend
+## Cloudflare deployment
 
-- Add new pages in `src/routes/`
-- Delete `src/design-inspiration/` and `src/routes/design-inspiration.tsx` when the inspiration route is no longer useful
-- Introduce loaders or server functions where TanStack Start fits your app best
-- Add your own data layer without unwinding generated bindings or database-specific glue
-- Expand the design system with `pnpm shadcn add <component-name>`
+This repo is configured to deploy the TanStack Start app to Cloudflare Workers through Nitro.
 
-## Resources
+- `nitro.config.ts` uses the `cloudflare_module` preset and asks Nitro to generate Wrangler config at build time.
+- `pnpm build` outputs the Worker bundle to `.output/server` and Nitro's deploy redirect config to `.output`.
+- `pnpm deploy` runs `wrangler` against that generated output, matching the pattern used in `~/personal/render-md`.
+- `preview_urls` is enabled so PR builds can upload non-production Worker versions and return preview links.
 
-- [TanStack Start docs](https://tanstack.com/start)
-- [TanStack Query docs](https://tanstack.com/query/latest)
-- [TanStack Router docs](https://tanstack.com/router/latest)
-- [Tailwind CSS v4 docs](https://tailwindcss.com/)
-- [shadcn/ui docs](https://ui.shadcn.com/)
+### Required env
+
+Set `VITE_SITE_URL` to your real production origin before the first real deploy. The build uses it for:
+
+- canonical URLs
+- Open Graph and Twitter metadata
+- JSON-LD structured data
+- generated `robots.txt`
+- generated `sitemap.xml`
+
+Local example:
+
+```bash
+VITE_SITE_URL=https://your-domain.com pnpm build
+```
+
+## GitHub Actions
+
+Three workflows are included:
+
+- `.github/workflows/ci.yml` runs formatting, linting, type checks, tests, and a production build.
+- `.github/workflows/deploy.yml` deploys `main` to Cloudflare after CI succeeds.
+- `.github/workflows/preview.yml` uploads a versioned Worker preview for each pull request and comments with the preview URL.
+
+### GitHub secrets
+
+- `CLOUDFLARE_ACCOUNT_ID`
+- `CLOUDFLARE_API_TOKEN`
+
+### GitHub repo variable
+
+- `SITE_URL`
+
+The deploy and preview workflows pass `vars.SITE_URL` through to `VITE_SITE_URL` at build time.
+
+## SEO and deployment extras
+
+- `src/lib/seo.ts` centralizes page metadata, canonical links, and JSON-LD helpers.
+- `src/lib/vite-sitemap-plugin.ts` regenerates `public/sitemap.xml` and `public/robots.txt` during builds.
+- `public/manifest.json` is updated for the shipped app instead of the starter template.
+- `/design-inspiration` is marked `noindex, nofollow` and excluded from the sitemap.
+
+## Next step
+
+Once you are ready to create the Cloudflare-side resources, we just need to wire in the real domain and any custom routes or domains in the generated Wrangler config path.

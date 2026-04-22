@@ -12,4 +12,5 @@ count.txt
 .wrangler
 .output
 .vinxi
+public/sitemap.xml
 todos.json

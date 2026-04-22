@@ -3,13 +3,30 @@ import { devtools } from '@tanstack/devtools-vite'
 import { tanstackStart } from '@tanstack/react-start/plugin/vite'
 import viteReact from '@vitejs/plugin-react'
 import { nitro } from 'nitro/vite'
-import { defineConfig } from 'vite'
+import { defineConfig, loadEnv } from 'vite'
 
-const config = defineConfig({
-  resolve: {
-    tsconfigPaths: true,
-  },
-  plugins: [devtools(), nitro(), tailwindcss(), tanstackStart(), viteReact()],
+import { SITEMAP_EXCLUDED_PATHS, getSiteUrl } from './src/lib/site-config'
+import { sitemapPlugin } from './src/lib/vite-sitemap-plugin'
+
+export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, process.cwd(), '')
+  const siteUrl = getSiteUrl(env.VITE_SITE_URL)
+
+  return {
+    resolve: {
+      tsconfigPaths: true,
+    },
+    plugins: [
+      devtools(),
+      nitro(),
+      tailwindcss(),
+      tanstackStart(),
+      viteReact(),
+      sitemapPlugin({
+        baseUrl: siteUrl,
+        excludePaths: SITEMAP_EXCLUDED_PATHS,
+        verbose: mode !== 'production',
+      }),
+    ],
+  }
 })
-
-export default config

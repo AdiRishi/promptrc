@@ -1,16 +1,20 @@
 import { createFileRoute } from '@tanstack/react-router'
 
 import DesignInspirationApp from '@/design-inspiration/App'
+import { canonicalLink, seo } from '@/lib/seo'
+import { SITE_NAME } from '@/lib/site-config'
 
 export const Route = createFileRoute('/design-inspiration')({
   component: DesignInspirationRoute,
   head: () => ({
-    meta: [
-      {
-        title: 'Design Inspiration',
-      },
-    ],
+    meta: seo({
+      title: `Design Inspiration | ${SITE_NAME}`,
+      description: 'Private visual exploration route for promptrc.',
+      path: '/design-inspiration',
+      robots: 'noindex, nofollow',
+    }),
     links: [
+      canonicalLink('/design-inspiration'),
       {
         rel: 'preconnect',
         href: 'https://fonts.googleapis.com',
