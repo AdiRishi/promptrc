@@ -16,7 +16,12 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         content: 'width=device-width, initial-scale=1',
       },
       {
-        title: 'TanStack Start Starter',
+        name: 'description',
+        content:
+          'A polished TanStack Start starter with React Query, Tailwind CSS, and sharp developer ergonomics.',
+      },
+      {
+        title: 'TanStack Start Launchpad',
       },
     ],
     links: [

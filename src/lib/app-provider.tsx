@@ -1,7 +1,14 @@
-import { SpacetimeDBProvider } from 'spacetimedb/tanstack'
+import { QueryClientProvider } from '@tanstack/react-query'
+import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
+import { type PropsWithChildren } from 'react'
 
-import { connectionBuilder } from '@/lib/spacetimedb-client'
+import { queryClient } from '@/lib/query-client'
 
-export function AppProviders({ children }: { children: React.ReactNode }) {
-  return <SpacetimeDBProvider connectionBuilder={connectionBuilder}>{children}</SpacetimeDBProvider>
+export function AppProviders({ children }: PropsWithChildren) {
+  return (
+    <QueryClientProvider client={queryClient}>
+      {children}
+      <ReactQueryDevtools buttonPosition="bottom-left" initialIsOpen={false} />
+    </QueryClientProvider>
+  )
 }

@@ -11,7 +11,6 @@ export default [
       '.tanstack',
       'public',
       '**/*.gen.ts',
-      'src/module_bindings/*',
       'eslint.config.js',
       'prettier.config.js',
     ],
