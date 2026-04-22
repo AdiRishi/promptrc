@@ -89,7 +89,7 @@ export function PromptTreePanel({
                     }}
                     type="button"
                   >
-                    <span className="text-muted-foreground">
+                    <span className="whitespace-pre text-muted-foreground">
                       {branchPrefix}
                       {branch}
                     </span>
