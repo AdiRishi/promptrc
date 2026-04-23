@@ -5,7 +5,7 @@ import viteReact from '@vitejs/plugin-react'
 import { nitro } from 'nitro/vite'
 import { defineConfig, loadEnv } from 'vite'
 
-import { SITEMAP_EXCLUDED_PATHS, getCanonicalSiteUrl } from './src/lib/site-config'
+import { getCanonicalSiteUrl } from './src/lib/site-config'
 import { sitemapPlugin } from './src/lib/vite-sitemap-plugin'
 
 export default defineConfig(({ mode }) => {
@@ -24,7 +24,6 @@ export default defineConfig(({ mode }) => {
       viteReact(),
       sitemapPlugin({
         baseUrl: siteUrl,
-        excludePaths: SITEMAP_EXCLUDED_PATHS,
         verbose: mode !== 'production',
       }),
     ],

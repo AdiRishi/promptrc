@@ -76,7 +76,6 @@ The deploy and preview workflows pass `vars.SITE_URL` through to `VITE_SITE_URL`
 - `src/lib/seo.ts` centralizes page metadata, canonical links, and JSON-LD helpers.
 - `src/lib/vite-sitemap-plugin.ts` regenerates `public/sitemap.xml` and `public/robots.txt` during builds.
 - `public/manifest.json` is updated for the shipped app instead of the starter template.
-- `/design-inspiration` is marked `noindex, nofollow` and excluded from the sitemap.
 
 ## Next step
 

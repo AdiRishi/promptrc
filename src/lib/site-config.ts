@@ -26,7 +26,6 @@ export const SITE_FEATURE_LIST = [
   'Use a keyboard-first workflow for browsing, editing, and copying prompts',
   'Keep your prompt library local-first with browser persistence',
 ] as const
-export const SITEMAP_EXCLUDED_PATHS = ['/design-inspiration']
 
 export function getSiteUrl(rawSiteUrl?: string | null) {
   const trimmedSiteUrl = rawSiteUrl?.trim()
