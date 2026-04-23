@@ -46,6 +46,8 @@ Set `VITE_SITE_URL` to your real production origin before the first real deploy.
 
 Set it to the canonical apex host (`https://promptrc.app`). The shared SEO helpers normalize `www.promptrc.app` back to the apex URL for canonical tags and related metadata.
 
+For local development, copy `.env.example` to `.env` and adjust values there as needed. This repo ignores `.env`, so local environment changes stay out of git.
+
 Local example:
 
 ```bash

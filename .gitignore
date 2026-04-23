@@ -3,8 +3,6 @@ node_modules
 dist
 dist-ssr
 *.local
-# Remove .env.local when you have secrets to commit
-!.env.local
 count.txt
 .env
 .nitro

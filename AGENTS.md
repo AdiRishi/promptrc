@@ -49,7 +49,7 @@ Components install to `src/components/ui/`. Theme tokens are in `src/global-styl
 
 ### Environment
 
-Only `VITE_*` vars are exposed to the client (Vite convention). Put project-specific values in `.env.local` as the app grows.
+Only `VITE_*` vars are exposed to the client (Vite convention). Keep the tracked template in `.env.example` and put project-specific local values in `.env`.
 
 ## Commit Convention
 
