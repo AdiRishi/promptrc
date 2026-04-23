@@ -2,9 +2,9 @@ import {
   SITE_AUTHOR,
   SITE_NAME,
   SITE_THEME_COLOR,
-  getAbsoluteUrl,
-  getSiteUrl,
-  getSocialImageUrl,
+  getCanonicalAbsoluteUrl,
+  getCanonicalSiteUrl,
+  getCanonicalSocialImageUrl,
 } from '@/lib/site-config'
 
 type SeoParams = {
@@ -23,14 +23,14 @@ const siteUrlEnv = import.meta.env.VITE_SITE_URL
 
 function resolveImageUrl(image?: string) {
   if (!image) {
-    return getSocialImageUrl(siteUrlEnv)
+    return getCanonicalSocialImageUrl(siteUrlEnv)
   }
 
   if (image.startsWith('http://') || image.startsWith('https://')) {
     return image
   }
 
-  return getAbsoluteUrl(image, siteUrlEnv)
+  return getCanonicalAbsoluteUrl(image, siteUrlEnv)
 }
 
 export function jsonLdScripts(schemas: JsonLdSchema | JsonLdSchema[]) {
@@ -51,7 +51,7 @@ export function seo({
   type = 'website',
   robots,
 }: SeoParams) {
-  const pageUrl = getAbsoluteUrl(path, siteUrlEnv)
+  const pageUrl = getCanonicalAbsoluteUrl(path, siteUrlEnv)
   const imageUrl = resolveImageUrl(image)
 
   return [
@@ -77,12 +77,12 @@ export function seo({
 export function canonicalLink(path = '/') {
   return {
     rel: 'canonical',
-    href: getAbsoluteUrl(path, siteUrlEnv),
+    href: getCanonicalAbsoluteUrl(path, siteUrlEnv),
   }
 }
 
 export function getWebAppJsonLd() {
-  const siteUrl = getSiteUrl(siteUrlEnv)
+  const siteUrl = getCanonicalSiteUrl(siteUrlEnv)
 
   return {
     '@context': 'https://schema.org',
@@ -93,7 +93,7 @@ export function getWebAppJsonLd() {
       'A terminal-inspired prompt library for storing, searching, and reusing your best AI prompts.',
     applicationCategory: 'ProductivityApplication',
     operatingSystem: 'Any',
-    image: getSocialImageUrl(siteUrlEnv),
+    image: getCanonicalSocialImageUrl(siteUrlEnv),
     author: {
       '@type': 'Organization',
       name: SITE_AUTHOR,

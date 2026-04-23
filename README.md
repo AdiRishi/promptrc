@@ -32,6 +32,7 @@ This repo is configured to deploy the TanStack Start app to Cloudflare Workers t
 - `pnpm build` outputs the Worker bundle to `.output/server` and Nitro's deploy redirect config to `.output`.
 - `pnpm deploy` runs `wrangler` against that generated output, matching the pattern used in `~/personal/render-md`.
 - `preview_urls` is enabled so PR builds can upload non-production Worker versions and return preview links.
+- the generated Wrangler config publishes the production Worker to the `promptrc.app` and `www.promptrc.app` custom domains.
 
 ### Required env
 
@@ -43,10 +44,12 @@ Set `VITE_SITE_URL` to your real production origin before the first real deploy.
 - generated `robots.txt`
 - generated `sitemap.xml`
 
+Set it to the canonical apex host (`https://promptrc.app`). The shared SEO helpers normalize `www.promptrc.app` back to the apex URL for canonical tags and related metadata.
+
 Local example:
 
 ```bash
-VITE_SITE_URL=https://your-domain.com pnpm build
+VITE_SITE_URL=https://promptrc.app pnpm build
 ```
 
 ## GitHub Actions

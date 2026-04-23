@@ -13,6 +13,16 @@ export default defineNitroConfig({
         head_sampling_rate: 1,
       },
       preview_urls: true,
+      routes: [
+        {
+          pattern: 'promptrc.app',
+          custom_domain: true,
+        },
+        {
+          pattern: 'www.promptrc.app',
+          custom_domain: true,
+        },
+      ],
     },
   },
 })

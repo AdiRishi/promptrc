@@ -10,6 +10,7 @@ export const SITE_BACKGROUND_COLOR = '#0b0c0e'
 export const SITE_SOCIAL_IMAGE_PATH = '/og-preview.png'
 export const SITE_URL_ENV_KEY = 'VITE_SITE_URL'
 export const DEFAULT_SITE_URL = 'http://localhost:8080'
+export const CANONICAL_SITE_URL = 'https://promptrc.app'
 export const SITEMAP_EXCLUDED_PATHS = ['/design-inspiration']
 
 export function getSiteUrl(rawSiteUrl?: string | null) {
@@ -22,10 +23,36 @@ export function getSiteUrl(rawSiteUrl?: string | null) {
   return trimmedSiteUrl.replace(/\/+$/, '')
 }
 
+export function getCanonicalSiteUrl(rawSiteUrl?: string | null) {
+  const siteUrl = getSiteUrl(rawSiteUrl)
+
+  if (siteUrl === DEFAULT_SITE_URL) {
+    return siteUrl
+  }
+
+  const url = new URL(siteUrl)
+  const canonicalUrl = new URL(CANONICAL_SITE_URL)
+
+  if (url.hostname === canonicalUrl.hostname || url.hostname === `www.${canonicalUrl.hostname}`) {
+    url.protocol = canonicalUrl.protocol
+    url.hostname = canonicalUrl.hostname
+  }
+
+  return url.toString().replace(/\/$/, '')
+}
+
 export function getAbsoluteUrl(path = '/', rawSiteUrl?: string | null) {
   return new URL(path, `${getSiteUrl(rawSiteUrl)}/`).toString()
 }
 
+export function getCanonicalAbsoluteUrl(path = '/', rawSiteUrl?: string | null) {
+  return new URL(path, `${getCanonicalSiteUrl(rawSiteUrl)}/`).toString()
+}
+
 export function getSocialImageUrl(rawSiteUrl?: string | null) {
   return getAbsoluteUrl(SITE_SOCIAL_IMAGE_PATH, rawSiteUrl)
+}
+
+export function getCanonicalSocialImageUrl(rawSiteUrl?: string | null) {
+  return getCanonicalAbsoluteUrl(SITE_SOCIAL_IMAGE_PATH, rawSiteUrl)
 }
