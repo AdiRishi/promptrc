@@ -1,7 +1,15 @@
 import { createFileRoute } from '@tanstack/react-router'
 
 import { PromptLibraryApp } from '@/features/prompt-library/components/prompt-library-app'
-import { canonicalLink, getWebAppJsonLd, jsonLdScripts, seo } from '@/lib/seo'
+import {
+  canonicalLink,
+  getHomePageJsonLd,
+  getOrganizationJsonLd,
+  getWebAppJsonLd,
+  getWebsiteJsonLd,
+  jsonLdScripts,
+  seo,
+} from '@/lib/seo'
 import { SITE_DEFAULT_TITLE, SITE_DESCRIPTION, SITE_KEYWORDS } from '@/lib/site-config'
 
 export const Route = createFileRoute('/')({
@@ -14,7 +22,12 @@ export const Route = createFileRoute('/')({
       path: '/',
     }),
     links: [canonicalLink('/')],
-    scripts: jsonLdScripts(getWebAppJsonLd()),
+    scripts: jsonLdScripts([
+      getOrganizationJsonLd(),
+      getWebsiteJsonLd(),
+      getWebAppJsonLd(),
+      getHomePageJsonLd(),
+    ]),
   }),
 })
 

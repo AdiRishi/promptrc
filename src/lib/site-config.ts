@@ -7,10 +7,25 @@ export const SITE_KEYWORDS =
   'promptrc, prompt library, AI prompts, prompt manager, terminal UI, prompt workflow'
 export const SITE_THEME_COLOR = '#0b0c0e'
 export const SITE_BACKGROUND_COLOR = '#0b0c0e'
+export const SITE_IN_LANGUAGE = 'en'
+export const SITE_OG_LOCALE = 'en_AU'
 export const SITE_SOCIAL_IMAGE_PATH = '/og-preview.png'
+export const SITE_SOCIAL_IMAGE_ALT =
+  'promptrc interface showing a terminal-inspired AI prompt library with searchable prompts'
+export const SITE_LOGO_PATH = '/logo512.png'
 export const SITE_URL_ENV_KEY = 'VITE_SITE_URL'
 export const DEFAULT_SITE_URL = 'http://localhost:8080'
 export const CANONICAL_SITE_URL = 'https://promptrc.app'
+export const SITE_APPLICATION_CATEGORY = 'ProductivityApplication'
+export const SITE_BROWSER_REQUIREMENTS =
+  'Requires JavaScript and works in current evergreen desktop and mobile browsers.'
+export const SITE_FEATURE_LIST = [
+  'Store and organize your best AI prompts in one place',
+  'Search prompts instantly across titles, content, categories, and tags',
+  'Group prompts by category and tag for faster retrieval',
+  'Use a keyboard-first workflow for browsing, editing, and copying prompts',
+  'Keep your prompt library local-first with browser persistence',
+] as const
 export const SITEMAP_EXCLUDED_PATHS = ['/design-inspiration']
 
 export function getSiteUrl(rawSiteUrl?: string | null) {
@@ -55,4 +70,8 @@ export function getSocialImageUrl(rawSiteUrl?: string | null) {
 
 export function getCanonicalSocialImageUrl(rawSiteUrl?: string | null) {
   return getCanonicalAbsoluteUrl(SITE_SOCIAL_IMAGE_PATH, rawSiteUrl)
+}
+
+export function getCanonicalLogoUrl(rawSiteUrl?: string | null) {
+  return getCanonicalAbsoluteUrl(SITE_LOGO_PATH, rawSiteUrl)
 }

@@ -5,12 +5,12 @@ import viteReact from '@vitejs/plugin-react'
 import { nitro } from 'nitro/vite'
 import { defineConfig, loadEnv } from 'vite'
 
-import { SITEMAP_EXCLUDED_PATHS, getSiteUrl } from './src/lib/site-config'
+import { SITEMAP_EXCLUDED_PATHS, getCanonicalSiteUrl } from './src/lib/site-config'
 import { sitemapPlugin } from './src/lib/vite-sitemap-plugin'
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
-  const siteUrl = getSiteUrl(env.VITE_SITE_URL)
+  const siteUrl = getCanonicalSiteUrl(env.VITE_SITE_URL)
 
   return {
     resolve: {
