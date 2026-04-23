@@ -1,8 +1,25 @@
 import { type QueryClient } from '@tanstack/react-query'
-import { HeadContent, Scripts, createRootRouteWithContext } from '@tanstack/react-router'
+import {
+  ClientOnly,
+  HeadContent,
+  Scripts,
+  createRootRouteWithContext,
+} from '@tanstack/react-router'
 
 import appCss from '@/global-styles/tailwind.css?url'
 import { SITE_AUTHOR, SITE_THEME_COLOR } from '@/lib/site-config'
+
+const GA_ID = 'G-07N4HEE4SJ'
+
+// Render GA scripts only on client to avoid hydration mismatch
+function GoogleAnalytics() {
+  return (
+    <>
+      <script async src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`} />
+      <script async src="/ga-init.js" />
+    </>
+  )
+}
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
   head: () => ({
@@ -71,6 +88,9 @@ function RootDocument({ children }: { children: React.ReactNode }) {
     <html lang="en">
       <head>
         <HeadContent />
+        <ClientOnly fallback={null}>
+          <GoogleAnalytics />
+        </ClientOnly>
       </head>
       <body>
         {children}
