@@ -2,53 +2,55 @@ import { createStore } from 'zustand/vanilla'
 
 import { INITIAL_PROMPTS } from '@/features/prompt-library/lib/prompt-library-data'
 import {
-  EMPTY_PROMPT_DRAFT,
-  createPromptDraft,
-  createPromptInput,
-  generatePromptId,
-} from '@/features/prompt-library/lib/prompt-library-utils'
+  createInitialComposerState,
+  createPromptRecordFromDraft,
+  duplicatePromptRecord,
+  getExistingSelectedPromptId,
+  incrementPromptRecordUses,
+  updatePromptRecordFromDraft,
+  upsertPromptRecord,
+} from '@/features/prompt-library/lib/prompt-library-domain'
+import { createPromptDraft } from '@/features/prompt-library/lib/prompt-library-utils'
 import {
   type ComposerState,
   type PromptDraft,
+  type PromptLibraryPersistedSnapshot,
   type PromptRecord,
+  type PromptSyncMode,
+  type PromptSyncStatus,
 } from '@/features/prompt-library/types'
 
-type PromptLibraryStateShape = {
+type PromptCollectionState = {
   prompts: PromptRecord[]
+}
+
+type PromptWorkspaceState = {
   query: string
   selectedPromptId: string | null
   composer: ComposerState
   confirmDeleteId: string | null
+}
+
+type PromptSyncState = {
   hasHydrated: boolean
-  syncMode: 'local' | 'remote'
-  syncStatus: 'idle' | 'loading' | 'ready' | 'error'
+  syncMode: PromptSyncMode
+  syncStatus: PromptSyncStatus
   syncError: string | null
 }
 
-const createInitialComposerState = (): ComposerState => ({
-  mode: 'view',
-  draft: { ...EMPTY_PROMPT_DRAFT },
-})
+type PromptLibraryStateShape = PromptCollectionState & PromptWorkspaceState & PromptSyncState
 
 const createInitialState = (): PromptLibraryStateShape => ({
   prompts: INITIAL_PROMPTS,
   query: '',
   selectedPromptId: INITIAL_PROMPTS[0]?.id ?? null,
   composer: createInitialComposerState(),
-  confirmDeleteId: null as string | null,
+  confirmDeleteId: null,
   hasHydrated: false,
   syncMode: 'local',
   syncStatus: 'idle',
   syncError: null,
 })
-
-const getExistingSelectedPromptId = (prompts: PromptRecord[], selectedPromptId: string | null) => {
-  if (selectedPromptId && prompts.some((prompt) => prompt.id === selectedPromptId)) {
-    return selectedPromptId
-  }
-
-  return prompts[0]?.id ?? null
-}
 
 type SaveComposerResult =
   | { status: 'created' | 'updated'; prompt: PromptRecord }
@@ -57,8 +59,8 @@ type SaveComposerResult =
 export type PromptLibraryState = PromptLibraryStateShape
 
 export type PromptLibraryActions = {
-  finishHydration: () => void
   restoreLocalState: (persistedState: PromptLibraryPersistedSnapshot | null) => void
+  replacePrompt: (prompt: PromptRecord) => void
   replacePrompts: (prompts: PromptRecord[]) => void
   setSyncState: (
     syncState: Partial<Pick<PromptLibraryState, 'syncMode' | 'syncStatus' | 'syncError'>>,
@@ -85,21 +87,10 @@ export type PromptLibraryStore = PromptLibraryState & {
   actions: PromptLibraryActions
 }
 
-type PromptLibraryPersistedState = Pick<
-  PromptLibraryState,
-  'prompts' | 'query' | 'selectedPromptId' | 'composer'
->
-
 export const createPromptLibraryStore = () => {
   return createStore<PromptLibraryStore>()((set, get) => ({
     ...createInitialState(),
     actions: {
-      finishHydration: () => {
-        set((state) => ({
-          hasHydrated: true,
-          selectedPromptId: getExistingSelectedPromptId(state.prompts, state.selectedPromptId),
-        }))
-      },
       restoreLocalState: (persistedState) => {
         set((state) => {
           const prompts = persistedState?.prompts ?? state.prompts
@@ -115,6 +106,16 @@ export const createPromptLibraryStore = () => {
             composer: persistedState?.composer ?? state.composer,
             confirmDeleteId: null,
             hasHydrated: true,
+          }
+        })
+      },
+      replacePrompt: (replacementPrompt) => {
+        set((state) => {
+          const prompts = upsertPromptRecord(state.prompts, replacementPrompt)
+
+          return {
+            prompts,
+            selectedPromptId: getExistingSelectedPromptId(prompts, state.selectedPromptId),
           }
         })
       },
@@ -149,7 +150,7 @@ export const createPromptLibraryStore = () => {
         set({
           composer: {
             mode: 'new',
-            draft: { ...EMPTY_PROMPT_DRAFT },
+            draft: createInitialComposerState().draft,
           },
           confirmDeleteId: null,
         })
@@ -189,27 +190,16 @@ export const createPromptLibraryStore = () => {
       },
       saveComposer: () => {
         const state = get()
-        const promptInput = createPromptInput(state.composer.draft)
 
         if (state.composer.mode === 'view') {
           return { status: 'idle' }
         }
 
-        if (!promptInput.title || !promptInput.body) {
-          return { status: 'invalid' }
-        }
-
         if (state.composer.mode === 'new') {
-          const now = new Date().toISOString()
-          const createdPrompt: PromptRecord = {
-            id: generatePromptId(),
-            title: promptInput.title,
-            body: promptInput.body,
-            category: promptInput.category || 'Personal',
-            tags: promptInput.tags,
-            createdAt: now,
-            updatedAt: now,
-            uses: 0,
+          const createdPrompt = createPromptRecordFromDraft(state.composer.draft)
+
+          if (!createdPrompt) {
+            return { status: 'invalid' }
           }
 
           set((currentState) => ({
@@ -228,13 +218,10 @@ export const createPromptLibraryStore = () => {
           return { status: 'invalid' }
         }
 
-        const updatedPrompt: PromptRecord = {
-          ...promptToUpdate,
-          title: promptInput.title,
-          body: promptInput.body,
-          category: promptInput.category || promptToUpdate.category,
-          tags: promptInput.tags,
-          updatedAt: new Date().toISOString(),
+        const updatedPrompt = updatePromptRecordFromDraft(promptToUpdate, state.composer.draft)
+
+        if (!updatedPrompt) {
+          return { status: 'invalid' }
         }
 
         set((currentState) => ({
@@ -255,15 +242,7 @@ export const createPromptLibraryStore = () => {
           return null
         }
 
-        const now = new Date().toISOString()
-        const duplicatePrompt: PromptRecord = {
-          ...sourcePrompt,
-          id: generatePromptId(),
-          title: `${sourcePrompt.title} (copy)`,
-          createdAt: now,
-          updatedAt: now,
-          uses: 0,
-        }
+        const duplicatePrompt = duplicatePromptRecord(sourcePrompt)
 
         set((state) => ({
           prompts: [duplicatePrompt, ...state.prompts],
@@ -303,9 +282,7 @@ export const createPromptLibraryStore = () => {
       },
       incrementUses: (promptId) => {
         set((state) => ({
-          prompts: state.prompts.map((prompt) =>
-            prompt.id === promptId ? { ...prompt, uses: prompt.uses + 1 } : prompt,
-          ),
+          prompts: incrementPromptRecordUses(state.prompts, promptId),
         }))
       },
     },
@@ -313,8 +290,6 @@ export const createPromptLibraryStore = () => {
 }
 
 export type PromptLibraryStoreApi = ReturnType<typeof createPromptLibraryStore>
-
-export type PromptLibraryPersistedSnapshot = PromptLibraryPersistedState
 
 export const getPromptLibraryPersistedSnapshot = (
   state: PromptLibraryStore,

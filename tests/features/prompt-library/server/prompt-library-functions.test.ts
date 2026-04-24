@@ -96,13 +96,17 @@ describe('prompt library server persistence', () => {
   it('increments and deletes prompts only for the owning Clerk user', async () => {
     await upsertPromptForUser(env.DB, 'user_a', createPrompt())
 
-    await incrementPromptUsesForUser(env.DB, 'user_b', 'prompt-alpha')
+    await expect(incrementPromptUsesForUser(env.DB, 'user_b', 'prompt-alpha')).rejects.toThrow(
+      'Prompt not found',
+    )
     expect((await listPromptsForUser(env.DB, 'user_a'))[0]?.uses).toBe(0)
 
-    await incrementPromptUsesForUser(env.DB, 'user_a', 'prompt-alpha')
-    expect((await listPromptsForUser(env.DB, 'user_a'))[0]?.uses).toBe(1)
+    const updatedPrompt = await incrementPromptUsesForUser(env.DB, 'user_a', 'prompt-alpha')
+    expect(updatedPrompt.uses).toBe(1)
 
-    await deletePromptForUser(env.DB, 'user_b', 'prompt-alpha')
+    await expect(deletePromptForUser(env.DB, 'user_b', 'prompt-alpha')).rejects.toThrow(
+      'Prompt not found',
+    )
     expect(await listPromptsForUser(env.DB, 'user_a')).toHaveLength(1)
 
     await deletePromptForUser(env.DB, 'user_a', 'prompt-alpha')

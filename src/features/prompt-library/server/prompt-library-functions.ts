@@ -1,6 +1,10 @@
 import { auth } from '@clerk/tanstack-react-start/server'
 import { createServerFn } from '@tanstack/react-start'
 
+import {
+  assertPromptId,
+  assertPromptRecord,
+} from '@/features/prompt-library/lib/prompt-library-validation'
 import { type PromptRecord } from '@/features/prompt-library/types'
 
 type PromptRow = {
@@ -14,55 +18,7 @@ type PromptRow = {
   uses: number
 }
 
-const assertString = (value: unknown, fieldName: string) => {
-  if (typeof value !== 'string') {
-    throw new Error(`${fieldName} must be a string`)
-  }
-
-  return value
-}
-
-const assertStringArray = (value: unknown, fieldName: string) => {
-  if (!Array.isArray(value) || value.some((item) => typeof item !== 'string')) {
-    throw new Error(`${fieldName} must be a string array`)
-  }
-
-  return value
-}
-
-const assertPromptRecord = (value: unknown): PromptRecord => {
-  if (!value || typeof value !== 'object') {
-    throw new Error('prompt must be an object')
-  }
-
-  const prompt = value as Record<string, unknown>
-  const uses = prompt.uses
-
-  if (typeof uses !== 'number' || !Number.isInteger(uses) || uses < 0) {
-    throw new Error('uses must be a non-negative integer')
-  }
-
-  return {
-    id: assertString(prompt.id, 'id'),
-    title: assertString(prompt.title, 'title'),
-    body: assertString(prompt.body, 'body'),
-    category: assertString(prompt.category, 'category'),
-    tags: assertStringArray(prompt.tags, 'tags'),
-    createdAt: assertString(prompt.createdAt, 'createdAt'),
-    updatedAt: assertString(prompt.updatedAt, 'updatedAt'),
-    uses,
-  }
-}
-
-const assertPromptId = (value: unknown) => {
-  const promptId = assertString(value, 'promptId').trim()
-
-  if (!promptId) {
-    throw new Error('promptId is required')
-  }
-
-  return promptId
-}
+const PROMPT_COLUMNS = 'id, title, body, category, tags_json, created_at, updated_at, uses'
 
 const getDatabase = async () => {
   const { env } = await import('cloudflare:workers')
@@ -115,7 +71,7 @@ export const listPromptsForUser = async (
   const { results } = await db
     .prepare(
       `
-        SELECT id, title, body, category, tags_json, created_at, updated_at, uses
+        SELECT ${PROMPT_COLUMNS}
         FROM prompts
         WHERE ext_user_id = ?
         ORDER BY updated_at DESC
@@ -125,6 +81,24 @@ export const listPromptsForUser = async (
     .all<PromptRow>()
 
   return results.map(rowToPrompt)
+}
+
+const findPromptForUser = async (db: D1Database, extUserId: string, promptId: string) => {
+  const { results } = await db
+    .prepare(
+      `
+        SELECT ${PROMPT_COLUMNS}
+        FROM prompts
+        WHERE ext_user_id = ? AND id = ?
+        LIMIT 1
+      `,
+    )
+    .bind(extUserId, promptId)
+    .all<PromptRow>()
+
+  const row = results[0]
+
+  return row ? rowToPrompt(row) : null
 }
 
 export const upsertPromptForUser = async (
@@ -178,10 +152,14 @@ export const upsertPromptForUser = async (
 }
 
 export const deletePromptForUser = async (db: D1Database, extUserId: string, promptId: string) => {
-  await db
+  const result = await db
     .prepare('DELETE FROM prompts WHERE ext_user_id = ? AND id = ?')
     .bind(extUserId, promptId)
     .run()
+
+  if (result.meta.changes === 0) {
+    throw new Error('Prompt not found')
+  }
 
   return { promptId }
 }
@@ -191,7 +169,7 @@ export const incrementPromptUsesForUser = async (
   extUserId: string,
   promptId: string,
 ) => {
-  await db
+  const result = await db
     .prepare(
       `
         UPDATE prompts
@@ -203,7 +181,17 @@ export const incrementPromptUsesForUser = async (
     .bind(new Date().toISOString(), extUserId, promptId)
     .run()
 
-  return { promptId }
+  if (result.meta.changes === 0) {
+    throw new Error('Prompt not found')
+  }
+
+  const prompt = await findPromptForUser(db, extUserId, promptId)
+
+  if (!prompt) {
+    throw new Error('Prompt not found')
+  }
+
+  return prompt
 }
 
 export const listRemotePrompts = createServerFn({ method: 'GET' }).handler(async () => {
