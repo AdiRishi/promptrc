@@ -10,7 +10,7 @@
     "preview": "vite preview",
     "deploy": "wrangler --cwd .output deploy",
     "deploy:dry-run": "wrangler --cwd .output deploy --dry-run",
-    "test": "vitest run",
+    "test": "vitest run tests",
     "typecheck": "pnpm cf-typegen && tsc --noEmit && tsc --project tests/tsconfig.json --noEmit",
     "lint": "eslint",
     "format": "prettier --write .",

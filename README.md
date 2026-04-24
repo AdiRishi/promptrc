@@ -19,7 +19,7 @@ best AI prompts — keyboard-first, local-first, and completely yours.
 - ⌨️ **Keyboard-First Workflow** — Navigate, edit, copy, and delete prompts without ever touching the mouse
 - 🔍 **Instant Search** — Fuzzy-match across titles, bodies, categories, and tags as you type
 - 🗂️ **Categories & Tags** — Group prompts however you think — by domain, model, project, or mood
-- 💾 **Local-First Storage** — Your prompts live in your browser. No accounts, no sync, no servers reading your work
+- 💾 **Local-First Storage** — Use the app signed out with browser storage, or sign in for cloud-backed sync
 - 🖥️ **Terminal Aesthetic** — A three-pane TUI feel with `~/.promptrc` chrome, monospace type, and traffic-light dots
 - 🪶 **Zero Lock-In** — Markdown bodies, plain JSON in `localStorage`, easy to export and walk away with
 
@@ -75,11 +75,12 @@ at any time to bring up the in-app cheatsheet.
 promptrc is intentionally simple under the hood:
 
 - **Prompts** are stored as plain objects (`id`, `title`, `body`, `category`, `tags`, timestamps, `uses` counter)
-- **State** is managed with [Zustand](https://github.com/pmndrs/zustand) and persisted to `localStorage` under the key `promptrc.library.v1`
+- **State** is managed with [Zustand](https://github.com/pmndrs/zustand), with prompt mutations funneled through a storage client that hides local vs remote persistence
+- **Storage** uses `localStorage` under the key `promptrc.library.v1` while signed out, and Clerk-authenticated Cloudflare D1 persistence while signed in
 - **Search** is a synchronous filter over the in-memory list, deferred via `useDeferredValue` so typing stays buttery on large libraries
 - **Rendering** happens on the edge — TanStack Start serves SSR HTML from a Cloudflare Worker, then hydrates the React tree on the client
 
-There is no backend, no auth, no telemetry beyond opt-out Google Analytics page views. Clearing your browser storage clears your library — back things up if they matter.
+Signed-out usage stays local to the browser. Signed-in usage stores prompts per Clerk user in D1 so the library can sync across devices.
 
 ---
 
@@ -92,7 +93,9 @@ There is no backend, no auth, no telemetry beyond opt-out Google Analytics page 
 | **Build Tool**    | [Vite 8](https://vite.dev)                                                                    |
 | **Styling**       | [Tailwind CSS 4](https://tailwindcss.com)                                                     |
 | **Components**    | [shadcn/ui](https://ui.shadcn.com) primitives + [Base UI](https://base-ui.com)                |
-| **State**         | [Zustand](https://github.com/pmndrs/zustand) with `persist` middleware (localStorage)         |
+| **Auth**          | [Clerk](https://clerk.com)                                                                    |
+| **State**         | [Zustand](https://github.com/pmndrs/zustand)                                                  |
+| **Storage**       | Browser `localStorage` + Cloudflare D1                                                        |
 | **Data Fetching** | [TanStack Query](https://tanstack.com/query) + [TanStack Router](https://tanstack.com/router) |
 | **Notifications** | [Sonner](https://sonner.emilkowal.ski)                                                        |
 | **Typography**    | [Inter](https://rsms.me/inter/) (Sans) + [JetBrains Mono](https://www.jetbrains.com/lp/mono/) |
@@ -111,7 +114,7 @@ There is no backend, no auth, no telemetry beyond opt-out Google Analytics page 
 | `pnpm dev`            | Start dev server on port 8080        |
 | `pnpm build`          | Build for production                 |
 | `pnpm preview`        | Preview the production build locally |
-| `pnpm test`           | Run tests with Vitest                |
+| `pnpm test`           | Run the tests under `tests/`         |
 | `pnpm typecheck`      | Type-check with `tsc --noEmit`       |
 | `pnpm lint`           | Run ESLint                           |
 | `pnpm format`         | Format with Prettier                 |
@@ -137,6 +140,8 @@ src/
 │   └── prompt-library/      # The whole app, isolated as one feature
 │       ├── components/      # App shell, tree, workspace, help overlay
 │       ├── lib/             # Pure utilities and seed data
+│       ├── server/          # D1-backed server functions
+│       ├── storage/         # Local/remote storage adapters and client facade
 │       ├── store/           # Zustand store + tests
 │       └── types.ts         # Domain types (PromptRecord, ComposerState, ...)
 ├── lib/                     # Site-wide config (metadata, URLs)

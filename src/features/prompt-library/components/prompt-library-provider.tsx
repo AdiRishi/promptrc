@@ -1,26 +1,17 @@
 import { useAuth } from '@clerk/tanstack-react-start'
-import {
-  type PropsWithChildren,
-  createContext,
-  use,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react'
+import { type PropsWithChildren, createContext, use, useMemo, useRef, useState } from 'react'
 import { useStore } from 'zustand'
 
 import {
   type PromptLibraryClient,
-  applyHydrationResult,
   createPromptLibraryClient,
 } from '@/features/prompt-library/storage/prompt-library-client'
+import { usePromptLibraryHydration } from '@/features/prompt-library/storage/use-prompt-library-hydration'
 import { usePromptLibraryStorage } from '@/features/prompt-library/storage/use-prompt-library-storage'
 import {
   type PromptLibraryStore,
   type PromptLibraryStoreApi,
   createPromptLibraryStore,
-  getPromptLibraryPersistedSnapshot,
 } from '@/features/prompt-library/store/prompt-library-store'
 
 type PromptLibraryMeta = {
@@ -54,69 +45,7 @@ export function PromptLibraryProvider({ children }: PropsWithChildren) {
   const titleInputRef = useRef<HTMLInputElement | null>(null)
 
   const library = useMemo(() => createPromptLibraryClient(storage, store), [storage, store])
-
-  useEffect(() => {
-    if (!isLoaded) {
-      return
-    }
-
-    let isActive = true
-    let unsubscribe: (() => void) | undefined
-    store.getState().actions.setSyncState({ syncMode: storage.mode, syncStatus: 'loading' })
-
-    void storage
-      .hydrate()
-      .then((hydrationResult) => {
-        if (isActive) {
-          applyHydrationResult(store, hydrationResult)
-
-          let didPersistLocalSnapshot = true
-
-          if (storage.mode === 'local') {
-            const persistSnapshot = (state: PromptLibraryStore) => {
-              try {
-                storage.persistSnapshot(getPromptLibraryPersistedSnapshot(state))
-              } catch (error) {
-                didPersistLocalSnapshot = false
-
-                const message = storage.reportError(error)
-                store.getState().actions.setSyncState({
-                  syncMode: storage.mode,
-                  syncStatus: 'error',
-                  syncError: message,
-                })
-              }
-            }
-
-            persistSnapshot(store.getState())
-            unsubscribe = store.subscribe(persistSnapshot)
-          }
-
-          if (!didPersistLocalSnapshot) {
-            return
-          }
-
-          store.getState().actions.setSyncState({ syncMode: storage.mode, syncStatus: 'ready' })
-        }
-      })
-      .catch((error: unknown) => {
-        if (!isActive) {
-          return
-        }
-
-        const message = storage.reportError(error)
-        store.getState().actions.setSyncState({
-          syncMode: storage.mode,
-          syncStatus: 'error',
-          syncError: message,
-        })
-      })
-
-    return () => {
-      isActive = false
-      unsubscribe?.()
-    }
-  }, [isLoaded, storage, store])
+  usePromptLibraryHydration({ isLoaded, storage, store })
 
   const value = useMemo<PromptLibraryContextValue>(
     () => ({

@@ -1,6 +1,6 @@
 import { useQueryClient } from '@tanstack/react-query'
 import { useServerFn } from '@tanstack/react-start'
-import { useMemo } from 'react'
+import { useCallback, useMemo } from 'react'
 
 import {
   deleteRemotePrompt,
@@ -12,13 +12,6 @@ import {
   type RemotePromptLibraryStorage,
   normalizeStorageError,
 } from '@/features/prompt-library/storage/prompt-library-storage'
-import { type PromptRecord } from '@/features/prompt-library/types'
-
-const sortPromptsByUpdatedAtDesc = (prompts: PromptRecord[]) => {
-  return [...prompts].sort(
-    (left, right) => new Date(right.updatedAt).getTime() - new Date(left.updatedAt).getTime(),
-  )
-}
 
 const getPromptLibraryQueryKey = (userId: string | null) =>
   ['prompt-library', 'prompts', userId ?? 'signed-out'] as const
@@ -30,15 +23,17 @@ export function useRemotePromptLibraryStorage(userId: string | null): RemoteProm
   const removePrompt = useServerFn(deleteRemotePrompt)
   const incrementPromptUses = useServerFn(incrementRemotePromptUses)
   const queryKey = useMemo(() => getPromptLibraryQueryKey(userId), [userId])
+  const invalidatePrompts = useCallback(
+    () => queryClient.invalidateQueries({ queryKey }),
+    [queryClient, queryKey],
+  )
 
   return useMemo<RemotePromptLibraryStorage>(
     () => ({
       mode: 'remote',
       deletePrompt: async (promptId) => {
         await removePrompt({ data: promptId })
-        queryClient.setQueryData<PromptRecord[]>(queryKey, (prompts = []) =>
-          prompts.filter((prompt) => prompt.id !== promptId),
-        )
+        await invalidatePrompts()
       },
       hydrate: async () => ({
         source: 'remote',
@@ -49,27 +44,28 @@ export function useRemotePromptLibraryStorage(userId: string | null): RemoteProm
       }),
       incrementUses: async (promptId) => {
         const updatedPrompt = await incrementPromptUses({ data: promptId })
-        queryClient.setQueryData<PromptRecord[]>(queryKey, (prompts = []) =>
-          sortPromptsByUpdatedAtDesc(
-            prompts.map((prompt) => (prompt.id === updatedPrompt.id ? updatedPrompt : prompt)),
-          ),
-        )
+
+        await invalidatePrompts()
 
         return updatedPrompt
       },
       reportError: normalizeStorageError,
       savePrompt: async (prompt) => {
         const savedPrompt = await upsertPrompt({ data: prompt })
-        queryClient.setQueryData<PromptRecord[]>(queryKey, (prompts = []) =>
-          sortPromptsByUpdatedAtDesc([
-            savedPrompt,
-            ...prompts.filter((existingPrompt) => existingPrompt.id !== savedPrompt.id),
-          ]),
-        )
+
+        await invalidatePrompts()
 
         return savedPrompt
       },
     }),
-    [incrementPromptUses, listPrompts, queryClient, queryKey, removePrompt, upsertPrompt],
+    [
+      incrementPromptUses,
+      invalidatePrompts,
+      listPrompts,
+      queryClient,
+      queryKey,
+      removePrompt,
+      upsertPrompt,
+    ],
   )
 }
