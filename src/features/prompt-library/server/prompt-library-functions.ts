@@ -108,9 +108,10 @@ const rowToPrompt = (row: PromptRow): PromptRecord => {
   }
 }
 
-export const listRemotePrompts = createServerFn({ method: 'GET' }).handler(async () => {
-  const extUserId = await requireUserId()
-  const db = await getDatabase()
+export const listPromptsForUser = async (
+  db: D1Database,
+  extUserId: string,
+): Promise<PromptRecord[]> => {
   const { results } = await db
     .prepare(
       `
@@ -124,6 +125,92 @@ export const listRemotePrompts = createServerFn({ method: 'GET' }).handler(async
     .all<PromptRow>()
 
   return results.map(rowToPrompt)
+}
+
+export const upsertPromptForUser = async (
+  db: D1Database,
+  extUserId: string,
+  prompt: PromptRecord,
+) => {
+  const result = await db
+    .prepare(
+      `
+        INSERT INTO prompts (
+          ext_user_id,
+          id,
+          title,
+          body,
+          category,
+          tags_json,
+          created_at,
+          updated_at,
+          uses
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT(id) DO UPDATE SET
+          title = excluded.title,
+          body = excluded.body,
+          category = excluded.category,
+          tags_json = excluded.tags_json,
+          updated_at = excluded.updated_at,
+          uses = excluded.uses
+        WHERE prompts.ext_user_id = excluded.ext_user_id
+      `,
+    )
+    .bind(
+      extUserId,
+      prompt.id,
+      prompt.title,
+      prompt.body,
+      prompt.category,
+      JSON.stringify(prompt.tags),
+      prompt.createdAt,
+      prompt.updatedAt,
+      prompt.uses,
+    )
+    .run()
+
+  if (result.meta.changes === 0) {
+    throw new Error('Prompt id already exists')
+  }
+
+  return prompt
+}
+
+export const deletePromptForUser = async (db: D1Database, extUserId: string, promptId: string) => {
+  await db
+    .prepare('DELETE FROM prompts WHERE ext_user_id = ? AND id = ?')
+    .bind(extUserId, promptId)
+    .run()
+
+  return { promptId }
+}
+
+export const incrementPromptUsesForUser = async (
+  db: D1Database,
+  extUserId: string,
+  promptId: string,
+) => {
+  await db
+    .prepare(
+      `
+        UPDATE prompts
+        SET uses = uses + 1,
+            updated_at = ?
+        WHERE ext_user_id = ? AND id = ?
+      `,
+    )
+    .bind(new Date().toISOString(), extUserId, promptId)
+    .run()
+
+  return { promptId }
+}
+
+export const listRemotePrompts = createServerFn({ method: 'GET' }).handler(async () => {
+  const extUserId = await requireUserId()
+  const db = await getDatabase()
+
+  return listPromptsForUser(db, extUserId)
 })
 
 export const upsertRemotePrompt = createServerFn({ method: 'POST' })
@@ -132,49 +219,7 @@ export const upsertRemotePrompt = createServerFn({ method: 'POST' })
     const extUserId = await requireUserId()
     const db = await getDatabase()
 
-    const result = await db
-      .prepare(
-        `
-          INSERT INTO prompts (
-            ext_user_id,
-            id,
-            title,
-            body,
-            category,
-            tags_json,
-            created_at,
-            updated_at,
-            uses
-          )
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-          ON CONFLICT(id) DO UPDATE SET
-            title = excluded.title,
-            body = excluded.body,
-            category = excluded.category,
-            tags_json = excluded.tags_json,
-            updated_at = excluded.updated_at,
-            uses = excluded.uses
-          WHERE prompts.ext_user_id = excluded.ext_user_id
-        `,
-      )
-      .bind(
-        extUserId,
-        prompt.id,
-        prompt.title,
-        prompt.body,
-        prompt.category,
-        JSON.stringify(prompt.tags),
-        prompt.createdAt,
-        prompt.updatedAt,
-        prompt.uses,
-      )
-      .run()
-
-    if (result.meta.changes === 0) {
-      throw new Error('Prompt id already exists')
-    }
-
-    return prompt
+    return upsertPromptForUser(db, extUserId, prompt)
   })
 
 export const deleteRemotePrompt = createServerFn({ method: 'POST' })
@@ -183,12 +228,7 @@ export const deleteRemotePrompt = createServerFn({ method: 'POST' })
     const extUserId = await requireUserId()
     const db = await getDatabase()
 
-    await db
-      .prepare('DELETE FROM prompts WHERE ext_user_id = ? AND id = ?')
-      .bind(extUserId, promptId)
-      .run()
-
-    return { promptId }
+    return deletePromptForUser(db, extUserId, promptId)
   })
 
 export const incrementRemotePromptUses = createServerFn({ method: 'POST' })
@@ -197,17 +237,5 @@ export const incrementRemotePromptUses = createServerFn({ method: 'POST' })
     const extUserId = await requireUserId()
     const db = await getDatabase()
 
-    await db
-      .prepare(
-        `
-          UPDATE prompts
-          SET uses = uses + 1,
-              updated_at = ?
-          WHERE ext_user_id = ? AND id = ?
-        `,
-      )
-      .bind(new Date().toISOString(), extUserId, promptId)
-      .run()
-
-    return { promptId }
+    return incrementPromptUsesForUser(db, extUserId, promptId)
   })
