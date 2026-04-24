@@ -1,0 +1,35 @@
+version = 1
+name = "promptrc"
+
+[setup]
+script = "corepack enable && pnpm install --frozen-lockfile"
+
+[[actions]]
+name = "Run"
+icon = "run"
+command = "pnpm dev"
+
+[[actions]]
+name = "Build"
+icon = "build"
+command = "pnpm build"
+
+[[actions]]
+name = "Test"
+icon = "test"
+command = "pnpm test"
+
+[[actions]]
+name = "Typecheck"
+icon = "check"
+command = "pnpm typecheck"
+
+[[actions]]
+name = "Lint"
+icon = "check"
+command = "pnpm lint"
+
+[[actions]]
+name = "Preview"
+icon = "run"
+command = "pnpm preview"
