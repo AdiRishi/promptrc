@@ -4,9 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "clean": "rm -rf .output .wrangler .tanstack",
     "dev": "vite dev --port 8080",
-    "dev:web": "vite dev --port 8080",
     "build": "vite build",
     "cf-typegen": "pnpm build && wrangler types worker-configuration.d.ts --config .output/server/wrangler.json",
     "preview": "vite preview",
@@ -16,7 +14,8 @@
     "typecheck": "pnpm cf-typegen && tsc --noEmit",
     "lint": "eslint",
     "format": "prettier --write .",
-    "check": "prettier --write . && eslint --fix"
+    "format:check": "prettier --check .",
+    "check": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm deploy:dry-run"
   },
   "dependencies": {
     "@base-ui/react": "^1.4.1",
