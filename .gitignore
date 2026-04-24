@@ -12,3 +12,6 @@ count.txt
 .vinxi
 public/sitemap.xml
 todos.json
+
+# clerk configuration (can include secrets)
+/.clerk/

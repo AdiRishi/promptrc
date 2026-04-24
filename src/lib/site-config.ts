@@ -16,6 +16,7 @@ export const SITE_LOGO_PATH = '/logo512.png'
 export const SITE_URL_ENV_KEY = 'VITE_SITE_URL'
 export const DEFAULT_SITE_URL = 'http://localhost:8080'
 export const CANONICAL_SITE_URL = 'https://promptrc.app'
+export const SITE_GITHUB_URL = 'https://github.com/AdiRishi/promptrc'
 export const SITE_APPLICATION_CATEGORY = 'ProductivityApplication'
 export const SITE_BROWSER_REQUIREMENTS =
   'Requires JavaScript and works in current evergreen desktop and mobile browsers.'
