@@ -90,9 +90,6 @@ importers:
         specifier: ^5.0.12
         version: 5.0.12(@types/react@19.2.14)(react@19.2.5)(use-sync-external-store@1.6.0(react@19.2.5))
     devDependencies:
-      '@cloudflare/workers-types':
-        specifier: ^4.20260424.1
-        version: 4.20260424.1
       '@tanstack/devtools-vite':
         specifier: ^0.6.0
         version: 0.6.0(bufferutil@4.1.0)(utf-8-validate@6.0.6)(vite@8.0.9(@types/node@25.6.0)(esbuild@0.27.7)(jiti@2.6.1)(terser@5.46.2)(tsx@4.21.0)(yaml@2.8.3))
@@ -5750,7 +5747,8 @@ snapshots:
   '@cloudflare/workerd-windows-64@1.20260421.1':
     optional: true
 
-  '@cloudflare/workers-types@4.20260424.1': {}
+  '@cloudflare/workers-types@4.20260424.1':
+    optional: true
 
   '@cspotcode/source-map-support@0.8.1':
     dependencies:

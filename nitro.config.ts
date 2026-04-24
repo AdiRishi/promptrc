@@ -8,6 +8,14 @@ export default defineNitroConfig({
     nodeCompat: true,
     wrangler: {
       name: 'promptrc',
+      d1_databases: [
+        {
+          binding: 'DB',
+          database_name: 'promptrc',
+          database_id: 'ebb333ba-49ff-438b-988e-a4180447b48c',
+          migrations_dir: '../../migrations',
+        },
+      ],
       observability: {
         enabled: true,
         head_sampling_rate: 1,

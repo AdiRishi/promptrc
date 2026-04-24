@@ -1,5 +1,5 @@
 CREATE TABLE IF NOT EXISTS prompts (
-  user_id TEXT NOT NULL,
+  ext_user_id TEXT NOT NULL,
   id TEXT NOT NULL,
   title TEXT NOT NULL,
   body TEXT NOT NULL,
@@ -8,8 +8,8 @@ CREATE TABLE IF NOT EXISTS prompts (
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL,
   uses INTEGER NOT NULL DEFAULT 0,
-  PRIMARY KEY (user_id, id)
+  PRIMARY KEY (id)
 );
 
 CREATE INDEX IF NOT EXISTS idx_prompts_user_updated_at
-ON prompts (user_id, updated_at DESC);
+ON prompts (ext_user_id, updated_at DESC);

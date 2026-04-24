@@ -8,11 +8,12 @@
     "dev": "vite dev --port 8080",
     "dev:web": "vite dev --port 8080",
     "build": "vite build",
+    "cf-typegen": "pnpm build && wrangler types worker-configuration.d.ts --config .output/server/wrangler.json",
     "preview": "vite preview",
     "deploy": "wrangler --cwd .output deploy",
     "deploy:dry-run": "wrangler --cwd .output deploy --dry-run",
     "test": "vitest run",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "pnpm cf-typegen && tsc --noEmit",
     "lint": "eslint",
     "format": "prettier --write .",
     "check": "prettier --write . && eslint --fix"
@@ -47,7 +48,6 @@
     "zustand": "^5.0.12"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^4.20260424.1",
     "@tanstack/devtools-vite": "^0.6.0",
     "@tanstack/eslint-config": "^0.4.0",
     "@testing-library/dom": "^10.4.1",

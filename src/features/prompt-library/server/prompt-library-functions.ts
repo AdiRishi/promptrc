@@ -109,18 +109,18 @@ const rowToPrompt = (row: PromptRow): PromptRecord => {
 }
 
 export const listRemotePrompts = createServerFn({ method: 'GET' }).handler(async () => {
-  const userId = await requireUserId()
+  const extUserId = await requireUserId()
   const db = await getDatabase()
   const { results } = await db
     .prepare(
       `
         SELECT id, title, body, category, tags_json, created_at, updated_at, uses
         FROM prompts
-        WHERE user_id = ?
+        WHERE ext_user_id = ?
         ORDER BY updated_at DESC
       `,
     )
-    .bind(userId)
+    .bind(extUserId)
     .all<PromptRow>()
 
   return results.map(rowToPrompt)
@@ -129,14 +129,14 @@ export const listRemotePrompts = createServerFn({ method: 'GET' }).handler(async
 export const upsertRemotePrompt = createServerFn({ method: 'POST' })
   .inputValidator(assertPromptRecord)
   .handler(async ({ data: prompt }) => {
-    const userId = await requireUserId()
+    const extUserId = await requireUserId()
     const db = await getDatabase()
 
-    await db
+    const result = await db
       .prepare(
         `
           INSERT INTO prompts (
-            user_id,
+            ext_user_id,
             id,
             title,
             body,
@@ -147,17 +147,18 @@ export const upsertRemotePrompt = createServerFn({ method: 'POST' })
             uses
           )
           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-          ON CONFLICT(user_id, id) DO UPDATE SET
+          ON CONFLICT(id) DO UPDATE SET
             title = excluded.title,
             body = excluded.body,
             category = excluded.category,
             tags_json = excluded.tags_json,
             updated_at = excluded.updated_at,
             uses = excluded.uses
+          WHERE prompts.ext_user_id = excluded.ext_user_id
         `,
       )
       .bind(
-        userId,
+        extUserId,
         prompt.id,
         prompt.title,
         prompt.body,
@@ -169,18 +170,22 @@ export const upsertRemotePrompt = createServerFn({ method: 'POST' })
       )
       .run()
 
+    if (result.meta.changes === 0) {
+      throw new Error('Prompt id already exists')
+    }
+
     return prompt
   })
 
 export const deleteRemotePrompt = createServerFn({ method: 'POST' })
   .inputValidator(assertPromptId)
   .handler(async ({ data: promptId }) => {
-    const userId = await requireUserId()
+    const extUserId = await requireUserId()
     const db = await getDatabase()
 
     await db
-      .prepare('DELETE FROM prompts WHERE user_id = ? AND id = ?')
-      .bind(userId, promptId)
+      .prepare('DELETE FROM prompts WHERE ext_user_id = ? AND id = ?')
+      .bind(extUserId, promptId)
       .run()
 
     return { promptId }
@@ -189,7 +194,7 @@ export const deleteRemotePrompt = createServerFn({ method: 'POST' })
 export const incrementRemotePromptUses = createServerFn({ method: 'POST' })
   .inputValidator(assertPromptId)
   .handler(async ({ data: promptId }) => {
-    const userId = await requireUserId()
+    const extUserId = await requireUserId()
     const db = await getDatabase()
 
     await db
@@ -198,10 +203,10 @@ export const incrementRemotePromptUses = createServerFn({ method: 'POST' })
           UPDATE prompts
           SET uses = uses + 1,
               updated_at = ?
-          WHERE user_id = ? AND id = ?
+          WHERE ext_user_id = ? AND id = ?
         `,
       )
-      .bind(new Date().toISOString(), userId, promptId)
+      .bind(new Date().toISOString(), extUserId, promptId)
       .run()
 
     return { promptId }
