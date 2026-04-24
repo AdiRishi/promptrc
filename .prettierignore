@@ -14,9 +14,12 @@ count.txt
 todos.json
 stats.html
 
+# wrangler
+worker-configuration.d.ts
+
 # AI Stuff
 .agents
-.claude/settings.local.json
+.claude
 
 # Spacetime DB generated code
 src/module_bindings
