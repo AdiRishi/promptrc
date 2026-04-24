@@ -25,16 +25,16 @@ export function PromptTreePanel({
   onClearQuery,
 }: PromptTreePanelProps) {
   return (
-    <aside className="order-2 border-b border-border bg-background/90 px-4 py-5 md:order-1 md:border-r md:border-b-0 md:px-5 xl:px-4">
-      <div className="mb-4 flex items-center justify-between text-[10px] tracking-[0.22em] text-muted-foreground uppercase">
-        <span>tree ~/.promptrc</span>
+    <aside className="order-2 min-w-0 overflow-hidden border-b border-border bg-background/90 px-4 py-5 md:order-1 md:border-r md:border-b-0 md:px-5 xl:px-4">
+      <div className="mb-4 flex min-w-0 items-center justify-between gap-3 text-[10px] tracking-[0.22em] text-muted-foreground uppercase">
+        <span className="min-w-0 truncate">tree ~/.promptrc</span>
         <span className="text-primary">
           {filteredCount} / {totalCount}
         </span>
       </div>
 
-      <div className="text-[13px] leading-[1.9]">
-        <div className="mb-1 text-muted-foreground">~/.promptrc</div>
+      <div className="min-w-0 text-[13px] leading-[1.9]">
+        <div className="mb-1 truncate text-muted-foreground">~/.promptrc</div>
 
         {categoryKeys.length === 0 ? (
           <div className="flex flex-col items-start gap-2 px-1 py-3 text-[12px] text-muted-foreground">
@@ -62,11 +62,11 @@ export function PromptTreePanel({
 
           return (
             <div key={category}>
-              <div className="mt-2 font-medium text-accent-foreground">
-                <span className="mr-1 text-muted-foreground">
+              <div className="mt-2 flex min-w-0 items-center font-medium text-accent-foreground">
+                <span className="mr-1 shrink-0 text-muted-foreground">
                   {categoryIndex === categoryKeys.length - 1 ? '└──' : '├──'}
                 </span>
-                {category.toLowerCase()}/
+                <span className="min-w-0 truncate">{category.toLowerCase()}/</span>
               </div>
 
               {prompts.map((prompt, promptIndex) => {
@@ -78,7 +78,7 @@ export function PromptTreePanel({
                 return (
                   <button
                     aria-current={selectedPromptId === prompt.id ? 'true' : undefined}
-                    className="flex w-full items-center gap-0 rounded-[2px] px-1.5 py-0.5 text-left transition-colors hover:bg-primary/8 aria-[current=true]:bg-primary/14 aria-[current=true]:text-primary"
+                    className="flex w-full min-w-0 items-center gap-0 overflow-hidden rounded-[2px] px-1.5 py-0.5 text-left transition-colors hover:bg-primary/8 aria-[current=true]:bg-primary/14 aria-[current=true]:text-primary"
                     key={prompt.id}
                     onClick={() => {
                       if (isComposerOpen) {
@@ -89,11 +89,11 @@ export function PromptTreePanel({
                     }}
                     type="button"
                   >
-                    <span className="whitespace-pre text-muted-foreground">
+                    <span className="shrink-0 whitespace-pre text-muted-foreground">
                       {branchPrefix}
                       {branch}
                     </span>
-                    <span>{filenameOf(prompt.title)}.md</span>
+                    <span className="min-w-0 truncate">{filenameOf(prompt.title)}.md</span>
                   </button>
                 )
               })}
