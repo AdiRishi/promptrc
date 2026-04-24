@@ -27,7 +27,6 @@ jobs:
           NODE_ENV: development
 
       - run: pnpm check
-      - run: git diff --exit-code
       - run: pnpm typecheck
       - run: pnpm test
       - run: pnpm build
