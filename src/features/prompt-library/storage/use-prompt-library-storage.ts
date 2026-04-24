@@ -4,9 +4,12 @@ import { createLocalPromptLibraryStorage } from '@/features/prompt-library/stora
 import { type PromptLibraryStorage } from '@/features/prompt-library/storage/prompt-library-storage'
 import { useRemotePromptLibraryStorage } from '@/features/prompt-library/storage/remote-prompt-library-storage'
 
-export function usePromptLibraryStorage(isSignedIn: boolean): PromptLibraryStorage {
+export function usePromptLibraryStorage(
+  isSignedIn: boolean,
+  userId: string | null,
+): PromptLibraryStorage {
   const localStorageAdapter = useMemo(() => createLocalPromptLibraryStorage(), [])
-  const remoteStorageAdapter = useRemotePromptLibraryStorage()
+  const remoteStorageAdapter = useRemotePromptLibraryStorage(userId)
 
   return isSignedIn ? remoteStorageAdapter : localStorageAdapter
 }

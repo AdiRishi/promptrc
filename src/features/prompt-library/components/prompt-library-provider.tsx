@@ -47,8 +47,8 @@ const usePromptLibraryContext = () => {
 }
 
 export function PromptLibraryProvider({ children }: PropsWithChildren) {
-  const { isLoaded, isSignedIn } = useAuth()
-  const storage = usePromptLibraryStorage(isSignedIn === true)
+  const { isLoaded, isSignedIn, userId } = useAuth()
+  const storage = usePromptLibraryStorage(isSignedIn === true, userId ?? null)
   const [store] = useState(createPromptLibraryStore)
   const searchInputRef = useRef<HTMLInputElement | null>(null)
   const titleInputRef = useRef<HTMLInputElement | null>(null)
