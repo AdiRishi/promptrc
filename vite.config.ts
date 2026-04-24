@@ -16,6 +16,11 @@ export default defineConfig(({ mode }) => {
     resolve: {
       tsconfigPaths: true,
     },
+    build: {
+      rollupOptions: {
+        external: ['cloudflare:workers'],
+      },
+    },
     plugins: [
       devtools(),
       nitro(),

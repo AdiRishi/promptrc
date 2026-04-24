@@ -6,6 +6,26 @@
       "sourceType": "github",
       "computedHash": "2f771f8eb25f9856d2169a4de4766de94e2bdbff999f42c458c8f1e2ca405c03"
     },
+    "clerk": {
+      "source": "clerk/skills",
+      "sourceType": "github",
+      "computedHash": "6108ab89edb9357a3e5991cca0cdfc5b370a1afc6ab49ce8d3ed2f31239a9e5a"
+    },
+    "clerk-custom-ui": {
+      "source": "clerk/skills",
+      "sourceType": "github",
+      "computedHash": "72dcda42d3755a468049e828180b66c25fb2ac66fd99bd1514699404445924c6"
+    },
+    "clerk-setup": {
+      "source": "clerk/skills",
+      "sourceType": "github",
+      "computedHash": "40670b1b6e109fa1a3b2d9e111642ec920409d4b3bb9afadb58b7d2f5f1019a6"
+    },
+    "clerk-tanstack-patterns": {
+      "source": "clerk/skills",
+      "sourceType": "github",
+      "computedHash": "dae6b1764f59c280cc257fc114ff3d2acc186d27537875e3c461650b7addb85d"
+    },
     "frontend-design": {
       "source": "anthropics/skills",
       "sourceType": "github",

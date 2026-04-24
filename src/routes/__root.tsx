@@ -1,3 +1,4 @@
+import { ClerkProvider } from '@clerk/tanstack-react-start'
 import { type QueryClient } from '@tanstack/react-query'
 import {
   ClientOnly,
@@ -6,6 +7,7 @@ import {
   createRootRouteWithContext,
 } from '@tanstack/react-router'
 
+import { promptrcClerkAppearance } from '@/features/auth/clerk-appearance'
 import appCss from '@/global-styles/tailwind.css?url'
 import { SITE_AUTHOR, SITE_THEME_COLOR } from '@/lib/site-config'
 
@@ -93,7 +95,14 @@ function RootDocument({ children }: { children: React.ReactNode }) {
         </ClientOnly>
       </head>
       <body>
-        {children}
+        <ClerkProvider
+          afterSignOutUrl="/"
+          appearance={promptrcClerkAppearance}
+          signInUrl="/sign-in"
+          signUpUrl="/sign-up"
+        >
+          {children}
+        </ClerkProvider>
         <Scripts />
       </body>
     </html>

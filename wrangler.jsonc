@@ -1,0 +1,14 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "promptrc",
+  "compatibility_date": "2026-04-22",
+  "compatibility_flags": ["nodejs_compat"],
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "promptrc",
+      "database_id": "ebb333ba-49ff-438b-988e-a4180447b48c",
+      "migrations_dir": "migrations",
+    },
+  ],
+}

@@ -16,6 +16,12 @@ import {
 
 const STORAGE_KEY = 'promptrc.library.v1'
 
+declare global {
+  interface Window {
+    __PROMPTRC_REMOTE_SYNC__?: boolean
+  }
+}
+
 type PromptLibraryStateShape = {
   prompts: PromptRecord[]
   query: string
@@ -23,6 +29,9 @@ type PromptLibraryStateShape = {
   composer: ComposerState
   confirmDeleteId: string | null
   hasHydrated: boolean
+  syncMode: 'local' | 'remote'
+  syncStatus: 'idle' | 'loading' | 'ready' | 'error'
+  syncError: string | null
 }
 
 const createInitialComposerState = (): ComposerState => ({
@@ -37,6 +46,9 @@ const createInitialState = (): PromptLibraryStateShape => ({
   composer: createInitialComposerState(),
   confirmDeleteId: null as string | null,
   hasHydrated: false,
+  syncMode: 'local',
+  syncStatus: 'idle',
+  syncError: null,
 })
 
 const getExistingSelectedPromptId = (prompts: PromptRecord[], selectedPromptId: string | null) => {
@@ -55,6 +67,10 @@ export type PromptLibraryState = PromptLibraryStateShape
 
 export type PromptLibraryActions = {
   finishHydration: () => void
+  replacePrompts: (prompts: PromptRecord[]) => void
+  setSyncState: (
+    syncState: Partial<Pick<PromptLibraryState, 'syncMode' | 'syncStatus' | 'syncError'>>,
+  ) => void
   setQuery: (query: string) => void
   clearQuery: () => void
   selectPrompt: (promptId: string | null) => void
@@ -82,6 +98,10 @@ type PromptLibraryPersistedState = Pick<
   'prompts' | 'query' | 'selectedPromptId' | 'composer'
 >
 
+const shouldUseRemoteStorage = () => {
+  return typeof window !== 'undefined' && window.__PROMPTRC_REMOTE_SYNC__ === true
+}
+
 export const createPromptLibraryStore = () => {
   return createStore<PromptLibraryStore>()(
     persist(
@@ -92,6 +112,24 @@ export const createPromptLibraryStore = () => {
             set((state) => ({
               hasHydrated: true,
               selectedPromptId: getExistingSelectedPromptId(state.prompts, state.selectedPromptId),
+            }))
+          },
+          replacePrompts: (prompts) => {
+            set((state) => ({
+              prompts,
+              selectedPromptId: getExistingSelectedPromptId(prompts, state.selectedPromptId),
+              composer: createInitialComposerState(),
+              confirmDeleteId: null,
+              hasHydrated: true,
+            }))
+          },
+          setSyncState: (syncState) => {
+            set((state) => ({
+              ...syncState,
+              syncError:
+                syncState.syncStatus && syncState.syncStatus !== 'error'
+                  ? null
+                  : (syncState.syncError ?? state.syncError),
             }))
           },
           setQuery: (query) => {
@@ -273,7 +311,17 @@ export const createPromptLibraryStore = () => {
       {
         name: STORAGE_KEY,
         version: 1,
-        storage: createJSONStorage(() => localStorage),
+        storage: createJSONStorage(() => ({
+          getItem: (key) => localStorage.getItem(key),
+          removeItem: (key) => localStorage.removeItem(key),
+          setItem: (key, value) => {
+            if (shouldUseRemoteStorage()) {
+              return
+            }
+
+            localStorage.setItem(key, value)
+          },
+        })),
         skipHydration: true,
         partialize: (state): PromptLibraryPersistedState => ({
           prompts: state.prompts,

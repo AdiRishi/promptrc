@@ -1,5 +1,8 @@
 'use client'
 
+import { Show, UserButton, useAuth } from '@clerk/tanstack-react-start'
+import { useServerFn } from '@tanstack/react-start'
+import { Cloud, HardDrive, LogIn } from 'lucide-react'
 import { useCallback, useDeferredValue, useEffect, useEffectEvent, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 
@@ -21,6 +24,11 @@ import {
   groupPromptsByCategory,
   matchesPromptQuery,
 } from '@/features/prompt-library/lib/prompt-library-utils'
+import {
+  deleteRemotePrompt,
+  incrementRemotePromptUses,
+  upsertRemotePrompt,
+} from '@/features/prompt-library/server/prompt-library-functions'
 import { type PromptRecord } from '@/features/prompt-library/types'
 
 export function PromptLibraryApp() {
@@ -38,11 +46,18 @@ function PromptLibraryScreen() {
   const composer = usePromptLibraryStore((state) => state.composer)
   const confirmDeleteId = usePromptLibraryStore((state) => state.confirmDeleteId)
   const hasHydrated = usePromptLibraryStore((state) => state.hasHydrated)
+  const syncMode = usePromptLibraryStore((state) => state.syncMode)
+  const syncStatus = usePromptLibraryStore((state) => state.syncStatus)
   const actions = usePromptLibraryStore((state) => state.actions)
   const { searchInputRef, titleInputRef } = usePromptLibraryMeta()
+  const { isSignedIn } = useAuth()
+  const upsertPrompt = useServerFn(upsertRemotePrompt)
+  const removePrompt = useServerFn(deleteRemotePrompt)
+  const incrementPromptUses = useServerFn(incrementRemotePromptUses)
   const [isHelpOpen, setIsHelpOpen] = useState(false)
   const toggleHelp = useCallback(() => setIsHelpOpen((open) => !open), [])
   const closeHelp = useCallback(() => setIsHelpOpen(false), [])
+  const shouldSyncRemote = isSignedIn === true
 
   const deferredQuery = useDeferredValue(query)
   const filteredPrompts = useMemo(
@@ -112,6 +127,36 @@ function PromptLibraryScreen() {
     [actions, composer.mode],
   )
 
+  const markSyncError = useCallback(
+    (error: unknown) => {
+      const message = error instanceof Error ? error.message : 'Unable to sync prompts'
+
+      actions.setSyncState({
+        syncMode: 'remote',
+        syncStatus: 'error',
+        syncError: message,
+      })
+      toast(`sync failed - ${message}`)
+    },
+    [actions],
+  )
+
+  const persistPromptRemote = useCallback(
+    async (prompt: PromptRecord) => {
+      if (!shouldSyncRemote) {
+        return
+      }
+
+      try {
+        await upsertPrompt({ data: prompt })
+        actions.setSyncState({ syncMode: 'remote', syncStatus: 'ready' })
+      } catch (error) {
+        markSyncError(error)
+      }
+    },
+    [actions, markSyncError, shouldSyncRemote, upsertPrompt],
+  )
+
   const copyActivePrompt = useCallback(async () => {
     if (!activePrompt) {
       return
@@ -125,8 +170,11 @@ function PromptLibraryScreen() {
     }
 
     actions.incrementUses(activePrompt.id)
+    if (shouldSyncRemote) {
+      void incrementPromptUses({ data: activePrompt.id }).catch(markSyncError)
+    }
     toast(`copied → ${activePrompt.title}`)
-  }, [actions, activePrompt])
+  }, [actions, activePrompt, incrementPromptUses, markSyncError, shouldSyncRemote])
 
   const saveComposer = useCallback(() => {
     const result = actions.saveComposer()
@@ -138,14 +186,16 @@ function PromptLibraryScreen() {
     }
 
     if (result.status === 'created') {
+      void persistPromptRemote(result.prompt)
       toast(`wrote ${filenameOf(result.prompt.title)}.md`)
       return
     }
 
     if (result.status === 'updated') {
+      void persistPromptRemote(result.prompt)
       toast(`saved ${filenameOf(result.prompt.title)}.md`)
     }
-  }, [actions, titleInputRef])
+  }, [actions, persistPromptRemote, titleInputRef])
 
   const duplicatePrompt = useCallback(() => {
     if (!activePrompt) {
@@ -155,9 +205,10 @@ function PromptLibraryScreen() {
     const duplicatedPrompt = actions.duplicatePrompt(activePrompt.id)
 
     if (duplicatedPrompt) {
+      void persistPromptRemote(duplicatedPrompt)
       toast(`duplicated → ${duplicatedPrompt.title}`)
     }
-  }, [actions, activePrompt])
+  }, [actions, activePrompt, persistPromptRemote])
 
   const deletePrompt = useCallback(() => {
     if (!activePrompt) {
@@ -179,9 +230,21 @@ function PromptLibraryScreen() {
     const removedPrompt = actions.deletePrompt(activePrompt.id, nextSelectedPromptId)
 
     if (removedPrompt) {
+      if (shouldSyncRemote) {
+        void removePrompt({ data: removedPrompt.id }).catch(markSyncError)
+      }
       toast(`removed → ${removedPrompt.title}`)
     }
-  }, [actions, activePrompt, confirmDeleteId, flatPromptIds, prompts])
+  }, [
+    actions,
+    activePrompt,
+    confirmDeleteId,
+    flatPromptIds,
+    markSyncError,
+    prompts,
+    removePrompt,
+    shouldSyncRemote,
+  ])
 
   const shortcuts = useMemo<PromptShortcutDefinition[]>(
     () => [
@@ -280,22 +343,7 @@ function PromptLibraryScreen() {
 
   return (
     <div className="terminal-app min-h-screen overflow-hidden bg-background text-foreground">
-      <div className="relative z-10 flex items-center gap-[10px] border-b border-border bg-muted px-4 py-[10px]">
-        <div className="flex items-center gap-1.5" aria-hidden="true">
-          <span className="size-2.5 rounded-full bg-[rgb(255,95,87)]" />
-          <span className="size-2.5 rounded-full bg-[rgb(255,189,46)]" />
-          <span className="size-2.5 rounded-full bg-[rgb(40,200,64)]" />
-        </div>
-
-        <div className="ml-[14px] min-w-0 text-[12px] tracking-[0.05em] text-muted-foreground">
-          <span className="font-medium text-foreground">~/.promptrc</span>{' '}
-          <span className="text-primary">·</span> zsh
-        </div>
-
-        <div className="ml-auto text-[11px] tracking-[0.04em] text-muted-foreground">
-          {prompts.length} {prompts.length === 1 ? 'entry' : 'entries'}
-        </div>
-      </div>
+      <PromptTopBar promptCount={prompts.length} syncMode={syncMode} syncStatus={syncStatus} />
 
       <div className="relative z-10 grid min-h-[calc(100vh-42px)] grid-cols-1 md:grid-cols-[280px_minmax(0,1fr)] xl:grid-cols-[320px_minmax(0,1fr)_280px]">
         <PromptTreePanel
@@ -341,6 +389,74 @@ function PromptLibraryScreen() {
       </div>
 
       <PromptHelpOverlay isOpen={isHelpOpen} onClose={closeHelp} />
+    </div>
+  )
+}
+
+type PromptTopBarProps = {
+  promptCount: number
+  syncMode: 'local' | 'remote'
+  syncStatus: 'idle' | 'loading' | 'ready' | 'error'
+}
+
+function PromptTopBar({ promptCount, syncMode, syncStatus }: PromptTopBarProps) {
+  const SyncIcon = syncMode === 'remote' ? Cloud : HardDrive
+  const syncText =
+    syncMode === 'remote'
+      ? syncStatus === 'loading'
+        ? 'syncing'
+        : syncStatus === 'error'
+          ? 'sync error'
+          : 'cloud'
+      : 'local'
+
+  return (
+    <div className="relative z-10 flex min-h-[42px] items-center gap-[10px] border-b border-border bg-muted px-4 py-[8px]">
+      <div className="flex items-center gap-1.5" aria-hidden="true">
+        <span className="size-2.5 rounded-full bg-[rgb(255,95,87)]" />
+        <span className="size-2.5 rounded-full bg-[rgb(255,189,46)]" />
+        <span className="size-2.5 rounded-full bg-[rgb(40,200,64)]" />
+      </div>
+
+      <div className="ml-[14px] min-w-0 text-[12px] tracking-[0.05em] text-muted-foreground">
+        <span className="font-medium text-foreground">~/.promptrc</span>{' '}
+        <span className="text-primary">·</span> zsh
+      </div>
+
+      <div className="ml-auto hidden items-center gap-3 text-[11px] tracking-[0.04em] text-muted-foreground sm:flex">
+        <span>
+          {promptCount} {promptCount === 1 ? 'entry' : 'entries'}
+        </span>
+        <span className="flex items-center gap-1.5">
+          <SyncIcon aria-hidden="true" className="size-3 text-accent-foreground" />
+          <span className={syncStatus === 'error' ? 'text-destructive' : undefined}>
+            {syncText}
+          </span>
+        </span>
+      </div>
+
+      <div className="flex min-w-[34px] items-center justify-end">
+        <Show when="signed-out">
+          <a
+            className="inline-flex h-7 items-center gap-1.5 rounded-[2px] border border-border bg-card px-2.5 text-[11px] text-foreground transition-colors hover:border-primary hover:text-primary focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+            href="/sign-in"
+          >
+            <LogIn aria-hidden="true" className="size-3" />
+            <span>login</span>
+          </a>
+        </Show>
+        <Show when="signed-in">
+          <UserButton
+            appearance={{
+              elements: {
+                userButtonAvatarBox: 'size-7 rounded-[2px]',
+                userButtonTrigger:
+                  'rounded-[2px] border border-border focus-visible:ring-2 focus-visible:ring-ring',
+              },
+            }}
+          />
+        </Show>
+      </div>
     </div>
   )
 }

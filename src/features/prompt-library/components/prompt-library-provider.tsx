@@ -1,8 +1,10 @@
 'use client'
 
+import { useAuth } from '@clerk/tanstack-react-start'
 import { type PropsWithChildren, createContext, use, useEffect, useMemo, useRef } from 'react'
 import { useStore } from 'zustand'
 
+import { listRemotePrompts } from '@/features/prompt-library/server/prompt-library-functions'
 import {
   type PromptLibraryStore,
   type PromptLibraryStoreApi,
@@ -32,6 +34,7 @@ const usePromptLibraryContext = () => {
 }
 
 export function PromptLibraryProvider({ children }: PropsWithChildren) {
+  const { isLoaded, isSignedIn } = useAuth()
   const storeRef = useRef<PromptLibraryStoreApi | null>(null)
   const searchInputRef = useRef<HTMLInputElement | null>(null)
   const titleInputRef = useRef<HTMLInputElement | null>(null)
@@ -41,8 +44,50 @@ export function PromptLibraryProvider({ children }: PropsWithChildren) {
   }
 
   useEffect(() => {
-    void storeRef.current?.persist.rehydrate()
-  }, [])
+    const store = storeRef.current
+
+    if (!store || !isLoaded) {
+      return
+    }
+
+    if (!isSignedIn) {
+      window.__PROMPTRC_REMOTE_SYNC__ = false
+      store.getState().actions.setSyncState({ syncMode: 'local', syncStatus: 'loading' })
+      void Promise.resolve(store.persist.rehydrate()).then(() => {
+        store.getState().actions.setSyncState({ syncMode: 'local', syncStatus: 'ready' })
+      })
+      return
+    }
+
+    let isActive = true
+    window.__PROMPTRC_REMOTE_SYNC__ = true
+    store.getState().actions.setSyncState({ syncMode: 'remote', syncStatus: 'loading' })
+
+    void listRemotePrompts()
+      .then((prompts) => {
+        if (!isActive) {
+          return
+        }
+
+        store.getState().actions.replacePrompts(prompts)
+        store.getState().actions.setSyncState({ syncMode: 'remote', syncStatus: 'ready' })
+      })
+      .catch((error: unknown) => {
+        if (!isActive) {
+          return
+        }
+
+        store.getState().actions.setSyncState({
+          syncMode: 'remote',
+          syncStatus: 'error',
+          syncError: error instanceof Error ? error.message : 'Unable to sync prompts',
+        })
+      })
+
+    return () => {
+      isActive = false
+    }
+  }, [isLoaded, isSignedIn])
 
   const value = useMemo<PromptLibraryContextValue>(
     () => ({
