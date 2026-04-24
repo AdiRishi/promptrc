@@ -3,7 +3,6 @@
 import { Show, UserButton } from '@clerk/tanstack-react-start'
 import { Cloud, HardDrive, LogIn } from 'lucide-react'
 import { useCallback, useDeferredValue, useEffect, useEffectEvent, useMemo, useState } from 'react'
-import { toast } from 'sonner'
 
 import { PromptHelpOverlay } from '@/features/prompt-library/components/prompt-help-overlay'
 import {
@@ -18,13 +17,17 @@ import {
 } from '@/features/prompt-library/components/prompt-shortcuts-panel'
 import { PromptTreePanel } from '@/features/prompt-library/components/prompt-tree-panel'
 import { PromptWorkspace } from '@/features/prompt-library/components/prompt-workspace'
+import { usePromptLibraryCommands } from '@/features/prompt-library/hooks/use-prompt-library-commands'
 import {
-  filenameOf,
   getPromptCategories,
   groupPromptsByCategory,
   matchesPromptQuery,
 } from '@/features/prompt-library/lib/prompt-library-utils'
-import { type PromptRecord } from '@/features/prompt-library/types'
+import {
+  type PromptRecord,
+  type PromptSyncMode,
+  type PromptSyncStatus,
+} from '@/features/prompt-library/types'
 
 export function PromptLibraryApp() {
   return (
@@ -63,6 +66,24 @@ function PromptLibraryScreen() {
     [prompts, selectedPromptId],
   )
   const flatPromptIds = useMemo(() => filteredPrompts.map((prompt) => prompt.id), [filteredPrompts])
+
+  const {
+    copyActivePrompt,
+    deletePrompt,
+    duplicatePrompt,
+    saveComposer,
+    selectPrompt,
+    startEditActivePrompt,
+  } = usePromptLibraryCommands({
+    actions,
+    activePrompt,
+    composerMode: composer.mode,
+    confirmDeleteId,
+    flatPromptIds,
+    prompts,
+    storage,
+    titleInputRef,
+  })
 
   useEffect(() => {
     if (!hasHydrated) {
@@ -106,113 +127,6 @@ function PromptLibraryScreen() {
     }
   }, [actions, confirmDeleteId])
 
-  const selectPrompt = useCallback(
-    (promptId: string) => {
-      if (composer.mode !== 'view') {
-        toast('press esc to finish editing first')
-        return
-      }
-
-      actions.selectPrompt(promptId)
-    },
-    [actions, composer.mode],
-  )
-
-  const markSyncError = useCallback(
-    (error: unknown) => {
-      const message = storage.reportError(error)
-      toast(`sync failed - ${message}`)
-    },
-    [storage],
-  )
-
-  const persistPrompt = useCallback(
-    async (prompt: PromptRecord) => {
-      try {
-        await storage.savePrompt(prompt)
-      } catch (error) {
-        markSyncError(error)
-      }
-    },
-    [markSyncError, storage],
-  )
-
-  const copyActivePrompt = useCallback(async () => {
-    if (!activePrompt) {
-      return
-    }
-
-    try {
-      await navigator.clipboard.writeText(activePrompt.body)
-    } catch {
-      toast('clipboard access is unavailable')
-      return
-    }
-
-    actions.incrementUses(activePrompt.id)
-    void storage.incrementUses(activePrompt.id).catch(markSyncError)
-    toast(`copied → ${activePrompt.title}`)
-  }, [actions, activePrompt, markSyncError, storage])
-
-  const saveComposer = useCallback(() => {
-    const result = actions.saveComposer()
-
-    if (result.status === 'invalid') {
-      toast('title and body required')
-      titleInputRef.current?.focus()
-      return
-    }
-
-    if (result.status === 'created') {
-      void persistPrompt(result.prompt)
-      toast(`wrote ${filenameOf(result.prompt.title)}.md`)
-      return
-    }
-
-    if (result.status === 'updated') {
-      void persistPrompt(result.prompt)
-      toast(`saved ${filenameOf(result.prompt.title)}.md`)
-    }
-  }, [actions, persistPrompt, titleInputRef])
-
-  const duplicatePrompt = useCallback(() => {
-    if (!activePrompt) {
-      return
-    }
-
-    const duplicatedPrompt = actions.duplicatePrompt(activePrompt.id)
-
-    if (duplicatedPrompt) {
-      void persistPrompt(duplicatedPrompt)
-      toast(`duplicated → ${duplicatedPrompt.title}`)
-    }
-  }, [actions, activePrompt, persistPrompt])
-
-  const deletePrompt = useCallback(() => {
-    if (!activePrompt) {
-      return
-    }
-
-    if (confirmDeleteId !== activePrompt.id) {
-      actions.requestDeletePrompt(activePrompt.id)
-      toast('press delete again to confirm')
-      return
-    }
-
-    const orderedPromptIds = flatPromptIds.includes(activePrompt.id)
-      ? flatPromptIds
-      : prompts.map((prompt) => prompt.id)
-    const currentPromptIndex = orderedPromptIds.indexOf(activePrompt.id)
-    const nextSelectedPromptId =
-      orderedPromptIds[currentPromptIndex + 1] ?? orderedPromptIds[currentPromptIndex - 1] ?? null
-    const removedPrompt = actions.deletePrompt(activePrompt.id, nextSelectedPromptId)
-
-    if (removedPrompt) {
-      void storage.deletePrompt(removedPrompt.id).catch(markSyncError)
-      toast(`removed → ${removedPrompt.title}`)
-    }
-  }, [actions, activePrompt, confirmDeleteId, flatPromptIds, markSyncError, prompts, storage])
-
   const shortcuts = useMemo<PromptShortcutDefinition[]>(
     () => [
       {
@@ -246,13 +160,7 @@ function PromptLibraryScreen() {
       {
         keys: ['e'],
         label: 'edit selected',
-        action: () => {
-          if (!activePrompt) {
-            return
-          }
-
-          actions.startEdit(activePrompt.id)
-        },
+        action: startEditActivePrompt,
       },
       {
         keys: ['d'],
@@ -274,13 +182,13 @@ function PromptLibraryScreen() {
     ],
     [
       actions,
-      activePrompt,
       copyActivePrompt,
       deletePrompt,
       duplicatePrompt,
       flatPromptIds,
       searchInputRef,
       selectedPromptId,
+      startEditActivePrompt,
     ],
   )
 
@@ -295,13 +203,7 @@ function PromptLibraryScreen() {
     onDuplicatePrompt: duplicatePrompt,
     onSaveComposer: saveComposer,
     onSelectPrompt: actions.selectPrompt,
-    onStartEdit: () => {
-      if (!activePrompt) {
-        return
-      }
-
-      actions.startEdit(activePrompt.id)
-    },
+    onStartEdit: startEditActivePrompt,
     onStartNew: actions.startNew,
     onToggleHelp: toggleHelp,
     searchInputRef,
@@ -338,13 +240,7 @@ function PromptLibraryScreen() {
           onDuplicatePrompt={duplicatePrompt}
           onQueryChange={actions.setQuery}
           onSaveComposer={saveComposer}
-          onStartEdit={() => {
-            if (!activePrompt) {
-              return
-            }
-
-            actions.startEdit(activePrompt.id)
-          }}
+          onStartEdit={startEditActivePrompt}
           onStartNew={actions.startNew}
           query={query}
           searchInputRef={searchInputRef}
@@ -362,8 +258,8 @@ function PromptLibraryScreen() {
 
 type PromptTopBarProps = {
   promptCount: number
-  syncMode: 'local' | 'remote'
-  syncStatus: 'idle' | 'loading' | 'ready' | 'error'
+  syncMode: PromptSyncMode
+  syncStatus: PromptSyncStatus
 }
 
 function PromptTopBar({ promptCount, syncMode, syncStatus }: PromptTopBarProps) {

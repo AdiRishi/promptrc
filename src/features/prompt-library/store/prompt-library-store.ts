@@ -10,20 +10,31 @@ import {
 import {
   type ComposerState,
   type PromptDraft,
+  type PromptLibraryPersistedSnapshot,
   type PromptRecord,
+  type PromptSyncMode,
+  type PromptSyncStatus,
 } from '@/features/prompt-library/types'
 
-type PromptLibraryStateShape = {
+type PromptCollectionState = {
   prompts: PromptRecord[]
+}
+
+type PromptWorkspaceState = {
   query: string
   selectedPromptId: string | null
   composer: ComposerState
   confirmDeleteId: string | null
+}
+
+type PromptSyncState = {
   hasHydrated: boolean
-  syncMode: 'local' | 'remote'
-  syncStatus: 'idle' | 'loading' | 'ready' | 'error'
+  syncMode: PromptSyncMode
+  syncStatus: PromptSyncStatus
   syncError: string | null
 }
+
+type PromptLibraryStateShape = PromptCollectionState & PromptWorkspaceState & PromptSyncState
 
 const createInitialComposerState = (): ComposerState => ({
   mode: 'view',
@@ -84,11 +95,6 @@ export type PromptLibraryActions = {
 export type PromptLibraryStore = PromptLibraryState & {
   actions: PromptLibraryActions
 }
-
-type PromptLibraryPersistedState = Pick<
-  PromptLibraryState,
-  'prompts' | 'query' | 'selectedPromptId' | 'composer'
->
 
 export const createPromptLibraryStore = () => {
   return createStore<PromptLibraryStore>()((set, get) => ({
@@ -313,8 +319,6 @@ export const createPromptLibraryStore = () => {
 }
 
 export type PromptLibraryStoreApi = ReturnType<typeof createPromptLibraryStore>
-
-export type PromptLibraryPersistedSnapshot = PromptLibraryPersistedState
 
 export const getPromptLibraryPersistedSnapshot = (
   state: PromptLibraryStore,

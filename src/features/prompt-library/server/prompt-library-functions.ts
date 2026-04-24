@@ -1,6 +1,10 @@
 import { auth } from '@clerk/tanstack-react-start/server'
 import { createServerFn } from '@tanstack/react-start'
 
+import {
+  assertPromptId,
+  assertPromptRecord,
+} from '@/features/prompt-library/lib/prompt-library-validation'
 import { type PromptRecord } from '@/features/prompt-library/types'
 
 type PromptRow = {
@@ -12,56 +16,6 @@ type PromptRow = {
   created_at: string
   updated_at: string
   uses: number
-}
-
-const assertString = (value: unknown, fieldName: string) => {
-  if (typeof value !== 'string') {
-    throw new Error(`${fieldName} must be a string`)
-  }
-
-  return value
-}
-
-const assertStringArray = (value: unknown, fieldName: string) => {
-  if (!Array.isArray(value) || value.some((item) => typeof item !== 'string')) {
-    throw new Error(`${fieldName} must be a string array`)
-  }
-
-  return value
-}
-
-const assertPromptRecord = (value: unknown): PromptRecord => {
-  if (!value || typeof value !== 'object') {
-    throw new Error('prompt must be an object')
-  }
-
-  const prompt = value as Record<string, unknown>
-  const uses = prompt.uses
-
-  if (typeof uses !== 'number' || !Number.isInteger(uses) || uses < 0) {
-    throw new Error('uses must be a non-negative integer')
-  }
-
-  return {
-    id: assertString(prompt.id, 'id'),
-    title: assertString(prompt.title, 'title'),
-    body: assertString(prompt.body, 'body'),
-    category: assertString(prompt.category, 'category'),
-    tags: assertStringArray(prompt.tags, 'tags'),
-    createdAt: assertString(prompt.createdAt, 'createdAt'),
-    updatedAt: assertString(prompt.updatedAt, 'updatedAt'),
-    uses,
-  }
-}
-
-const assertPromptId = (value: unknown) => {
-  const promptId = assertString(value, 'promptId').trim()
-
-  if (!promptId) {
-    throw new Error('promptId is required')
-  }
-
-  return promptId
 }
 
 const getDatabase = async () => {

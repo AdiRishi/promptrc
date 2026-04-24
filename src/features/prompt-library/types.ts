@@ -29,3 +29,14 @@ export type ComposerState = {
   mode: ComposerMode
   draft: PromptDraft
 }
+
+export type PromptSyncMode = 'local' | 'remote'
+
+export type PromptSyncStatus = 'idle' | 'loading' | 'ready' | 'error'
+
+export type PromptLibraryPersistedSnapshot = {
+  prompts: PromptRecord[]
+  query: string
+  selectedPromptId: string | null
+  composer: ComposerState
+}
