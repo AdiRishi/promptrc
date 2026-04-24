@@ -3,6 +3,7 @@
 import { Show, UserButton } from '@clerk/tanstack-react-start'
 import { Cloud, HardDrive, LogIn } from 'lucide-react'
 import { useCallback, useDeferredValue, useEffect, useEffectEvent, useMemo, useState } from 'react'
+import { FaGithub } from 'react-icons/fa'
 
 import { PromptHelpOverlay } from '@/features/prompt-library/components/prompt-help-overlay'
 import {
@@ -28,6 +29,7 @@ import {
   type PromptSyncMode,
   type PromptSyncStatus,
 } from '@/features/prompt-library/types'
+import { SITE_GITHUB_URL } from '@/lib/site-config'
 
 export function PromptLibraryApp() {
   return (
@@ -287,6 +289,15 @@ function PromptTopBar({ promptCount, syncMode, syncStatus }: PromptTopBarProps) 
       </div>
 
       <div className="ml-auto hidden items-center gap-3 text-[11px] tracking-[0.04em] text-muted-foreground sm:flex">
+        <a
+          aria-label="View promptrc on GitHub"
+          className="inline-flex size-6 items-center justify-center rounded-[2px] border border-border bg-card/70 text-muted-foreground transition-colors hover:border-primary hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+          href={SITE_GITHUB_URL}
+          rel="noreferrer"
+          target="_blank"
+        >
+          <FaGithub aria-hidden="true" className="size-3.5" />
+        </a>
         <span>
           {promptCount} {promptCount === 1 ? 'entry' : 'entries'}
         </span>
