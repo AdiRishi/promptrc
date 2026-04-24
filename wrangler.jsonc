@@ -7,7 +7,7 @@
     {
       "binding": "DB",
       "database_name": "promptrc",
-      "database_id": "ebb333ba-49ff-438b-988e-a4180447b48c",
+      "database_id": "9529bd0d-d506-4660-945a-e9d12ca24b4d",
       "migrations_dir": "./migrations",
     },
   ],
