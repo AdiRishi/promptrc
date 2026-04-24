@@ -7,8 +7,8 @@ import { useCallback, useDeferredValue, useEffect, useEffectEvent, useMemo, useS
 import { PromptHelpOverlay } from '@/features/prompt-library/components/prompt-help-overlay'
 import {
   PromptLibraryProvider,
+  usePromptLibraryClient,
   usePromptLibraryMeta,
-  usePromptLibraryStorageContext,
   usePromptLibraryStore,
 } from '@/features/prompt-library/components/prompt-library-provider'
 import {
@@ -48,7 +48,7 @@ function PromptLibraryScreen() {
   const syncStatus = usePromptLibraryStore((state) => state.syncStatus)
   const actions = usePromptLibraryStore((state) => state.actions)
   const { searchInputRef, titleInputRef } = usePromptLibraryMeta()
-  const storage = usePromptLibraryStorageContext()
+  const library = usePromptLibraryClient()
   const [isHelpOpen, setIsHelpOpen] = useState(false)
   const toggleHelp = useCallback(() => setIsHelpOpen((open) => !open), [])
   const closeHelp = useCallback(() => setIsHelpOpen(false), [])
@@ -81,7 +81,7 @@ function PromptLibraryScreen() {
     confirmDeleteId,
     flatPromptIds,
     prompts,
-    storage,
+    library,
     titleInputRef,
   })
 

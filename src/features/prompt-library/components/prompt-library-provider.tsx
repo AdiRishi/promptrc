@@ -1,11 +1,20 @@
 import { useAuth } from '@clerk/tanstack-react-start'
-import { type PropsWithChildren, createContext, use, useEffect, useMemo, useRef } from 'react'
+import {
+  type PropsWithChildren,
+  createContext,
+  use,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react'
 import { useStore } from 'zustand'
 
 import {
-  type PromptLibraryHydrationResult,
-  type PromptLibraryStorage,
-} from '@/features/prompt-library/storage/prompt-library-storage'
+  type PromptLibraryClient,
+  applyHydrationResult,
+  createPromptLibraryClient,
+} from '@/features/prompt-library/storage/prompt-library-client'
 import { usePromptLibraryStorage } from '@/features/prompt-library/storage/use-prompt-library-storage'
 import {
   type PromptLibraryStore,
@@ -20,7 +29,7 @@ type PromptLibraryMeta = {
 }
 
 type PromptLibraryContextValue = {
-  storage: PromptLibraryStorage
+  library: PromptLibraryClient
   store: PromptLibraryStoreApi
   meta: PromptLibraryMeta
 }
@@ -37,33 +46,17 @@ const usePromptLibraryContext = () => {
   return context
 }
 
-const applyHydrationResult = (
-  store: PromptLibraryStoreApi,
-  hydrationResult: PromptLibraryHydrationResult,
-) => {
-  if (hydrationResult.source === 'local') {
-    store.getState().actions.restoreLocalState(hydrationResult.snapshot)
-    return
-  }
-
-  store.getState().actions.replacePrompts(hydrationResult.prompts)
-}
-
 export function PromptLibraryProvider({ children }: PropsWithChildren) {
   const { isLoaded, isSignedIn } = useAuth()
   const storage = usePromptLibraryStorage(isSignedIn === true)
-  const storeRef = useRef<PromptLibraryStoreApi | null>(null)
+  const [store] = useState(createPromptLibraryStore)
   const searchInputRef = useRef<HTMLInputElement | null>(null)
   const titleInputRef = useRef<HTMLInputElement | null>(null)
 
-  if (!storeRef.current) {
-    storeRef.current = createPromptLibraryStore()
-  }
+  const library = useMemo(() => createPromptLibraryClient(storage, store), [storage, store])
 
   useEffect(() => {
-    const store = storeRef.current
-
-    if (!store || !isLoaded) {
+    if (!isLoaded) {
       return
     }
 
@@ -77,11 +70,30 @@ export function PromptLibraryProvider({ children }: PropsWithChildren) {
         if (isActive) {
           applyHydrationResult(store, hydrationResult)
 
-          if (storage.persistSnapshot) {
-            storage.persistSnapshot(getPromptLibraryPersistedSnapshot(store.getState()))
-            unsubscribe = store.subscribe((state) => {
-              storage.persistSnapshot?.(getPromptLibraryPersistedSnapshot(state))
-            })
+          let didPersistLocalSnapshot = true
+
+          if (storage.mode === 'local') {
+            const persistSnapshot = (state: PromptLibraryStore) => {
+              try {
+                storage.persistSnapshot(getPromptLibraryPersistedSnapshot(state))
+              } catch (error) {
+                didPersistLocalSnapshot = false
+
+                const message = storage.reportError(error)
+                store.getState().actions.setSyncState({
+                  syncMode: storage.mode,
+                  syncStatus: 'error',
+                  syncError: message,
+                })
+              }
+            }
+
+            persistSnapshot(store.getState())
+            unsubscribe = store.subscribe(persistSnapshot)
+          }
+
+          if (!didPersistLocalSnapshot) {
+            return
           }
 
           store.getState().actions.setSyncState({ syncMode: storage.mode, syncStatus: 'ready' })
@@ -104,18 +116,18 @@ export function PromptLibraryProvider({ children }: PropsWithChildren) {
       isActive = false
       unsubscribe?.()
     }
-  }, [isLoaded, storage])
+  }, [isLoaded, storage, store])
 
   const value = useMemo<PromptLibraryContextValue>(
     () => ({
-      storage,
-      store: storeRef.current as PromptLibraryStoreApi,
+      library,
+      store,
       meta: {
         searchInputRef,
         titleInputRef,
       },
     }),
-    [storage],
+    [library, store],
   )
 
   return <PromptLibraryContext value={value}>{children}</PromptLibraryContext>
@@ -133,6 +145,6 @@ export const usePromptLibraryMeta = () => {
   return usePromptLibraryContext().meta
 }
 
-export const usePromptLibraryStorageContext = () => {
-  return usePromptLibraryContext().storage
+export const usePromptLibraryClient = () => {
+  return usePromptLibraryContext().library
 }

@@ -9,7 +9,7 @@ import {
   upsertRemotePrompt,
 } from '@/features/prompt-library/server/prompt-library-functions'
 import {
-  type PromptLibraryStorage,
+  type RemotePromptLibraryStorage,
   normalizeStorageError,
 } from '@/features/prompt-library/storage/prompt-library-storage'
 import { type PromptRecord } from '@/features/prompt-library/types'
@@ -22,14 +22,14 @@ const sortPromptsByUpdatedAtDesc = (prompts: PromptRecord[]) => {
   )
 }
 
-export function useRemotePromptLibraryStorage(): PromptLibraryStorage {
+export function useRemotePromptLibraryStorage(): RemotePromptLibraryStorage {
   const queryClient = useQueryClient()
   const listPrompts = useServerFn(listRemotePrompts)
   const upsertPrompt = useServerFn(upsertRemotePrompt)
   const removePrompt = useServerFn(deleteRemotePrompt)
   const incrementPromptUses = useServerFn(incrementRemotePromptUses)
 
-  return useMemo<PromptLibraryStorage>(
+  return useMemo<RemotePromptLibraryStorage>(
     () => ({
       mode: 'remote',
       deletePrompt: async (promptId) => {
@@ -46,30 +46,26 @@ export function useRemotePromptLibraryStorage(): PromptLibraryStorage {
         }),
       }),
       incrementUses: async (promptId) => {
-        await incrementPromptUses({ data: promptId })
+        const updatedPrompt = await incrementPromptUses({ data: promptId })
         queryClient.setQueryData<PromptRecord[]>(PROMPT_LIBRARY_QUERY_KEY, (prompts = []) =>
           sortPromptsByUpdatedAtDesc(
-            prompts.map((prompt) =>
-              prompt.id === promptId
-                ? {
-                    ...prompt,
-                    uses: prompt.uses + 1,
-                    updatedAt: new Date().toISOString(),
-                  }
-                : prompt,
-            ),
+            prompts.map((prompt) => (prompt.id === updatedPrompt.id ? updatedPrompt : prompt)),
           ),
         )
+
+        return updatedPrompt
       },
       reportError: normalizeStorageError,
       savePrompt: async (prompt) => {
-        await upsertPrompt({ data: prompt })
+        const savedPrompt = await upsertPrompt({ data: prompt })
         queryClient.setQueryData<PromptRecord[]>(PROMPT_LIBRARY_QUERY_KEY, (prompts = []) =>
           sortPromptsByUpdatedAtDesc([
-            prompt,
-            ...prompts.filter((existingPrompt) => existingPrompt.id !== prompt.id),
+            savedPrompt,
+            ...prompts.filter((existingPrompt) => existingPrompt.id !== savedPrompt.id),
           ]),
         )
+
+        return savedPrompt
       },
     }),
     [incrementPromptUses, listPrompts, queryClient, removePrompt, upsertPrompt],

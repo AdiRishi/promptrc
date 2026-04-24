@@ -14,18 +14,26 @@ export type PromptLibraryHydrationResult =
       prompts: PromptRecord[]
     }
 
-export type PromptLibraryStorage = {
-  mode: PromptSyncMode
-  deletePrompt: (promptId: string) => Promise<void>
-  hydrate: () => Promise<PromptLibraryHydrationResult>
-  incrementUses: (promptId: string) => Promise<void>
-  persistSnapshot?: (snapshot: PromptLibraryPersistedSnapshot) => void
+type PromptLibraryStorageBase = {
   reportError: (error: unknown) => string
-  savePrompt: (prompt: PromptRecord) => Promise<void>
 }
+
+export type LocalPromptLibraryStorage = PromptLibraryStorageBase & {
+  mode: Extract<PromptSyncMode, 'local'>
+  hydrate: () => Promise<Extract<PromptLibraryHydrationResult, { source: 'local' }>>
+  persistSnapshot: (snapshot: PromptLibraryPersistedSnapshot) => void
+}
+
+export type RemotePromptLibraryStorage = PromptLibraryStorageBase & {
+  mode: Extract<PromptSyncMode, 'remote'>
+  deletePrompt: (promptId: string) => Promise<void>
+  hydrate: () => Promise<Extract<PromptLibraryHydrationResult, { source: 'remote' }>>
+  incrementUses: (promptId: string) => Promise<PromptRecord>
+  savePrompt: (prompt: PromptRecord) => Promise<PromptRecord>
+}
+
+export type PromptLibraryStorage = LocalPromptLibraryStorage | RemotePromptLibraryStorage
 
 export const normalizeStorageError = (error: unknown) => {
   return error instanceof Error ? error.message : 'Unable to sync prompts'
 }
-
-export const createNoopStorageMutation = async () => {}

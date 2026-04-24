@@ -1,7 +1,6 @@
 import { parsePromptLibraryPersistedSnapshot } from '@/features/prompt-library/lib/prompt-library-validation'
 import {
-  type PromptLibraryStorage,
-  createNoopStorageMutation,
+  type LocalPromptLibraryStorage,
   normalizeStorageError,
 } from '@/features/prompt-library/storage/prompt-library-storage'
 import { type PromptLibraryPersistedSnapshot } from '@/features/prompt-library/types'
@@ -34,16 +33,13 @@ const writeLocalSnapshot = (snapshot: PromptLibraryPersistedSnapshot) => {
   )
 }
 
-export const createLocalPromptLibraryStorage = (): PromptLibraryStorage => ({
+export const createLocalPromptLibraryStorage = (): LocalPromptLibraryStorage => ({
   mode: 'local',
-  deletePrompt: createNoopStorageMutation,
   hydrate: () =>
     Promise.resolve({
       source: 'local',
       snapshot: readLocalSnapshot(),
     }),
-  incrementUses: createNoopStorageMutation,
   persistSnapshot: writeLocalSnapshot,
   reportError: normalizeStorageError,
-  savePrompt: createNoopStorageMutation,
 })

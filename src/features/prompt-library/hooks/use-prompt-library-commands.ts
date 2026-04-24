@@ -2,7 +2,7 @@ import { useCallback } from 'react'
 import { toast } from 'sonner'
 
 import { filenameOf } from '@/features/prompt-library/lib/prompt-library-utils'
-import { type PromptLibraryStorage } from '@/features/prompt-library/storage/prompt-library-storage'
+import { type PromptLibraryClient } from '@/features/prompt-library/storage/prompt-library-client'
 import { type PromptLibraryActions } from '@/features/prompt-library/store/prompt-library-store'
 import { type PromptRecord } from '@/features/prompt-library/types'
 
@@ -12,8 +12,8 @@ type UsePromptLibraryCommandsOptions = {
   composerMode: 'view' | 'new' | 'edit'
   confirmDeleteId: string | null
   flatPromptIds: string[]
+  library: PromptLibraryClient
   prompts: PromptRecord[]
-  storage: PromptLibraryStorage
   titleInputRef: React.RefObject<HTMLInputElement | null>
 }
 
@@ -23,34 +23,37 @@ export function usePromptLibraryCommands({
   composerMode,
   confirmDeleteId,
   flatPromptIds,
+  library,
   prompts,
-  storage,
   titleInputRef,
 }: UsePromptLibraryCommandsOptions) {
   const markSyncError = useCallback(
     (error: unknown) => {
-      const message = storage.reportError(error)
+      const message = library.reportError(error)
 
       actions.setSyncState({
-        syncMode: storage.mode,
+        syncMode: library.mode,
         syncStatus: 'error',
         syncError: message,
       })
       toast(`sync failed - ${message}`)
     },
-    [actions, storage],
+    [actions, library],
   )
 
-  const persistPrompt = useCallback(
-    async (prompt: PromptRecord) => {
+  const commitPrompt = useCallback(
+    async (prompt: PromptRecord, operation: 'add' | 'update') => {
       try {
-        await storage.savePrompt(prompt)
-        actions.setSyncState({ syncMode: storage.mode, syncStatus: 'ready' })
+        const savedPrompt =
+          operation === 'add' ? await library.addPrompt(prompt) : await library.updatePrompt(prompt)
+
+        actions.replacePrompt(savedPrompt)
+        actions.setSyncState({ syncMode: library.mode, syncStatus: 'ready' })
       } catch (error) {
         markSyncError(error)
       }
     },
-    [actions, markSyncError, storage],
+    [actions, library, markSyncError],
   )
 
   const selectPrompt = useCallback(
@@ -80,14 +83,19 @@ export function usePromptLibraryCommands({
     actions.incrementUses(activePrompt.id)
 
     try {
-      await storage.incrementUses(activePrompt.id)
-      actions.setSyncState({ syncMode: storage.mode, syncStatus: 'ready' })
+      const syncedPrompt = await library.recordPromptUse(activePrompt.id)
+
+      if (syncedPrompt) {
+        actions.replacePrompt(syncedPrompt)
+      }
+
+      actions.setSyncState({ syncMode: library.mode, syncStatus: 'ready' })
     } catch (error) {
       markSyncError(error)
     }
 
     toast(`copied → ${activePrompt.title}`)
-  }, [actions, activePrompt, markSyncError, storage])
+  }, [actions, activePrompt, library, markSyncError])
 
   const saveComposer = useCallback(() => {
     const result = actions.saveComposer()
@@ -99,16 +107,16 @@ export function usePromptLibraryCommands({
     }
 
     if (result.status === 'created') {
-      void persistPrompt(result.prompt)
+      void commitPrompt(result.prompt, 'add')
       toast(`wrote ${filenameOf(result.prompt.title)}.md`)
       return
     }
 
     if (result.status === 'updated') {
-      void persistPrompt(result.prompt)
+      void commitPrompt(result.prompt, 'update')
       toast(`saved ${filenameOf(result.prompt.title)}.md`)
     }
-  }, [actions, persistPrompt, titleInputRef])
+  }, [actions, commitPrompt, titleInputRef])
 
   const duplicatePrompt = useCallback(() => {
     if (!activePrompt) {
@@ -118,10 +126,10 @@ export function usePromptLibraryCommands({
     const duplicatedPrompt = actions.duplicatePrompt(activePrompt.id)
 
     if (duplicatedPrompt) {
-      void persistPrompt(duplicatedPrompt)
+      void commitPrompt(duplicatedPrompt, 'add')
       toast(`duplicated → ${duplicatedPrompt.title}`)
     }
-  }, [actions, activePrompt, persistPrompt])
+  }, [actions, activePrompt, commitPrompt])
 
   const deletePrompt = useCallback(() => {
     if (!activePrompt) {
@@ -143,15 +151,15 @@ export function usePromptLibraryCommands({
     const removedPrompt = actions.deletePrompt(activePrompt.id, nextSelectedPromptId)
 
     if (removedPrompt) {
-      void storage
-        .deletePrompt(removedPrompt.id)
+      void library
+        .removePrompt(removedPrompt.id)
         .then(() => {
-          actions.setSyncState({ syncMode: storage.mode, syncStatus: 'ready' })
+          actions.setSyncState({ syncMode: library.mode, syncStatus: 'ready' })
         })
         .catch(markSyncError)
       toast(`removed → ${removedPrompt.title}`)
     }
-  }, [actions, activePrompt, confirmDeleteId, flatPromptIds, markSyncError, prompts, storage])
+  }, [actions, activePrompt, confirmDeleteId, flatPromptIds, library, markSyncError, prompts])
 
   const startEditActivePrompt = useCallback(() => {
     if (!activePrompt) {

@@ -46,7 +46,7 @@ const createInitialState = (): PromptLibraryStateShape => ({
   query: '',
   selectedPromptId: INITIAL_PROMPTS[0]?.id ?? null,
   composer: createInitialComposerState(),
-  confirmDeleteId: null as string | null,
+  confirmDeleteId: null,
   hasHydrated: false,
   syncMode: 'local',
   syncStatus: 'idle',
@@ -70,6 +70,7 @@ export type PromptLibraryState = PromptLibraryStateShape
 export type PromptLibraryActions = {
   finishHydration: () => void
   restoreLocalState: (persistedState: PromptLibraryPersistedSnapshot | null) => void
+  replacePrompt: (prompt: PromptRecord) => void
   replacePrompts: (prompts: PromptRecord[]) => void
   setSyncState: (
     syncState: Partial<Pick<PromptLibraryState, 'syncMode' | 'syncStatus' | 'syncError'>>,
@@ -121,6 +122,21 @@ export const createPromptLibraryStore = () => {
             composer: persistedState?.composer ?? state.composer,
             confirmDeleteId: null,
             hasHydrated: true,
+          }
+        })
+      },
+      replacePrompt: (replacementPrompt) => {
+        set((state) => {
+          const promptExists = state.prompts.some((prompt) => prompt.id === replacementPrompt.id)
+          const prompts = promptExists
+            ? state.prompts.map((prompt) =>
+                prompt.id === replacementPrompt.id ? replacementPrompt : prompt,
+              )
+            : [replacementPrompt, ...state.prompts]
+
+          return {
+            prompts,
+            selectedPromptId: getExistingSelectedPromptId(prompts, state.selectedPromptId),
           }
         })
       },

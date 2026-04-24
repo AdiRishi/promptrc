@@ -18,6 +18,8 @@ type PromptRow = {
   uses: number
 }
 
+const PROMPT_COLUMNS = 'id, title, body, category, tags_json, created_at, updated_at, uses'
+
 const getDatabase = async () => {
   const { env } = await import('cloudflare:workers')
 
@@ -69,7 +71,7 @@ export const listPromptsForUser = async (
   const { results } = await db
     .prepare(
       `
-        SELECT id, title, body, category, tags_json, created_at, updated_at, uses
+        SELECT ${PROMPT_COLUMNS}
         FROM prompts
         WHERE ext_user_id = ?
         ORDER BY updated_at DESC
@@ -79,6 +81,24 @@ export const listPromptsForUser = async (
     .all<PromptRow>()
 
   return results.map(rowToPrompt)
+}
+
+const findPromptForUser = async (db: D1Database, extUserId: string, promptId: string) => {
+  const { results } = await db
+    .prepare(
+      `
+        SELECT ${PROMPT_COLUMNS}
+        FROM prompts
+        WHERE ext_user_id = ? AND id = ?
+        LIMIT 1
+      `,
+    )
+    .bind(extUserId, promptId)
+    .all<PromptRow>()
+
+  const row = results[0]
+
+  return row ? rowToPrompt(row) : null
 }
 
 export const upsertPromptForUser = async (
@@ -132,10 +152,14 @@ export const upsertPromptForUser = async (
 }
 
 export const deletePromptForUser = async (db: D1Database, extUserId: string, promptId: string) => {
-  await db
+  const result = await db
     .prepare('DELETE FROM prompts WHERE ext_user_id = ? AND id = ?')
     .bind(extUserId, promptId)
     .run()
+
+  if (result.meta.changes === 0) {
+    throw new Error('Prompt not found')
+  }
 
   return { promptId }
 }
@@ -145,7 +169,7 @@ export const incrementPromptUsesForUser = async (
   extUserId: string,
   promptId: string,
 ) => {
-  await db
+  const result = await db
     .prepare(
       `
         UPDATE prompts
@@ -157,7 +181,17 @@ export const incrementPromptUsesForUser = async (
     .bind(new Date().toISOString(), extUserId, promptId)
     .run()
 
-  return { promptId }
+  if (result.meta.changes === 0) {
+    throw new Error('Prompt not found')
+  }
+
+  const prompt = await findPromptForUser(db, extUserId, promptId)
+
+  if (!prompt) {
+    throw new Error('Prompt not found')
+  }
+
+  return prompt
 }
 
 export const listRemotePrompts = createServerFn({ method: 'GET' }).handler(async () => {
