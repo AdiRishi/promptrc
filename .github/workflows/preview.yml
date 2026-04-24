@@ -32,6 +32,8 @@ jobs:
         env:
           NODE_ENV: production
           VITE_SITE_URL: ${{ vars.SITE_URL }}
+          VITE_CLERK_PUBLISHABLE_KEY: ${{ vars.CLERK_PUBLISHABLE_KEY }}
+          CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY }}
 
       - name: Deploy Worker Version
         id: deploy-worker-preview

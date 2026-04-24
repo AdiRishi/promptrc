@@ -7,6 +7,7 @@ import {
 } from '@tanstack/react-router'
 
 import appCss from '@/global-styles/tailwind.css?url'
+import { AppProviders } from '@/lib/app-providers'
 import { SITE_AUTHOR, SITE_THEME_COLOR } from '@/lib/site-config'
 
 const GA_ID = 'G-07N4HEE4SJ'
@@ -93,7 +94,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
         </ClientOnly>
       </head>
       <body>
-        {children}
+        <AppProviders>{children}</AppProviders>
         <Scripts />
       </body>
     </html>

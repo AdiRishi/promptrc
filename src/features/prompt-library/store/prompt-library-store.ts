@@ -1,4 +1,3 @@
-import { createJSONStorage, persist } from 'zustand/middleware'
 import { createStore } from 'zustand/vanilla'
 
 import { INITIAL_PROMPTS } from '@/features/prompt-library/lib/prompt-library-data'
@@ -14,8 +13,6 @@ import {
   type PromptRecord,
 } from '@/features/prompt-library/types'
 
-const STORAGE_KEY = 'promptrc.library.v1'
-
 type PromptLibraryStateShape = {
   prompts: PromptRecord[]
   query: string
@@ -23,6 +20,9 @@ type PromptLibraryStateShape = {
   composer: ComposerState
   confirmDeleteId: string | null
   hasHydrated: boolean
+  syncMode: 'local' | 'remote'
+  syncStatus: 'idle' | 'loading' | 'ready' | 'error'
+  syncError: string | null
 }
 
 const createInitialComposerState = (): ComposerState => ({
@@ -37,6 +37,9 @@ const createInitialState = (): PromptLibraryStateShape => ({
   composer: createInitialComposerState(),
   confirmDeleteId: null as string | null,
   hasHydrated: false,
+  syncMode: 'local',
+  syncStatus: 'idle',
+  syncError: null,
 })
 
 const getExistingSelectedPromptId = (prompts: PromptRecord[], selectedPromptId: string | null) => {
@@ -55,6 +58,11 @@ export type PromptLibraryState = PromptLibraryStateShape
 
 export type PromptLibraryActions = {
   finishHydration: () => void
+  restoreLocalState: (persistedState: PromptLibraryPersistedSnapshot | null) => void
+  replacePrompts: (prompts: PromptRecord[]) => void
+  setSyncState: (
+    syncState: Partial<Pick<PromptLibraryState, 'syncMode' | 'syncStatus' | 'syncError'>>,
+  ) => void
   setQuery: (query: string) => void
   clearQuery: () => void
   selectPrompt: (promptId: string | null) => void
@@ -83,223 +91,236 @@ type PromptLibraryPersistedState = Pick<
 >
 
 export const createPromptLibraryStore = () => {
-  return createStore<PromptLibraryStore>()(
-    persist(
-      (set, get) => ({
-        ...createInitialState(),
-        actions: {
-          finishHydration: () => {
-            set((state) => ({
-              hasHydrated: true,
-              selectedPromptId: getExistingSelectedPromptId(state.prompts, state.selectedPromptId),
-            }))
-          },
-          setQuery: (query) => {
-            set({ query })
-          },
-          clearQuery: () => {
-            set({ query: '' })
-          },
-          selectPrompt: (selectedPromptId) => {
-            set({ selectedPromptId })
-          },
-          startNew: () => {
-            set({
-              composer: {
-                mode: 'new',
-                draft: { ...EMPTY_PROMPT_DRAFT },
-              },
-              confirmDeleteId: null,
-            })
-          },
-          startEdit: (promptId) => {
-            const prompt = get().prompts.find((entry) => entry.id === promptId)
-
-            if (!prompt) {
-              return
-            }
-
-            set({
-              selectedPromptId: prompt.id,
-              composer: {
-                mode: 'edit',
-                draft: createPromptDraft(prompt),
-              },
-              confirmDeleteId: null,
-            })
-          },
-          updateDraft: (field, value) => {
-            set((state) => ({
-              composer: {
-                ...state.composer,
-                draft: {
-                  ...state.composer.draft,
-                  [field]: value,
-                },
-              },
-            }))
-          },
-          cancelComposer: () => {
-            set({
-              composer: createInitialComposerState(),
-              confirmDeleteId: null,
-            })
-          },
-          saveComposer: () => {
-            const state = get()
-            const promptInput = createPromptInput(state.composer.draft)
-
-            if (state.composer.mode === 'view') {
-              return { status: 'idle' }
-            }
-
-            if (!promptInput.title || !promptInput.body) {
-              return { status: 'invalid' }
-            }
-
-            if (state.composer.mode === 'new') {
-              const now = new Date().toISOString()
-              const createdPrompt: PromptRecord = {
-                id: generatePromptId(),
-                title: promptInput.title,
-                body: promptInput.body,
-                category: promptInput.category || 'Personal',
-                tags: promptInput.tags,
-                createdAt: now,
-                updatedAt: now,
-                uses: 0,
-              }
-
-              set((currentState) => ({
-                prompts: [createdPrompt, ...currentState.prompts],
-                selectedPromptId: createdPrompt.id,
-                composer: createInitialComposerState(),
-                confirmDeleteId: null,
-              }))
-
-              return { status: 'created', prompt: createdPrompt }
-            }
-
-            const promptToUpdate = state.prompts.find(
-              (prompt) => prompt.id === state.selectedPromptId,
-            )
-
-            if (!promptToUpdate) {
-              return { status: 'invalid' }
-            }
-
-            const updatedPrompt: PromptRecord = {
-              ...promptToUpdate,
-              title: promptInput.title,
-              body: promptInput.body,
-              category: promptInput.category || promptToUpdate.category,
-              tags: promptInput.tags,
-              updatedAt: new Date().toISOString(),
-            }
-
-            set((currentState) => ({
-              prompts: currentState.prompts.map((prompt) =>
-                prompt.id === updatedPrompt.id ? updatedPrompt : prompt,
-              ),
-              selectedPromptId: updatedPrompt.id,
-              composer: createInitialComposerState(),
-              confirmDeleteId: null,
-            }))
-
-            return { status: 'updated', prompt: updatedPrompt }
-          },
-          duplicatePrompt: (promptId) => {
-            const sourcePrompt = get().prompts.find((prompt) => prompt.id === promptId)
-
-            if (!sourcePrompt) {
-              return null
-            }
-
-            const now = new Date().toISOString()
-            const duplicatePrompt: PromptRecord = {
-              ...sourcePrompt,
-              id: generatePromptId(),
-              title: `${sourcePrompt.title} (copy)`,
-              createdAt: now,
-              updatedAt: now,
-              uses: 0,
-            }
-
-            set((state) => ({
-              prompts: [duplicatePrompt, ...state.prompts],
-              selectedPromptId: duplicatePrompt.id,
-              confirmDeleteId: null,
-            }))
-
-            return duplicatePrompt
-          },
-          requestDeletePrompt: (promptId) => {
-            set({ confirmDeleteId: promptId })
-          },
-          clearDeleteConfirmation: () => {
-            set({ confirmDeleteId: null })
-          },
-          deletePrompt: (promptId, nextSelectedPromptId) => {
-            const promptToDelete = get().prompts.find((prompt) => prompt.id === promptId)
-
-            if (!promptToDelete) {
-              return null
-            }
-
-            set((state) => {
-              const nextPrompts = state.prompts.filter((prompt) => prompt.id !== promptId)
-
-              return {
-                prompts: nextPrompts,
-                selectedPromptId: getExistingSelectedPromptId(
-                  nextPrompts,
-                  nextSelectedPromptId ?? state.selectedPromptId,
-                ),
-                confirmDeleteId: null,
-              }
-            })
-
-            return promptToDelete
-          },
-          incrementUses: (promptId) => {
-            set((state) => ({
-              prompts: state.prompts.map((prompt) =>
-                prompt.id === promptId ? { ...prompt, uses: prompt.uses + 1 } : prompt,
-              ),
-            }))
-          },
-        },
-      }),
-      {
-        name: STORAGE_KEY,
-        version: 1,
-        storage: createJSONStorage(() => localStorage),
-        skipHydration: true,
-        partialize: (state): PromptLibraryPersistedState => ({
-          prompts: state.prompts,
-          query: state.query,
-          selectedPromptId: state.selectedPromptId,
-          composer: state.composer,
-        }),
-        merge: (persistedState, currentState) => {
-          const persisted = persistedState as Partial<PromptLibraryPersistedState> | undefined
-          const prompts = persisted?.prompts ?? currentState.prompts
+  return createStore<PromptLibraryStore>()((set, get) => ({
+    ...createInitialState(),
+    actions: {
+      finishHydration: () => {
+        set((state) => ({
+          hasHydrated: true,
+          selectedPromptId: getExistingSelectedPromptId(state.prompts, state.selectedPromptId),
+        }))
+      },
+      restoreLocalState: (persistedState) => {
+        set((state) => {
+          const prompts = persistedState?.prompts ?? state.prompts
           const selectedPromptId = getExistingSelectedPromptId(
             prompts,
-            persisted?.selectedPromptId ?? currentState.selectedPromptId,
+            persistedState?.selectedPromptId ?? state.selectedPromptId,
           )
 
           return {
-            ...currentState,
             prompts,
-            query: persisted?.query ?? currentState.query,
+            query: persistedState?.query ?? state.query,
             selectedPromptId,
-            composer: persisted?.composer ?? currentState.composer,
+            composer: persistedState?.composer ?? state.composer,
+            confirmDeleteId: null,
+            hasHydrated: true,
           }
-        },
+        })
       },
-    ),
-  )
+      replacePrompts: (prompts) => {
+        set((state) => ({
+          prompts,
+          selectedPromptId: getExistingSelectedPromptId(prompts, state.selectedPromptId),
+          composer: createInitialComposerState(),
+          confirmDeleteId: null,
+          hasHydrated: true,
+        }))
+      },
+      setSyncState: (syncState) => {
+        set((state) => ({
+          ...syncState,
+          syncError:
+            syncState.syncStatus && syncState.syncStatus !== 'error'
+              ? null
+              : (syncState.syncError ?? state.syncError),
+        }))
+      },
+      setQuery: (query) => {
+        set({ query })
+      },
+      clearQuery: () => {
+        set({ query: '' })
+      },
+      selectPrompt: (selectedPromptId) => {
+        set({ selectedPromptId })
+      },
+      startNew: () => {
+        set({
+          composer: {
+            mode: 'new',
+            draft: { ...EMPTY_PROMPT_DRAFT },
+          },
+          confirmDeleteId: null,
+        })
+      },
+      startEdit: (promptId) => {
+        const prompt = get().prompts.find((entry) => entry.id === promptId)
+
+        if (!prompt) {
+          return
+        }
+
+        set({
+          selectedPromptId: prompt.id,
+          composer: {
+            mode: 'edit',
+            draft: createPromptDraft(prompt),
+          },
+          confirmDeleteId: null,
+        })
+      },
+      updateDraft: (field, value) => {
+        set((state) => ({
+          composer: {
+            ...state.composer,
+            draft: {
+              ...state.composer.draft,
+              [field]: value,
+            },
+          },
+        }))
+      },
+      cancelComposer: () => {
+        set({
+          composer: createInitialComposerState(),
+          confirmDeleteId: null,
+        })
+      },
+      saveComposer: () => {
+        const state = get()
+        const promptInput = createPromptInput(state.composer.draft)
+
+        if (state.composer.mode === 'view') {
+          return { status: 'idle' }
+        }
+
+        if (!promptInput.title || !promptInput.body) {
+          return { status: 'invalid' }
+        }
+
+        if (state.composer.mode === 'new') {
+          const now = new Date().toISOString()
+          const createdPrompt: PromptRecord = {
+            id: generatePromptId(),
+            title: promptInput.title,
+            body: promptInput.body,
+            category: promptInput.category || 'Personal',
+            tags: promptInput.tags,
+            createdAt: now,
+            updatedAt: now,
+            uses: 0,
+          }
+
+          set((currentState) => ({
+            prompts: [createdPrompt, ...currentState.prompts],
+            selectedPromptId: createdPrompt.id,
+            composer: createInitialComposerState(),
+            confirmDeleteId: null,
+          }))
+
+          return { status: 'created', prompt: createdPrompt }
+        }
+
+        const promptToUpdate = state.prompts.find((prompt) => prompt.id === state.selectedPromptId)
+
+        if (!promptToUpdate) {
+          return { status: 'invalid' }
+        }
+
+        const updatedPrompt: PromptRecord = {
+          ...promptToUpdate,
+          title: promptInput.title,
+          body: promptInput.body,
+          category: promptInput.category || promptToUpdate.category,
+          tags: promptInput.tags,
+          updatedAt: new Date().toISOString(),
+        }
+
+        set((currentState) => ({
+          prompts: currentState.prompts.map((prompt) =>
+            prompt.id === updatedPrompt.id ? updatedPrompt : prompt,
+          ),
+          selectedPromptId: updatedPrompt.id,
+          composer: createInitialComposerState(),
+          confirmDeleteId: null,
+        }))
+
+        return { status: 'updated', prompt: updatedPrompt }
+      },
+      duplicatePrompt: (promptId) => {
+        const sourcePrompt = get().prompts.find((prompt) => prompt.id === promptId)
+
+        if (!sourcePrompt) {
+          return null
+        }
+
+        const now = new Date().toISOString()
+        const duplicatePrompt: PromptRecord = {
+          ...sourcePrompt,
+          id: generatePromptId(),
+          title: `${sourcePrompt.title} (copy)`,
+          createdAt: now,
+          updatedAt: now,
+          uses: 0,
+        }
+
+        set((state) => ({
+          prompts: [duplicatePrompt, ...state.prompts],
+          selectedPromptId: duplicatePrompt.id,
+          confirmDeleteId: null,
+        }))
+
+        return duplicatePrompt
+      },
+      requestDeletePrompt: (promptId) => {
+        set({ confirmDeleteId: promptId })
+      },
+      clearDeleteConfirmation: () => {
+        set({ confirmDeleteId: null })
+      },
+      deletePrompt: (promptId, nextSelectedPromptId) => {
+        const promptToDelete = get().prompts.find((prompt) => prompt.id === promptId)
+
+        if (!promptToDelete) {
+          return null
+        }
+
+        set((state) => {
+          const nextPrompts = state.prompts.filter((prompt) => prompt.id !== promptId)
+
+          return {
+            prompts: nextPrompts,
+            selectedPromptId: getExistingSelectedPromptId(
+              nextPrompts,
+              nextSelectedPromptId ?? state.selectedPromptId,
+            ),
+            confirmDeleteId: null,
+          }
+        })
+
+        return promptToDelete
+      },
+      incrementUses: (promptId) => {
+        set((state) => ({
+          prompts: state.prompts.map((prompt) =>
+            prompt.id === promptId ? { ...prompt, uses: prompt.uses + 1 } : prompt,
+          ),
+        }))
+      },
+    },
+  }))
 }
 
 export type PromptLibraryStoreApi = ReturnType<typeof createPromptLibraryStore>
+
+export type PromptLibraryPersistedSnapshot = PromptLibraryPersistedState
+
+export const getPromptLibraryPersistedSnapshot = (
+  state: PromptLibraryStore,
+): PromptLibraryPersistedSnapshot => ({
+  prompts: state.prompts,
+  query: state.query,
+  selectedPromptId: state.selectedPromptId,
+  composer: state.composer,
+})
