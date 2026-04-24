@@ -11,7 +11,7 @@
     "deploy": "wrangler --cwd .output deploy",
     "deploy:dry-run": "wrangler --cwd .output deploy --dry-run",
     "test": "vitest run",
-    "typecheck": "pnpm cf-typegen && tsc --noEmit",
+    "typecheck": "pnpm cf-typegen && tsc --noEmit && tsc --project tests/tsconfig.json --noEmit",
     "lint": "eslint",
     "format": "prettier --write .",
     "format:check": "prettier --check .",

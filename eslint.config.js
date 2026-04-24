@@ -10,6 +10,7 @@ export default [
       '.wrangler',
       '.tanstack',
       '.agents',
+      '.claude',
       'public',
       'worker-configuration.d.ts',
       '**/*.gen.ts',
@@ -18,6 +19,12 @@ export default [
     ],
   },
   {
+    languageOptions: {
+      parserOptions: {
+        project: './tsconfig.eslint.json',
+        tsconfigRootDir: import.meta.dirname,
+      },
+    },
     rules: {
       '@typescript-eslint/array-type': ['error', { default: 'array-simple' }],
       'import/consistent-type-specifier-style': ['error', 'prefer-inline'],

@@ -1,0 +1,14 @@
+{
+  "extends": "../tsconfig.json",
+  "include": ["**/*.ts", "**/*.tsx", "../vitest.config.ts"],
+  "exclude": [],
+  "compilerOptions": {
+    "types": [
+      "vite/client",
+      "node",
+      "vitest/globals",
+      "../worker-configuration.d.ts",
+      "@cloudflare/vitest-pool-workers/types"
+    ]
+  }
+}

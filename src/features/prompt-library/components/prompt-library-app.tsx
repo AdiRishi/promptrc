@@ -1,7 +1,6 @@
 'use client'
 
-import { Show, UserButton, useAuth } from '@clerk/tanstack-react-start'
-import { useServerFn } from '@tanstack/react-start'
+import { Show, UserButton } from '@clerk/tanstack-react-start'
 import { Cloud, HardDrive, LogIn } from 'lucide-react'
 import { useCallback, useDeferredValue, useEffect, useEffectEvent, useMemo, useState } from 'react'
 import { toast } from 'sonner'
@@ -10,6 +9,7 @@ import { PromptHelpOverlay } from '@/features/prompt-library/components/prompt-h
 import {
   PromptLibraryProvider,
   usePromptLibraryMeta,
+  usePromptLibraryStorageContext,
   usePromptLibraryStore,
 } from '@/features/prompt-library/components/prompt-library-provider'
 import {
@@ -24,11 +24,6 @@ import {
   groupPromptsByCategory,
   matchesPromptQuery,
 } from '@/features/prompt-library/lib/prompt-library-utils'
-import {
-  deleteRemotePrompt,
-  incrementRemotePromptUses,
-  upsertRemotePrompt,
-} from '@/features/prompt-library/server/prompt-library-functions'
 import { type PromptRecord } from '@/features/prompt-library/types'
 
 export function PromptLibraryApp() {
@@ -50,14 +45,10 @@ function PromptLibraryScreen() {
   const syncStatus = usePromptLibraryStore((state) => state.syncStatus)
   const actions = usePromptLibraryStore((state) => state.actions)
   const { searchInputRef, titleInputRef } = usePromptLibraryMeta()
-  const { isSignedIn } = useAuth()
-  const upsertPrompt = useServerFn(upsertRemotePrompt)
-  const removePrompt = useServerFn(deleteRemotePrompt)
-  const incrementPromptUses = useServerFn(incrementRemotePromptUses)
+  const storage = usePromptLibraryStorageContext()
   const [isHelpOpen, setIsHelpOpen] = useState(false)
   const toggleHelp = useCallback(() => setIsHelpOpen((open) => !open), [])
   const closeHelp = useCallback(() => setIsHelpOpen(false), [])
-  const shouldSyncRemote = isSignedIn === true
 
   const deferredQuery = useDeferredValue(query)
   const filteredPrompts = useMemo(
@@ -129,32 +120,21 @@ function PromptLibraryScreen() {
 
   const markSyncError = useCallback(
     (error: unknown) => {
-      const message = error instanceof Error ? error.message : 'Unable to sync prompts'
-
-      actions.setSyncState({
-        syncMode: 'remote',
-        syncStatus: 'error',
-        syncError: message,
-      })
+      const message = storage.reportError(error)
       toast(`sync failed - ${message}`)
     },
-    [actions],
+    [storage],
   )
 
-  const persistPromptRemote = useCallback(
+  const persistPrompt = useCallback(
     async (prompt: PromptRecord) => {
-      if (!shouldSyncRemote) {
-        return
-      }
-
       try {
-        await upsertPrompt({ data: prompt })
-        actions.setSyncState({ syncMode: 'remote', syncStatus: 'ready' })
+        await storage.savePrompt(prompt)
       } catch (error) {
         markSyncError(error)
       }
     },
-    [actions, markSyncError, shouldSyncRemote, upsertPrompt],
+    [markSyncError, storage],
   )
 
   const copyActivePrompt = useCallback(async () => {
@@ -170,11 +150,9 @@ function PromptLibraryScreen() {
     }
 
     actions.incrementUses(activePrompt.id)
-    if (shouldSyncRemote) {
-      void incrementPromptUses({ data: activePrompt.id }).catch(markSyncError)
-    }
+    void storage.incrementUses(activePrompt.id).catch(markSyncError)
     toast(`copied → ${activePrompt.title}`)
-  }, [actions, activePrompt, incrementPromptUses, markSyncError, shouldSyncRemote])
+  }, [actions, activePrompt, markSyncError, storage])
 
   const saveComposer = useCallback(() => {
     const result = actions.saveComposer()
@@ -186,16 +164,16 @@ function PromptLibraryScreen() {
     }
 
     if (result.status === 'created') {
-      void persistPromptRemote(result.prompt)
+      void persistPrompt(result.prompt)
       toast(`wrote ${filenameOf(result.prompt.title)}.md`)
       return
     }
 
     if (result.status === 'updated') {
-      void persistPromptRemote(result.prompt)
+      void persistPrompt(result.prompt)
       toast(`saved ${filenameOf(result.prompt.title)}.md`)
     }
-  }, [actions, persistPromptRemote, titleInputRef])
+  }, [actions, persistPrompt, titleInputRef])
 
   const duplicatePrompt = useCallback(() => {
     if (!activePrompt) {
@@ -205,10 +183,10 @@ function PromptLibraryScreen() {
     const duplicatedPrompt = actions.duplicatePrompt(activePrompt.id)
 
     if (duplicatedPrompt) {
-      void persistPromptRemote(duplicatedPrompt)
+      void persistPrompt(duplicatedPrompt)
       toast(`duplicated → ${duplicatedPrompt.title}`)
     }
-  }, [actions, activePrompt, persistPromptRemote])
+  }, [actions, activePrompt, persistPrompt])
 
   const deletePrompt = useCallback(() => {
     if (!activePrompt) {
@@ -230,21 +208,10 @@ function PromptLibraryScreen() {
     const removedPrompt = actions.deletePrompt(activePrompt.id, nextSelectedPromptId)
 
     if (removedPrompt) {
-      if (shouldSyncRemote) {
-        void removePrompt({ data: removedPrompt.id }).catch(markSyncError)
-      }
+      void storage.deletePrompt(removedPrompt.id).catch(markSyncError)
       toast(`removed → ${removedPrompt.title}`)
     }
-  }, [
-    actions,
-    activePrompt,
-    confirmDeleteId,
-    flatPromptIds,
-    markSyncError,
-    prompts,
-    removePrompt,
-    shouldSyncRemote,
-  ])
+  }, [actions, activePrompt, confirmDeleteId, flatPromptIds, markSyncError, prompts, storage])
 
   const shortcuts = useMemo<PromptShortcutDefinition[]>(
     () => [

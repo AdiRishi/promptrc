@@ -1,6 +1,6 @@
 CREATE TABLE IF NOT EXISTS prompts (
-  ext_user_id TEXT NOT NULL,
   id TEXT NOT NULL,
+  ext_user_id TEXT NOT NULL,
   title TEXT NOT NULL,
   body TEXT NOT NULL,
   category TEXT NOT NULL,

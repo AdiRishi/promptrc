@@ -1,0 +1,15 @@
+{
+  "extends": "./tsconfig.json",
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "tests/**/*.ts",
+    "tests/**/*.tsx",
+    "eslint.config.js",
+    "prettier.config.js",
+    "vite.config.ts",
+    "vitest.config.ts",
+    "nitro.config.ts"
+  ],
+  "exclude": []
+}

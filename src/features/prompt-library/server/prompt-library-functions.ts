@@ -136,8 +136,8 @@ export const upsertPromptForUser = async (
     .prepare(
       `
         INSERT INTO prompts (
-          ext_user_id,
           id,
+          ext_user_id,
           title,
           body,
           category,
@@ -158,8 +158,8 @@ export const upsertPromptForUser = async (
       `,
     )
     .bind(
-      extUserId,
       prompt.id,
+      extUserId,
       prompt.title,
       prompt.body,
       prompt.category,
