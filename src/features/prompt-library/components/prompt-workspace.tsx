@@ -22,6 +22,7 @@ import {
 import { Input } from '@/components/ui/input'
 import { Kbd } from '@/components/ui/kbd'
 import { Textarea } from '@/components/ui/textarea'
+import { PromptBodyRenderer } from '@/features/prompt-library/components/prompt-body-renderer'
 import { filenameOf, relativeTime } from '@/features/prompt-library/lib/prompt-library-utils'
 import {
   type ComposerState,
@@ -260,7 +261,7 @@ function PromptViewer({
           <span className="absolute -top-2 left-3 bg-card px-2 text-[10px] tracking-[0.2em] text-accent-foreground">
             // PROMPT
           </span>
-          {prompt.body}
+          <PromptBodyRenderer body={prompt.body} />
         </div>
       </CardContent>
 
