@@ -36,7 +36,7 @@ function PromptMentionChip({ token }: { token: Extract<PromptBodyToken, { type: 
     <span
       aria-label={`${token.kind}: ${token.label}`}
       className={cn(
-        'mx-0.5 inline-flex max-w-full translate-y-[0.08em] items-center gap-1 rounded-[6px] border px-1.5 py-[0.12rem] align-baseline text-[0.9em] leading-none font-semibold whitespace-nowrap shadow-[inset_0_1px_0_rgba(255,255,255,0.07)]',
+        'inline-flex max-w-full translate-y-[0.03em] items-center gap-1 rounded-[5px] border px-1.5 py-[0.08rem] align-baseline text-[0.9em] leading-none font-semibold whitespace-nowrap shadow-[inset_0_1px_0_rgba(255,255,255,0.07)]',
         token.kind === 'skill'
           ? 'border-secondary-foreground/20 bg-secondary-foreground/14 text-secondary-foreground'
           : 'border-secondary-foreground/18 bg-secondary-foreground/16 text-secondary-foreground',
