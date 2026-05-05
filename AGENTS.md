@@ -88,3 +88,17 @@ Only `VITE_*` vars reach the client bundle.
 - Prettier: **no semicolons**, single quotes, trailing commas. Don't fight it.
 - ESLint: `array-simple` for array types; inline type specifiers (`import { type Foo }`) are enforced.
 - Adding a shadcn component: `npx shadcn@latest add <name>` (registry config in `components.json`).
+
+## Agent skills
+
+### Issue tracker
+
+Issues and PRDs are tracked in GitHub Issues for `AdiRishi/promptrc`. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Triage uses the canonical mattpocock/skills label vocabulary. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+This is a single-context repo with root-level domain docs. See `docs/agents/domain.md`.
