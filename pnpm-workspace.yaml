@@ -1,6 +1,10 @@
 onlyBuiltDependencies:
+  - '@clerk/shared'
+  - bufferutil
+  - core-js
   - esbuild
   - msw
   - sharp
   - unrs-resolver
+  - utf-8-validate
   - workerd
