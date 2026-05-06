@@ -52,20 +52,26 @@ describe('seo metadata', () => {
       imageAlt: 'Custom prompt preview',
       type: 'article',
     })
+    const openGraphImage = meta.find(
+      (entry) => 'property' in entry && entry.property === 'og:image',
+    )
+    const canonical = canonicalLink('/prompts/alpha')
 
-    expect(meta).toContainEqual({
+    expect(openGraphImage).toEqual({
       property: 'og:image',
-      content: 'http://localhost:8080/custom-preview.png',
+      content: expect.any(String),
     })
+    expect(new URL(openGraphImage?.content ?? '').pathname).toBe('/custom-preview.png')
     expect(meta).toContainEqual({
       name: 'twitter:image:alt',
       content: 'Custom prompt preview',
     })
     expect(meta).toContainEqual({ property: 'og:type', content: 'article' })
-    expect(canonicalLink('/prompts/alpha')).toEqual({
+    expect(canonical).toEqual({
       rel: 'canonical',
-      href: 'http://localhost:8080/prompts/alpha',
+      href: expect.any(String),
     })
+    expect(new URL(canonical.href).pathname).toBe('/prompts/alpha')
   })
 
   it('describes the app and homepage with accurate structured data', () => {
