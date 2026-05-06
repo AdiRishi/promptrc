@@ -1,10 +1,16 @@
 import {
+  SITE_ALTERNATE_NAMES,
   SITE_APPLICATION_CATEGORY,
+  SITE_APPLICATION_SUB_CATEGORY,
+  SITE_AUDIENCE,
   SITE_AUTHOR,
   SITE_BROWSER_REQUIREMENTS,
   SITE_DEFAULT_TITLE,
+  SITE_DESCRIPTION,
   SITE_FEATURE_LIST,
+  SITE_GITHUB_URL,
   SITE_IN_LANGUAGE,
+  SITE_KEYWORDS,
   SITE_NAME,
   SITE_OG_LOCALE,
   SITE_SOCIAL_IMAGE_ALT,
@@ -19,7 +25,6 @@ type SeoParams = {
   title: string
   description: string
   path?: string
-  keywords?: string
   image?: string
   imageAlt?: string
   type?: 'website' | 'article'
@@ -70,7 +75,6 @@ export function seo({
   title,
   description,
   path = '/',
-  keywords,
   image,
   imageAlt,
   type = 'website',
@@ -83,7 +87,6 @@ export function seo({
   return [
     { title },
     { name: 'description', content: description },
-    ...(keywords ? [{ name: 'keywords', content: keywords }] : []),
     { name: 'robots', content: robots ?? DEFAULT_ROBOTS },
     { name: 'referrer', content: 'strict-origin-when-cross-origin' },
     { name: 'application-name', content: SITE_NAME },
@@ -96,6 +99,9 @@ export function seo({
     { property: 'og:title', content: title },
     { property: 'og:description', content: description },
     { property: 'og:image', content: imageUrl },
+    { property: 'og:image:type', content: 'image/png' },
+    { property: 'og:image:width', content: '1200' },
+    { property: 'og:image:height', content: '630' },
     { property: 'og:image:alt', content: resolvedImageAlt },
     { property: 'og:url', content: pageUrl },
     { property: 'og:type', content: type },
@@ -127,10 +133,12 @@ export function getWebAppJsonLd() {
     '@context': 'https://schema.org',
     '@type': 'WebApplication',
     name: SITE_NAME,
+    alternateName: [...SITE_ALTERNATE_NAMES],
     url: siteUrl,
-    description:
-      'A terminal-inspired prompt library for storing, searching, and reusing your best AI prompts.',
+    description: SITE_DESCRIPTION,
+    keywords: SITE_KEYWORDS,
     applicationCategory: SITE_APPLICATION_CATEGORY,
+    applicationSubCategory: SITE_APPLICATION_SUB_CATEGORY,
     operatingSystem: 'Any',
     inLanguage: SITE_IN_LANGUAGE,
     isAccessibleForFree: true,
@@ -147,6 +155,11 @@ export function getWebAppJsonLd() {
     author: {
       '@id': schemaIds.organization,
     },
+    audience: {
+      '@type': 'Audience',
+      audienceType: SITE_AUDIENCE,
+    },
+    sameAs: [SITE_GITHUB_URL],
     offers: {
       '@type': 'Offer',
       price: '0',
@@ -167,13 +180,13 @@ export function getOrganizationJsonLd() {
     '@id': schemaIds.organization,
     name: SITE_NAME,
     url: siteUrl,
-    description:
-      'A terminal-inspired prompt library for storing, searching, and reusing AI prompts.',
+    description: SITE_DESCRIPTION,
     logo: {
       '@type': 'ImageObject',
       url: logoUrl,
     },
     image: imageUrl,
+    sameAs: [SITE_GITHUB_URL],
   }
 }
 
@@ -187,8 +200,9 @@ export function getWebsiteJsonLd() {
     '@id': schemaIds.website,
     url: siteUrl,
     name: SITE_NAME,
-    description:
-      'A terminal-inspired prompt library for storing, searching, and reusing your best AI prompts.',
+    alternateName: [...SITE_ALTERNATE_NAMES],
+    description: SITE_DESCRIPTION,
+    keywords: SITE_KEYWORDS,
     inLanguage: SITE_IN_LANGUAGE,
     publisher: {
       '@id': schemaIds.organization,
@@ -202,17 +216,20 @@ export function getHomePageJsonLd() {
 
   return {
     '@context': 'https://schema.org',
-    '@type': 'CollectionPage',
+    '@type': 'WebPage',
     '@id': schemaIds.homepage,
     url: siteUrl,
     name: SITE_DEFAULT_TITLE,
-    description:
-      'Browse, search, edit, and reuse your best AI prompts in a terminal-inspired prompt library.',
+    description: SITE_DESCRIPTION,
+    keywords: SITE_KEYWORDS,
     inLanguage: SITE_IN_LANGUAGE,
     isPartOf: {
       '@id': schemaIds.website,
     },
     about: {
+      '@id': schemaIds.software,
+    },
+    mainEntity: {
       '@id': schemaIds.software,
     },
     primaryImageOfPage: {

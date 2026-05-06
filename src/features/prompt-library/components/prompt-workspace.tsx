@@ -29,6 +29,7 @@ import {
   type PromptDraft,
   type PromptRecord,
 } from '@/features/prompt-library/types'
+import { SITE_APP_HEADING } from '@/lib/site-config'
 
 type PromptWorkspaceProps = {
   activePrompt: PromptRecord | null
@@ -77,7 +78,14 @@ export function PromptWorkspace({
   const [searchFocused, setSearchFocused] = useState(false)
 
   return (
-    <main className="order-1 min-w-0 px-4 py-6 md:order-2 md:px-6 xl:px-7">
+    <main
+      aria-labelledby="prompt-library-heading"
+      className="order-1 min-w-0 px-4 py-6 md:order-2 md:px-6 xl:px-7"
+    >
+      <h1 className="sr-only" id="prompt-library-heading">
+        {SITE_APP_HEADING}
+      </h1>
+
       <PromptCommandBar
         filteredCount={filteredCount}
         query={query}

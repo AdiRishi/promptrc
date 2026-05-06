@@ -8,9 +8,20 @@ import {
   CLERK_SIGN_UP_PATH,
   promptrcClerkAppearance,
 } from '@/features/auth/clerk-appearance'
+import { canonicalLink, seo } from '@/lib/seo'
+import { SITE_NAME } from '@/lib/site-config'
 
 export const Route = createFileRoute('/sign-up/$')({
   component: SignUpRoute,
+  head: () => ({
+    meta: seo({
+      title: `Create account | ${SITE_NAME}`,
+      description: 'Create a promptrc account to keep your AI prompt library synced.',
+      path: CLERK_SIGN_UP_PATH,
+      robots: 'noindex, follow',
+    }),
+    links: [canonicalLink(CLERK_SIGN_UP_PATH)],
+  }),
 })
 
 function SignUpRoute() {
