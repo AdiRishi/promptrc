@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 
 import { createStarterPrompts } from '@/features/prompt-library/lib/starter-prompts'
 import {
+  copyPromptsForUser,
   deletePromptForUser,
   getPromptLibraryForUser,
   incrementPromptUsesForUser,
@@ -84,6 +85,54 @@ describe('prompt library server persistence', () => {
       'Difficult Reply',
     ])
     expect(library.isFresh).toBe(true)
+  })
+
+  it('copies local Prompts into a fresh remote Prompt Library and marks it non-fresh', async () => {
+    const localPrompts = [
+      createPrompt({
+        id: 'local-prompt-alpha',
+        updatedAt: '2026-04-24T00:01:00.000Z',
+      }),
+      createPrompt({
+        id: 'local-prompt-beta',
+        title: 'Beta',
+        updatedAt: '2026-04-24T00:02:00.000Z',
+      }),
+    ]
+
+    const copiedPrompts = await copyPromptsForUser(env.DB, 'user_a', localPrompts)
+    const library = await getPromptLibraryForUser(env.DB, 'user_a')
+
+    expect(copiedPrompts).toHaveLength(2)
+    expect(copiedPrompts.map((prompt) => prompt.id)).not.toContain('local-prompt-alpha')
+    expect(copiedPrompts.map((prompt) => prompt.id)).not.toContain('local-prompt-beta')
+    expect(copiedPrompts.map((prompt) => prompt.title)).toEqual(['Alpha', 'Beta'])
+    expect(library.prompts.map((prompt) => prompt.title)).toEqual(['Beta', 'Alpha'])
+    expect(library.isFresh).toBe(false)
+  })
+
+  it('returns existing remote Prompts instead of duplicating local copies on retry', async () => {
+    const localPrompts = [
+      createPrompt({
+        id: 'local-prompt-alpha',
+        updatedAt: '2026-04-24T00:01:00.000Z',
+      }),
+      createPrompt({
+        id: 'local-prompt-beta',
+        title: 'Beta',
+        updatedAt: '2026-04-24T00:02:00.000Z',
+      }),
+    ]
+
+    const firstCopy = await copyPromptsForUser(env.DB, 'user_a', localPrompts)
+    const retryCopy = await copyPromptsForUser(env.DB, 'user_a', localPrompts)
+    const library = await getPromptLibraryForUser(env.DB, 'user_a')
+
+    expect(retryCopy.map((prompt) => prompt.id).sort()).toEqual(
+      firstCopy.map((prompt) => prompt.id).sort(),
+    )
+    expect(library.prompts).toHaveLength(2)
+    expect(library.isFresh).toBe(false)
   })
 
   it('upserts and lists prompts for the authenticated Clerk user only', async () => {

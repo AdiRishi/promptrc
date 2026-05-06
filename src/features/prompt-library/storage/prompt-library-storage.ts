@@ -31,6 +31,7 @@ export type LocalPromptLibraryStorage = PromptLibraryStorageBase & {
 
 export type RemotePromptLibraryStorage = PromptLibraryStorageBase & {
   mode: Extract<PromptSyncMode, 'remote'>
+  copyPrompts: (prompts: PromptRecord[]) => Promise<PromptRecord[]>
   deletePrompt: (promptId: string) => Promise<void>
   hydrate: () => Promise<Extract<PromptLibraryHydrationResult, { source: 'remote' }>>
   incrementUses: (promptId: string) => Promise<PromptRecord>

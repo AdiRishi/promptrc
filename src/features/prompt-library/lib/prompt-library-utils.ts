@@ -70,9 +70,7 @@ export const relativeTime = (iso: string) => {
 }
 
 export const generatePromptId = () => {
-  return typeof crypto !== 'undefined' && 'randomUUID' in crypto
-    ? crypto.randomUUID()
-    : `prompt-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+  return crypto.randomUUID()
 }
 
 export const matchesPromptQuery = (prompt: PromptRecord, query: string) => {

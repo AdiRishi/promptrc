@@ -137,6 +137,7 @@ describe('prompt library client', () => {
     )
     const storage: RemotePromptLibraryStorage = {
       mode: 'remote',
+      copyPrompts: (prompts) => Promise.resolve(prompts),
       hydrate: () =>
         Promise.resolve({
           source: 'remote',
@@ -168,6 +169,7 @@ describe('prompt library client', () => {
     const seedPrompts = vi.fn((starterPrompts: PromptRecord[]) => Promise.resolve(starterPrompts))
     const storage: RemotePromptLibraryStorage = {
       mode: 'remote',
+      copyPrompts: (prompts) => Promise.resolve(prompts),
       hydrate: () =>
         Promise.resolve({
           source: 'remote',
@@ -210,6 +212,7 @@ describe('prompt library client', () => {
     const seedPrompts = vi.fn((starterPrompts: PromptRecord[]) => Promise.resolve(starterPrompts))
     const storage: RemotePromptLibraryStorage = {
       mode: 'remote',
+      copyPrompts: (prompts) => Promise.resolve(prompts),
       hydrate: () =>
         Promise.resolve({
           source: 'remote',
@@ -246,10 +249,18 @@ describe('prompt library client', () => {
       }),
     )
 
-    const savedPrompts: PromptRecord[] = []
+    const copiedPrompts = [
+      {
+        ...prompt,
+        id: 'remote-prompt-alpha',
+      },
+    ]
+    const copyPrompts = vi.fn(() => Promise.resolve(copiedPrompts))
+    const savePrompt = vi.fn((savedPrompt: PromptRecord) => Promise.resolve(savedPrompt))
     const setFreshness = vi.fn((isFresh: boolean) => Promise.resolve({ isFresh }))
     const storage: RemotePromptLibraryStorage = {
       mode: 'remote',
+      copyPrompts,
       hydrate: () =>
         Promise.resolve({
           source: 'remote',
@@ -258,10 +269,7 @@ describe('prompt library client', () => {
             isFresh: true,
           },
         }),
-      savePrompt: (savedPrompt) => {
-        savedPrompts.push(savedPrompt)
-        return Promise.resolve(savedPrompt)
-      },
+      savePrompt,
       seedPrompts: (starterPrompts) => Promise.resolve(starterPrompts),
       setFreshness,
       deletePrompt: () => Promise.resolve(),
@@ -274,19 +282,11 @@ describe('prompt library client', () => {
     await client.sync()
     await client.acceptFirstSignInCopy()
 
-    expect(savedPrompts).toHaveLength(1)
-    expect(savedPrompts[0]).toMatchObject({
-      title: prompt.title,
-      body: prompt.body,
-      category: prompt.category,
-      tags: prompt.tags,
-      createdAt: prompt.createdAt,
-      updatedAt: prompt.updatedAt,
-      uses: prompt.uses,
-    })
-    expect(savedPrompts[0]?.id).not.toBe(prompt.id)
-    expect(setFreshness).toHaveBeenCalledWith(false)
-    expect(store.getState().prompts).toEqual(savedPrompts)
+    expect(copyPrompts).toHaveBeenCalledOnce()
+    expect(copyPrompts).toHaveBeenCalledWith([prompt])
+    expect(savePrompt).not.toHaveBeenCalled()
+    expect(setFreshness).not.toHaveBeenCalled()
+    expect(store.getState().prompts).toEqual(copiedPrompts)
     expect(store.getState().isFresh).toBe(false)
     expect(store.getState().firstSignInCopy.status).toBe('idle')
     expect(readLocalPromptLibrarySnapshot()?.prompts).toEqual([prompt])
@@ -305,6 +305,7 @@ describe('prompt library client', () => {
     const setFreshness = vi.fn((isFresh: boolean) => Promise.resolve({ isFresh }))
     const storage: RemotePromptLibraryStorage = {
       mode: 'remote',
+      copyPrompts: (prompts) => Promise.resolve(prompts),
       hydrate: () =>
         Promise.resolve({
           source: 'remote',
@@ -346,6 +347,7 @@ describe('prompt library client', () => {
     const setFreshness = vi.fn((isFresh: boolean) => Promise.resolve({ isFresh }))
     const storage: RemotePromptLibraryStorage = {
       mode: 'remote',
+      copyPrompts: (prompts) => Promise.resolve(prompts),
       hydrate: () =>
         Promise.resolve({
           source: 'remote',

@@ -1,4 +1,3 @@
-import { generatePromptId } from '@/features/prompt-library/lib/prompt-library-utils'
 import {
   createStarterPrompts,
   hasStarterPrompts,
@@ -95,11 +94,6 @@ export const hydratePromptLibrary = async (
   await seedFreshPromptLibrary(storage, store)
 }
 
-const createRemoteCopyPrompt = (prompt: PromptRecord): PromptRecord => ({
-  ...prompt,
-  id: generatePromptId(),
-})
-
 export const createPromptLibraryClient = (
   storage: PromptLibraryStorage,
   store: PromptLibraryStoreApi,
@@ -154,13 +148,7 @@ export const createPromptLibraryClient = (
       store.getState().actions.beginFirstSignInCopy()
 
       try {
-        const copiedPrompts: PromptRecord[] = []
-
-        for (const localPrompt of localPrompts) {
-          copiedPrompts.push(await storage.savePrompt(createRemoteCopyPrompt(localPrompt)))
-        }
-
-        await storage.setFreshness(false)
+        const copiedPrompts = await storage.copyPrompts(localPrompts)
         store.getState().actions.completeFirstSignInCopy(copiedPrompts)
       } catch (error) {
         const message = storage.reportError(error)

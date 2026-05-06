@@ -3,6 +3,7 @@ import { useServerFn } from '@tanstack/react-start'
 import { useCallback, useMemo } from 'react'
 
 import {
+  copyRemotePromptsToPromptLibrary,
   deleteRemotePrompt,
   getRemotePromptLibrary,
   incrementRemotePromptUses,
@@ -25,6 +26,7 @@ export function useRemotePromptLibraryStorage(userId: string | null): RemoteProm
   const removePrompt = useServerFn(deleteRemotePrompt)
   const incrementPromptUses = useServerFn(incrementRemotePromptUses)
   const seedStarterPrompts = useServerFn(seedRemoteStarterPrompts)
+  const copyPromptsToPromptLibrary = useServerFn(copyRemotePromptsToPromptLibrary)
   const setFreshness = useServerFn(setRemotePromptLibraryFreshness)
   const queryKey = useMemo(() => getPromptLibraryQueryKey(userId), [userId])
   const invalidatePrompts = useCallback(
@@ -35,6 +37,13 @@ export function useRemotePromptLibraryStorage(userId: string | null): RemoteProm
   return useMemo<RemotePromptLibraryStorage>(
     () => ({
       mode: 'remote',
+      copyPrompts: async (prompts) => {
+        const copiedPrompts = await copyPromptsToPromptLibrary({ data: prompts })
+
+        await invalidatePrompts()
+
+        return copiedPrompts
+      },
       deletePrompt: async (promptId) => {
         await removePrompt({ data: promptId })
         await invalidatePrompts()
@@ -77,6 +86,7 @@ export function useRemotePromptLibraryStorage(userId: string | null): RemoteProm
       },
     }),
     [
+      copyPromptsToPromptLibrary,
       getPromptLibrary,
       incrementPromptUses,
       invalidatePrompts,
