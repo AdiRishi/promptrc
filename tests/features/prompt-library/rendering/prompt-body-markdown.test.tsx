@@ -1,12 +1,12 @@
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 
-import { PromptBodyRenderer } from '@/features/prompt-library/components/prompt-body-renderer'
+import { PromptBodyMarkdown } from '@/features/prompt-library/rendering/prompt-body-markdown'
 
-describe('PromptBodyRenderer', () => {
+describe('PromptBodyMarkdown', () => {
   it('renders CommonMark and GFM markdown elements with React components', () => {
     render(
-      <PromptBodyRenderer
+      <PromptBodyMarkdown
         body={`# Deploy checklist
 
 Paragraph with **bold**, *emphasis*, ~~stale~~, \`inline\`, and [docs](https://example.com).
@@ -38,9 +38,9 @@ const ok = true
     expect(screen.getByText(/const ok = true/)).toBeTruthy()
   })
 
-  it('renders Codex mention markdown links as inline references', () => {
+  it('renders Codex reference markdown links as inline references', () => {
     render(
-      <PromptBodyRenderer
+      <PromptBodyMarkdown
         body={
           'Use [$to-prd](/Users/arishi/personal/app/.agents/skills/to-prd/SKILL.md), [@github](plugin://github@openai-curated), [GitHub](app://github), [prompt-workspace.tsx:269](/Users/arishi/personal/promptrc/src/features/prompt-library/components/prompt-workspace.tsx:269), and [prompt-library](/Users/arishi/personal/promptrc/src/features/prompt-library). Read [docs](https://example.com).'
         }
@@ -60,7 +60,7 @@ const ok = true
 
   it('renders fallback reference cases without degrading normal links', () => {
     render(
-      <PromptBodyRenderer
+      <PromptBodyMarkdown
         body={
           'Open [@browser-use](plugin://browser-use@openai-bundled), [@computer-use](app://computer-use), [settings.json:12:4](file:///Users/arishi/personal/promptrc/.vscode/settings.json:12:4), and [src/](/Users/arishi/personal/promptrc/src/).'
         }
@@ -76,9 +76,9 @@ const ok = true
 
   it('keeps Windows drive-letter reference hrefs renderable', () => {
     render(
-      <PromptBodyRenderer
+      <PromptBodyMarkdown
         body={
-          'Use [$to-prd](C:/Users/arishi/.agents/skills/to-prd/SKILL.md) and [prompt-body-renderer.tsx:42](C:/Users/arishi/promptrc/src/features/prompt-library/components/prompt-body-renderer.tsx:42).'
+          'Use [$to-prd](C:/Users/arishi/.agents/skills/to-prd/SKILL.md) and [prompt-body-markdown.tsx:42](C:/Users/arishi/promptrc/src/features/prompt-library/rendering/prompt-body-markdown.tsx:42).'
         }
       />,
     )
@@ -86,7 +86,7 @@ const ok = true
     expect(screen.getByRole('link', { name: 'skill: To Prd' }).getAttribute('href')).toBe(
       'C:/Users/arishi/.agents/skills/to-prd/SKILL.md',
     )
-    expect(document.querySelector('[aria-label="file: prompt-body-renderer.tsx"]')).toBeTruthy()
-    expect(screen.getByText('prompt-body-renderer.tsx (line 42)')).toBeTruthy()
+    expect(document.querySelector('[aria-label="file: prompt-body-markdown.tsx"]')).toBeTruthy()
+    expect(screen.getByText('prompt-body-markdown.tsx (line 42)')).toBeTruthy()
   })
 })

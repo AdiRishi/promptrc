@@ -1,23 +1,15 @@
-export type PromptMentionKind = 'app' | 'directory' | 'file' | 'plugin' | 'skill'
+export type PromptReferenceKind = 'app' | 'directory' | 'file' | 'plugin' | 'skill'
 
-export type PromptMentionToken = {
+export type PromptReferenceToken = {
   columnNumber?: number
   href: string
-  kind: PromptMentionKind
+  kind: PromptReferenceKind
   label: string
   lineNumber?: number
   rawLabel: string
-  type: 'mention'
+  type: 'reference'
 }
 
-export type PromptBodyToken =
-  | {
-      text: string
-      type: 'text'
-    }
-  | PromptMentionToken
-
-const MARKDOWN_LINK_PATTERN = /\[([^\]\n]+)\]\(([^)\n]+)\)/g
 const WINDOWS_DRIVE_PATH_PATTERN = /^[A-Za-z]:[\\/]/
 
 const preferredReferenceNames = {
@@ -39,58 +31,17 @@ const preferredReferenceNames = {
   teams: 'Teams',
 } as const
 
-export const parsePromptBodyMentions = (body: string): PromptBodyToken[] => {
-  const tokens: PromptBodyToken[] = []
-  let lastIndex = 0
-
-  for (const match of body.matchAll(MARKDOWN_LINK_PATTERN)) {
-    const matchIndex = match.index
-    const fullMatch = match[0]
-    const rawLabel = match[1]
-    const href = match[2]
-
-    if (matchIndex === undefined || !rawLabel || !href) {
-      continue
-    }
-
-    const mention = createPromptMentionToken(rawLabel, href)
-
-    if (!mention) {
-      continue
-    }
-
-    if (matchIndex > lastIndex) {
-      tokens.push({
-        text: body.slice(lastIndex, matchIndex),
-        type: 'text',
-      })
-    }
-
-    tokens.push(mention)
-    lastIndex = matchIndex + fullMatch.length
-  }
-
-  if (lastIndex < body.length) {
-    tokens.push({
-      text: body.slice(lastIndex),
-      type: 'text',
-    })
-  }
-
-  return tokens.length ? tokens : [{ text: body, type: 'text' }]
-}
-
-export const createPromptMentionToken = (
+export const createPromptReferenceToken = (
   rawLabel: string,
   href: string,
-): PromptMentionToken | null => {
+): PromptReferenceToken | null => {
   const trimmedLabel = rawLabel.trim()
 
   return (
-    createSkillMentionToken(trimmedLabel, rawLabel, href) ??
-    createPluginMentionToken(trimmedLabel, rawLabel, href) ??
-    createAppMentionToken(trimmedLabel, rawLabel, href) ??
-    createLocalPathMentionToken(trimmedLabel, rawLabel, href)
+    createSkillReferenceToken(trimmedLabel, rawLabel, href) ??
+    createPluginReferenceToken(trimmedLabel, rawLabel, href) ??
+    createAppReferenceToken(trimmedLabel, rawLabel, href) ??
+    createLocalPathReferenceToken(trimmedLabel, rawLabel, href)
   )
 }
 
@@ -103,53 +54,53 @@ export const shouldPreservePromptReferenceHref = (href: string) => {
   )
 }
 
-const createSkillMentionToken = (trimmedLabel: string, rawLabel: string, href: string) => {
+const createSkillReferenceToken = (trimmedLabel: string, rawLabel: string, href: string) => {
   if (!trimmedLabel.startsWith('$') || !isSkillReference(href)) {
     return null
   }
 
-  return mentionToken({
+  return referenceToken({
     href,
     kind: 'skill',
-    label: humanizeMentionLabel(trimmedLabel.slice(1)),
+    label: humanizeReferenceLabel(trimmedLabel.slice(1)),
     rawLabel,
   })
 }
 
-const createPluginMentionToken = (trimmedLabel: string, rawLabel: string, href: string) => {
+const createPluginReferenceToken = (trimmedLabel: string, rawLabel: string, href: string) => {
   if (!trimmedLabel.startsWith('@') || !href.startsWith('plugin://')) {
     return null
   }
 
-  return mentionToken({
+  return referenceToken({
     href,
     kind: 'plugin',
-    label: humanizeMentionLabel(trimmedLabel.slice(1), href),
+    label: humanizeReferenceLabel(trimmedLabel.slice(1), href),
     rawLabel,
   })
 }
 
-const createAppMentionToken = (trimmedLabel: string, rawLabel: string, href: string) => {
+const createAppReferenceToken = (trimmedLabel: string, rawLabel: string, href: string) => {
   if (!href.startsWith('app://')) {
     return null
   }
 
-  return mentionToken({
+  return referenceToken({
     href,
     kind: 'app',
-    label: humanizeMentionLabel(trimmedLabel.replace(/^@/, ''), href),
+    label: humanizeReferenceLabel(trimmedLabel.replace(/^@/, ''), href),
     rawLabel,
   })
 }
 
-const createLocalPathMentionToken = (trimmedLabel: string, rawLabel: string, href: string) => {
+const createLocalPathReferenceToken = (trimmedLabel: string, rawLabel: string, href: string) => {
   const fileReference = parseLocalFileReference(href)
 
   if (!fileReference) {
     return null
   }
 
-  return mentionToken({
+  return referenceToken({
     columnNumber: fileReference.columnNumber,
     href,
     kind: fileReference.kind,
@@ -159,20 +110,20 @@ const createLocalPathMentionToken = (trimmedLabel: string, rawLabel: string, hre
   })
 }
 
-const mentionToken = ({
+const referenceToken = ({
   columnNumber,
   href,
   kind,
   label,
   lineNumber,
   rawLabel,
-}: Omit<PromptMentionToken, 'type'>): PromptMentionToken => {
+}: Omit<PromptReferenceToken, 'type'>): PromptReferenceToken => {
   return {
     href,
     kind,
     label,
     rawLabel,
-    type: 'mention',
+    type: 'reference',
     ...(lineNumber ? { lineNumber } : {}),
     ...(columnNumber ? { columnNumber } : {}),
   }
@@ -184,8 +135,8 @@ const isSkillReference = (href: string) => {
   return normalizedHref.endsWith('/SKILL.md') || normalizedHref.includes('/skills/')
 }
 
-const humanizeMentionLabel = (value: string, href?: string) => {
-  const normalizedValue = value.trim() || referenceNameFromHref(href) || 'mention'
+const humanizeReferenceLabel = (value: string, href?: string) => {
+  const normalizedValue = value.trim() || referenceNameFromHref(href) || 'reference'
   const preferredName = preferredReferenceName(normalizedValue)
 
   if (preferredName) {
