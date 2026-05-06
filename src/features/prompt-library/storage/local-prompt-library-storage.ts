@@ -7,7 +7,7 @@ import { type PromptLibraryPersistedSnapshot } from '@/features/prompt-library/t
 
 const LOCAL_STORAGE_KEY = 'promptrc.library.v1'
 
-const readLocalSnapshot = (): PromptLibraryPersistedSnapshot | null => {
+export const readLocalPromptLibrarySnapshot = (): PromptLibraryPersistedSnapshot | null => {
   try {
     const rawValue = localStorage.getItem(LOCAL_STORAGE_KEY)
 
@@ -38,7 +38,7 @@ export const createLocalPromptLibraryStorage = (): LocalPromptLibraryStorage => 
   hydrate: () =>
     Promise.resolve({
       source: 'local',
-      snapshot: readLocalSnapshot(),
+      snapshot: readLocalPromptLibrarySnapshot(),
     }),
   persistSnapshot: writeLocalSnapshot,
   reportError: normalizeStorageError,

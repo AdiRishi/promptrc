@@ -18,6 +18,7 @@ describe('prompt library validation', () => {
   it('parses a valid persisted snapshot', () => {
     const snapshot = parsePromptLibraryPersistedSnapshot({
       prompts: [prompt],
+      isFresh: false,
       query: 'alpha',
       selectedPromptId: prompt.id,
       composer: {
@@ -33,6 +34,7 @@ describe('prompt library validation', () => {
 
     expect(snapshot).toMatchObject({
       prompts: [prompt],
+      isFresh: false,
       query: 'alpha',
       selectedPromptId: prompt.id,
       composer: {
@@ -47,5 +49,24 @@ describe('prompt library validation', () => {
         prompts: [{ ...prompt, uses: -1 }],
       }),
     ).toBeNull()
+  })
+
+  it('parses persisted freshness and treats legacy empty snapshots as fresh', () => {
+    expect(
+      parsePromptLibraryPersistedSnapshot({
+        prompts: [prompt],
+        isFresh: false,
+      })?.isFresh,
+    ).toBe(false)
+    expect(
+      parsePromptLibraryPersistedSnapshot({
+        prompts: [],
+      })?.isFresh,
+    ).toBe(true)
+    expect(
+      parsePromptLibraryPersistedSnapshot({
+        prompts: [prompt],
+      })?.isFresh,
+    ).toBe(false)
   })
 })

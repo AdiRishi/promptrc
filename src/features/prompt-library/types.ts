@@ -39,4 +39,5 @@ export type PromptLibraryPersistedSnapshot = {
   query: string
   selectedPromptId: string | null
   composer: ComposerState
+  isFresh: boolean
 }

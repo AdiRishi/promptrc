@@ -11,6 +11,7 @@ import {
   upsertPromptRecord,
 } from '@/features/prompt-library/lib/prompt-library-domain'
 import { createPromptDraft } from '@/features/prompt-library/lib/prompt-library-utils'
+import { getStartHerePrompt } from '@/features/prompt-library/lib/starter-prompts'
 import {
   type ComposerState,
   type PromptDraft,
@@ -22,6 +23,7 @@ import {
 
 type PromptCollectionState = {
   prompts: PromptRecord[]
+  isFresh: boolean
 }
 
 type PromptWorkspaceState = {
@@ -38,10 +40,24 @@ type PromptSyncState = {
   syncError: string | null
 }
 
-type PromptLibraryStateShape = PromptCollectionState & PromptWorkspaceState & PromptSyncState
+type FirstSignInCopyState = {
+  status: 'idle' | 'prompting' | 'copying' | 'error'
+  localPrompts: PromptRecord[]
+  error: string | null
+}
+
+type PromptOnboardingState = {
+  firstSignInCopy: FirstSignInCopyState
+}
+
+type PromptLibraryStateShape = PromptCollectionState &
+  PromptWorkspaceState &
+  PromptSyncState &
+  PromptOnboardingState
 
 const createInitialState = (): PromptLibraryStateShape => ({
   prompts: INITIAL_PROMPTS,
+  isFresh: true,
   query: '',
   selectedPromptId: INITIAL_PROMPTS[0]?.id ?? null,
   composer: createInitialComposerState(),
@@ -50,6 +66,11 @@ const createInitialState = (): PromptLibraryStateShape => ({
   syncMode: 'local',
   syncStatus: 'idle',
   syncError: null,
+  firstSignInCopy: {
+    status: 'idle',
+    localPrompts: [],
+    error: null,
+  },
 })
 
 type SaveComposerResult =
@@ -60,8 +81,15 @@ export type PromptLibraryState = PromptLibraryStateShape
 
 export type PromptLibraryActions = {
   restoreLocalState: (persistedState: PromptLibraryPersistedSnapshot | null) => void
+  seedStarterPrompts: (starterPrompts: PromptRecord[]) => void
+  markPromptLibraryNotFresh: () => void
+  offerFirstSignInCopy: (localPrompts: PromptRecord[]) => void
+  beginFirstSignInCopy: () => void
+  completeFirstSignInCopy: (copiedPrompts: PromptRecord[]) => void
+  declineFirstSignInCopy: () => void
+  failFirstSignInCopy: (message: string) => void
   replacePrompt: (prompt: PromptRecord) => void
-  replacePrompts: (prompts: PromptRecord[]) => void
+  replacePrompts: (prompts: PromptRecord[], options?: { isFresh?: boolean }) => void
   setSyncState: (
     syncState: Partial<Pick<PromptLibraryState, 'syncMode' | 'syncStatus' | 'syncError'>>,
   ) => void
@@ -101,13 +129,76 @@ export const createPromptLibraryStore = () => {
 
           return {
             prompts,
+            isFresh: persistedState?.isFresh ?? state.isFresh,
             query: persistedState?.query ?? state.query,
             selectedPromptId,
             composer: persistedState?.composer ?? state.composer,
             confirmDeleteId: null,
             hasHydrated: true,
+            firstSignInCopy: createInitialState().firstSignInCopy,
           }
         })
+      },
+      seedStarterPrompts: (starterPrompts) => {
+        set(() => ({
+          prompts: starterPrompts,
+          selectedPromptId: getStartHerePrompt(starterPrompts)?.id ?? starterPrompts[0]?.id ?? null,
+          composer: createInitialComposerState(),
+          confirmDeleteId: null,
+          hasHydrated: true,
+          isFresh: true,
+          firstSignInCopy: createInitialState().firstSignInCopy,
+        }))
+      },
+      markPromptLibraryNotFresh: () => {
+        set({ isFresh: false })
+      },
+      offerFirstSignInCopy: (localPrompts) => {
+        set({
+          firstSignInCopy: {
+            status: 'prompting',
+            localPrompts,
+            error: null,
+          },
+        })
+      },
+      beginFirstSignInCopy: () => {
+        set((state) => ({
+          firstSignInCopy: {
+            ...state.firstSignInCopy,
+            status: 'copying',
+            error: null,
+          },
+        }))
+      },
+      completeFirstSignInCopy: (copiedPrompts) => {
+        set({
+          prompts: copiedPrompts,
+          isFresh: false,
+          selectedPromptId: copiedPrompts[0]?.id ?? null,
+          composer: createInitialComposerState(),
+          confirmDeleteId: null,
+          firstSignInCopy: createInitialState().firstSignInCopy,
+        })
+      },
+      declineFirstSignInCopy: () => {
+        set({
+          prompts: [],
+          isFresh: false,
+          selectedPromptId: null,
+          composer: createInitialComposerState(),
+          confirmDeleteId: null,
+          firstSignInCopy: createInitialState().firstSignInCopy,
+        })
+      },
+      failFirstSignInCopy: (message) => {
+        set((state) => ({
+          firstSignInCopy: {
+            ...state.firstSignInCopy,
+            status: 'error',
+            error: message,
+          },
+        }))
       },
       replacePrompt: (replacementPrompt) => {
         set((state) => {
@@ -119,13 +210,15 @@ export const createPromptLibraryStore = () => {
           }
         })
       },
-      replacePrompts: (prompts) => {
+      replacePrompts: (prompts, options) => {
         set((state) => ({
           prompts,
+          isFresh: options?.isFresh ?? state.isFresh,
           selectedPromptId: getExistingSelectedPromptId(prompts, state.selectedPromptId),
           composer: createInitialComposerState(),
           confirmDeleteId: null,
           hasHydrated: true,
+          firstSignInCopy: createInitialState().firstSignInCopy,
         }))
       },
       setSyncState: (syncState) => {
@@ -204,6 +297,7 @@ export const createPromptLibraryStore = () => {
 
           set((currentState) => ({
             prompts: [createdPrompt, ...currentState.prompts],
+            isFresh: false,
             selectedPromptId: createdPrompt.id,
             composer: createInitialComposerState(),
             confirmDeleteId: null,
@@ -228,6 +322,7 @@ export const createPromptLibraryStore = () => {
           prompts: currentState.prompts.map((prompt) =>
             prompt.id === updatedPrompt.id ? updatedPrompt : prompt,
           ),
+          isFresh: false,
           selectedPromptId: updatedPrompt.id,
           composer: createInitialComposerState(),
           confirmDeleteId: null,
@@ -246,6 +341,7 @@ export const createPromptLibraryStore = () => {
 
         set((state) => ({
           prompts: [duplicatePrompt, ...state.prompts],
+          isFresh: false,
           selectedPromptId: duplicatePrompt.id,
           confirmDeleteId: null,
         }))
@@ -270,6 +366,7 @@ export const createPromptLibraryStore = () => {
 
           return {
             prompts: nextPrompts,
+            isFresh: false,
             selectedPromptId: getExistingSelectedPromptId(
               nextPrompts,
               nextSelectedPromptId ?? state.selectedPromptId,
@@ -283,6 +380,7 @@ export const createPromptLibraryStore = () => {
       incrementUses: (promptId) => {
         set((state) => ({
           prompts: incrementPromptRecordUses(state.prompts, promptId),
+          isFresh: state.prompts.some((prompt) => prompt.id === promptId) ? false : state.isFresh,
         }))
       },
     },
@@ -295,6 +393,7 @@ export const getPromptLibraryPersistedSnapshot = (
   state: PromptLibraryStore,
 ): PromptLibraryPersistedSnapshot => ({
   prompts: state.prompts,
+  isFresh: state.isFresh,
   query: state.query,
   selectedPromptId: state.selectedPromptId,
   composer: state.composer,

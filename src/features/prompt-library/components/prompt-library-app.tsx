@@ -5,6 +5,7 @@ import { Cloud, HardDrive, LogIn } from 'lucide-react'
 import { useCallback, useDeferredValue, useEffect, useEffectEvent, useMemo, useState } from 'react'
 import { FaGithub } from 'react-icons/fa'
 
+import { FirstSignInCopyDialog } from '@/features/prompt-library/components/first-sign-in-copy-dialog'
 import { PromptHelpOverlay } from '@/features/prompt-library/components/prompt-help-overlay'
 import {
   PromptLibraryProvider,
@@ -253,6 +254,7 @@ function PromptLibraryScreen() {
         <PromptShortcutsPanel shortcuts={shortcuts} />
       </div>
 
+      <FirstSignInCopyDialog />
       <PromptHelpOverlay isOpen={isHelpOpen} onClose={closeHelp} />
     </div>
   )

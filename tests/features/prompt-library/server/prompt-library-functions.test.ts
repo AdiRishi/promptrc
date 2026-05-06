@@ -1,10 +1,15 @@
 import { env } from 'cloudflare:workers'
 import { describe, expect, it } from 'vitest'
 
+import { createStarterPrompts } from '@/features/prompt-library/lib/starter-prompts'
 import {
+  copyPromptsForUser,
   deletePromptForUser,
+  getPromptLibraryForUser,
   incrementPromptUsesForUser,
   listPromptsForUser,
+  seedPromptsForUser,
+  setPromptLibraryFreshnessForUser,
   upsertPromptForUser,
 } from '@/features/prompt-library/server/prompt-library-functions'
 import { type PromptRecord } from '@/features/prompt-library/types'
@@ -34,6 +39,100 @@ describe('prompt library server persistence', () => {
     expect(columns.find((column) => column.name === 'id')?.pk).toBe(1)
     expect(columns.find((column) => column.name === 'ext_user_id')?.pk).toBe(0)
     expect(indexes.some((index) => index.name === 'idx_prompts_user_updated_at')).toBe(true)
+
+    const { results: stateColumns } = await env.DB.prepare(
+      'PRAGMA table_info(prompt_library_state)',
+    ).all<{
+      name: string
+      pk: number
+    }>()
+
+    expect(stateColumns.find((column) => column.name === 'ext_user_id')?.pk).toBe(1)
+    expect(stateColumns.find((column) => column.name === 'is_fresh')).toBeTruthy()
+  })
+
+  it('persists Prompt Library freshness per Clerk user even when the prompt list is empty', async () => {
+    await expect(getPromptLibraryForUser(env.DB, 'user_a')).resolves.toMatchObject({
+      prompts: [],
+      isFresh: true,
+    })
+
+    await setPromptLibraryFreshnessForUser(env.DB, 'user_a', false)
+
+    await expect(getPromptLibraryForUser(env.DB, 'user_a')).resolves.toMatchObject({
+      prompts: [],
+      isFresh: false,
+    })
+    await expect(getPromptLibraryForUser(env.DB, 'user_b')).resolves.toMatchObject({
+      prompts: [],
+      isFresh: true,
+    })
+  })
+
+  it('seeds Starter Prompts without ending remote Prompt Library freshness', async () => {
+    const starterPrompts = createStarterPrompts()
+
+    await seedPromptsForUser(env.DB, 'user_a', starterPrompts)
+
+    const library = await getPromptLibraryForUser(env.DB, 'user_a')
+
+    expect(library.prompts.map((prompt) => prompt.title)).toEqual([
+      'Start Here',
+      'Bug Hunt',
+      'PRD Shaper',
+      'Executive Summary',
+      'Decision Partner',
+      'Difficult Reply',
+    ])
+    expect(library.isFresh).toBe(true)
+  })
+
+  it('copies local Prompts into a fresh remote Prompt Library and marks it non-fresh', async () => {
+    const localPrompts = [
+      createPrompt({
+        id: 'local-prompt-alpha',
+        updatedAt: '2026-04-24T00:01:00.000Z',
+      }),
+      createPrompt({
+        id: 'local-prompt-beta',
+        title: 'Beta',
+        updatedAt: '2026-04-24T00:02:00.000Z',
+      }),
+    ]
+
+    const copiedPrompts = await copyPromptsForUser(env.DB, 'user_a', localPrompts)
+    const library = await getPromptLibraryForUser(env.DB, 'user_a')
+
+    expect(copiedPrompts).toHaveLength(2)
+    expect(copiedPrompts.map((prompt) => prompt.id)).not.toContain('local-prompt-alpha')
+    expect(copiedPrompts.map((prompt) => prompt.id)).not.toContain('local-prompt-beta')
+    expect(copiedPrompts.map((prompt) => prompt.title)).toEqual(['Alpha', 'Beta'])
+    expect(library.prompts.map((prompt) => prompt.title)).toEqual(['Beta', 'Alpha'])
+    expect(library.isFresh).toBe(false)
+  })
+
+  it('returns existing remote Prompts instead of duplicating local copies on retry', async () => {
+    const localPrompts = [
+      createPrompt({
+        id: 'local-prompt-alpha',
+        updatedAt: '2026-04-24T00:01:00.000Z',
+      }),
+      createPrompt({
+        id: 'local-prompt-beta',
+        title: 'Beta',
+        updatedAt: '2026-04-24T00:02:00.000Z',
+      }),
+    ]
+
+    const firstCopy = await copyPromptsForUser(env.DB, 'user_a', localPrompts)
+    const retryCopy = await copyPromptsForUser(env.DB, 'user_a', localPrompts)
+    const library = await getPromptLibraryForUser(env.DB, 'user_a')
+
+    expect(retryCopy.map((prompt) => prompt.id).sort()).toEqual(
+      firstCopy.map((prompt) => prompt.id).sort(),
+    )
+    expect(library.prompts).toHaveLength(2)
+    expect(library.isFresh).toBe(false)
   })
 
   it('upserts and lists prompts for the authenticated Clerk user only', async () => {
