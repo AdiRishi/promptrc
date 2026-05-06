@@ -103,6 +103,16 @@ describe('prompt reference tokens', () => {
     })
   })
 
+  it('falls back to raw file URL paths when percent escapes are malformed', () => {
+    expect(createPromptReferenceToken('notes.md', 'file:///tmp/100%/notes.md')).toEqual({
+      href: 'file:///tmp/100%/notes.md',
+      kind: 'file',
+      label: 'notes.md',
+      rawLabel: 'notes.md',
+      type: 'reference',
+    })
+  })
+
   it('preserves Windows drive-letter skill and file references', () => {
     expect(
       createPromptReferenceToken('$to-prd', 'C:/Users/arishi/.agents/skills/to-prd/SKILL.md'),

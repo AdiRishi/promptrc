@@ -180,7 +180,7 @@ const parseLocalFileReference = (href: string) => {
 
 const localPathFromHref = (href: string) => {
   if (href.startsWith('file://')) {
-    return decodeURIComponent(href.slice('file://'.length))
+    return safeDecodeURIComponent(href.slice('file://'.length))
   }
 
   if (href.startsWith('/') || href.startsWith('./') || href.startsWith('../')) {
@@ -192,6 +192,14 @@ const localPathFromHref = (href: string) => {
   }
 
   return null
+}
+
+const safeDecodeURIComponent = (value: string) => {
+  try {
+    return decodeURIComponent(value)
+  } catch {
+    return value
+  }
 }
 
 const parseFileLocation = (path: string) => {
