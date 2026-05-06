@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest'
 
-import { parsePromptLibraryPersistedSnapshot } from '@/features/prompt-library/model/prompt-library-validation'
+import {
+  assertBoolean,
+  assertPromptId,
+  assertPromptRecord,
+  assertPromptRecords,
+  parsePromptLibraryPersistedSnapshot,
+} from '@/features/prompt-library/model/prompt-library-validation'
 import { type PromptRecord } from '@/features/prompt-library/types'
 
 const prompt: PromptRecord = {
@@ -15,6 +21,34 @@ const prompt: PromptRecord = {
 }
 
 describe('prompt library validation', () => {
+  it('normalizes trusted Prompt fields at the server-function boundary', () => {
+    expect(
+      assertPromptRecord({
+        ...prompt,
+        id: ' prompt-alpha ',
+        title: ' Alpha ',
+        body: ' Body ',
+        category: '',
+        tags: ['Testing', '#review'],
+      }),
+    ).toEqual({
+      ...prompt,
+      id: 'prompt-alpha',
+      title: 'Alpha',
+      body: 'Body',
+      category: 'Personal',
+      tags: ['testing', 'review'],
+    })
+    expect(assertPromptRecords([prompt])).toEqual([prompt])
+  })
+
+  it('rejects malformed server-function inputs', () => {
+    expect(() => assertPromptId('   ')).toThrow('promptId is required')
+    expect(() => assertBoolean('true', 'isFresh')).toThrow('isFresh must be a boolean')
+    expect(() => assertPromptRecords({ prompts: [prompt] })).toThrow('prompts must be an array')
+    expect(() => assertPromptRecord({ ...prompt, title: '' })).toThrow('title is required')
+  })
+
   it('parses a valid persisted snapshot', () => {
     const snapshot = parsePromptLibraryPersistedSnapshot({
       prompts: [prompt],
@@ -41,6 +75,58 @@ describe('prompt library validation', () => {
         mode: 'edit',
       },
     })
+  })
+
+  it('falls back to a safe composer when persisted workspace data is partial', () => {
+    expect(
+      parsePromptLibraryPersistedSnapshot({
+        prompts: [prompt],
+        query: 42,
+        selectedPromptId: null,
+        composer: {
+          mode: 'unknown',
+          draft: {
+            title: 'Recovered title',
+            category: 123,
+          },
+        },
+      }),
+    ).toMatchObject({
+      query: '',
+      selectedPromptId: null,
+      composer: {
+        mode: 'view',
+        draft: {
+          title: 'Recovered title',
+          category: '',
+          body: '',
+          tagsInput: '',
+        },
+      },
+    })
+    expect(
+      parsePromptLibraryPersistedSnapshot({
+        prompts: [prompt],
+        composer: null,
+      })?.composer,
+    ).toEqual({
+      mode: 'view',
+      draft: {
+        title: '',
+        category: '',
+        body: '',
+        tagsInput: '',
+      },
+    })
+  })
+
+  it('rejects persisted snapshots with invalid selection metadata', () => {
+    expect(
+      parsePromptLibraryPersistedSnapshot({
+        prompts: [prompt],
+        selectedPromptId: 42,
+      }),
+    ).toBeNull()
   })
 
   it('rejects snapshots with malformed prompts', () => {

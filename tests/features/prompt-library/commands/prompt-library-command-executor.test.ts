@@ -96,6 +96,75 @@ describe('prompt library command executor', () => {
     expect(notify).toHaveBeenCalledWith('wrote owned_prompt.md')
   })
 
+  it('guards editing commands and focuses invalid composer input', () => {
+    const prompts = [
+      createPrompt({ id: 'prompt-alpha', title: 'Alpha' }),
+      createPrompt({ id: 'prompt-beta', title: 'Beta' }),
+    ]
+    const store = createPromptLibraryStore()
+    const notify = vi.fn()
+    const focusTitleInput = vi.fn()
+
+    store.getState().actions.replacePrompts(prompts, { isFresh: false })
+    store.getState().actions.selectPrompt('prompt-alpha')
+
+    const commands = createPromptLibraryCommandExecutor({
+      clipboard: { writeText: () => Promise.resolve() },
+      focusTitleInput,
+      library: createLibrary(),
+      notify,
+      store,
+    })
+
+    store.getState().actions.startEdit('prompt-alpha')
+    commands.selectPrompt('prompt-beta')
+    expect(store.getState().selectedPromptId).toBe('prompt-alpha')
+    expect(notify).toHaveBeenCalledWith('press esc to finish editing first')
+
+    store.getState().actions.startNew()
+    commands.saveComposer()
+    expect(focusTitleInput).toHaveBeenCalledOnce()
+    expect(notify).toHaveBeenCalledWith('title and body required')
+  })
+
+  it('edits and duplicates the active Prompt through the Prompt Library client', async () => {
+    const prompt = createPrompt()
+    const store = createPromptLibraryStore()
+    const notify = vi.fn()
+    const savePrompt = vi.fn((savedPrompt: PromptRecord) =>
+      Promise.resolve({ status: 'synced' as const, value: savedPrompt }),
+    )
+
+    store.getState().actions.replacePrompts([prompt], { isFresh: false })
+    store.getState().actions.selectPrompt(prompt.id)
+
+    const commands = createPromptLibraryCommandExecutor({
+      clipboard: { writeText: () => Promise.resolve() },
+      library: createLibrary({ savePrompt }),
+      notify,
+      store,
+    })
+
+    commands.startEditActivePrompt()
+    store.getState().actions.updateDraft('title', 'Updated Alpha')
+    commands.saveComposer()
+    await flushPromises()
+
+    expect(savePrompt).toHaveBeenCalledWith(expect.objectContaining({ title: 'Updated Alpha' }))
+    expect(notify).toHaveBeenCalledWith('saved updated_alpha.md')
+
+    commands.duplicatePrompt()
+    await flushPromises()
+
+    expect(savePrompt).toHaveBeenCalledWith(
+      expect.objectContaining({
+        title: 'Updated Alpha (copy)',
+        uses: 0,
+      }),
+    )
+    expect(notify).toHaveBeenCalledWith('duplicated -> Updated Alpha (copy)')
+  })
+
   it('deletes the active Prompt and keeps selection valid', async () => {
     const prompts = [
       createPrompt({ id: 'prompt-alpha', title: 'Alpha' }),
@@ -128,6 +197,40 @@ describe('prompt library command executor', () => {
       'prompt-alpha',
       'prompt-gamma',
     ])
+  })
+
+  it('reports clipboard and remote delete failures without hiding local state', async () => {
+    const prompt = createPrompt()
+    const store = createPromptLibraryStore()
+    const notify = vi.fn()
+    const deletePrompt = vi.fn(() =>
+      Promise.resolve({
+        status: 'failed' as const,
+        message: 'D1 unavailable',
+        error: new Error('D1 unavailable'),
+      }),
+    )
+
+    store.getState().actions.replacePrompts([prompt], { isFresh: false })
+    store.getState().actions.selectPrompt(prompt.id)
+
+    const commands = createPromptLibraryCommandExecutor({
+      clipboard: { writeText: vi.fn(() => Promise.reject(new Error('blocked'))) },
+      library: createLibrary({ deletePrompt }),
+      notify,
+      store,
+    })
+
+    await commands.copyActivePrompt()
+    expect(notify).toHaveBeenCalledWith('clipboard access is unavailable')
+    expect(store.getState().prompts[0]?.uses).toBe(0)
+
+    commands.deletePrompt()
+    commands.deletePrompt()
+    await flushPromises()
+
+    expect(store.getState().prompts).toEqual([])
+    expect(notify).toHaveBeenCalledWith('sync failed - D1 unavailable')
   })
 
   it('keeps optimistic Prompt changes visible when remote sync fails', async () => {
