@@ -4,8 +4,10 @@ import { useCallback, useMemo } from 'react'
 
 import {
   deleteRemotePrompt,
+  getRemotePromptLibrary,
   incrementRemotePromptUses,
-  listRemotePrompts,
+  seedRemoteStarterPrompts,
+  setRemotePromptLibraryFreshness,
   upsertRemotePrompt,
 } from '@/features/prompt-library/server/prompt-library-functions'
 import {
@@ -18,10 +20,12 @@ const getPromptLibraryQueryKey = (userId: string | null) =>
 
 export function useRemotePromptLibraryStorage(userId: string | null): RemotePromptLibraryStorage {
   const queryClient = useQueryClient()
-  const listPrompts = useServerFn(listRemotePrompts)
+  const getPromptLibrary = useServerFn(getRemotePromptLibrary)
   const upsertPrompt = useServerFn(upsertRemotePrompt)
   const removePrompt = useServerFn(deleteRemotePrompt)
   const incrementPromptUses = useServerFn(incrementRemotePromptUses)
+  const seedStarterPrompts = useServerFn(seedRemoteStarterPrompts)
+  const setFreshness = useServerFn(setRemotePromptLibraryFreshness)
   const queryKey = useMemo(() => getPromptLibraryQueryKey(userId), [userId])
   const invalidatePrompts = useCallback(
     () => queryClient.invalidateQueries({ queryKey }),
@@ -37,9 +41,9 @@ export function useRemotePromptLibraryStorage(userId: string | null): RemoteProm
       },
       hydrate: async () => ({
         source: 'remote',
-        prompts: await queryClient.fetchQuery({
+        snapshot: await queryClient.fetchQuery({
           queryKey,
-          queryFn: () => listPrompts(),
+          queryFn: () => getPromptLibrary(),
         }),
       }),
       incrementUses: async (promptId) => {
@@ -57,14 +61,30 @@ export function useRemotePromptLibraryStorage(userId: string | null): RemoteProm
 
         return savedPrompt
       },
+      seedPrompts: async (prompts) => {
+        const savedPrompts = await seedStarterPrompts({ data: prompts })
+
+        await invalidatePrompts()
+
+        return savedPrompts
+      },
+      setFreshness: async (isFresh) => {
+        const result = await setFreshness({ data: isFresh })
+
+        await invalidatePrompts()
+
+        return result
+      },
     }),
     [
+      getPromptLibrary,
       incrementPromptUses,
       invalidatePrompts,
-      listPrompts,
       queryClient,
       queryKey,
       removePrompt,
+      seedStarterPrompts,
+      setFreshness,
       upsertPrompt,
     ],
   )

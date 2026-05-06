@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 
-import { applyHydrationResult } from '@/features/prompt-library/storage/prompt-library-client'
+import { hydratePromptLibrary } from '@/features/prompt-library/storage/prompt-library-client'
 import { type PromptLibraryStorage } from '@/features/prompt-library/storage/prompt-library-storage'
 import {
   type PromptLibraryStore,
@@ -28,14 +28,11 @@ export function usePromptLibraryHydration({
     let unsubscribe: (() => void) | undefined
     store.getState().actions.setSyncState({ syncMode: storage.mode, syncStatus: 'loading' })
 
-    void storage
-      .hydrate()
-      .then((hydrationResult) => {
+    void hydratePromptLibrary(storage, store)
+      .then(() => {
         if (!isActive) {
           return
         }
-
-        applyHydrationResult(store, hydrationResult)
 
         let didPersistLocalSnapshot = true
 

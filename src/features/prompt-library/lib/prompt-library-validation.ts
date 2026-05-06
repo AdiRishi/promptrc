@@ -64,6 +64,22 @@ export const assertPromptRecord = (value: unknown): PromptRecord => {
   }
 }
 
+export const assertPromptRecords = (value: unknown): PromptRecord[] => {
+  if (!Array.isArray(value)) {
+    throw new Error('prompts must be an array')
+  }
+
+  return value.map(assertPromptRecord)
+}
+
+export const assertBoolean = (value: unknown, fieldName = 'value') => {
+  if (typeof value !== 'boolean') {
+    throw new Error(`${fieldName} must be a boolean`)
+  }
+
+  return value
+}
+
 export const assertPromptId = (value: unknown) => {
   const promptId = assertString(value, 'promptId').trim()
 
@@ -124,8 +140,11 @@ export const parsePromptLibraryPersistedSnapshot = (
   }
 
   try {
+    const prompts = promptsValue.map(assertPromptRecord)
+
     return {
-      prompts: promptsValue.map(assertPromptRecord),
+      prompts,
+      isFresh: typeof snapshot.isFresh === 'boolean' ? snapshot.isFresh : prompts.length === 0,
       query: typeof snapshot.query === 'string' ? snapshot.query : '',
       selectedPromptId: assertNullableString(snapshot.selectedPromptId ?? null, 'selectedPromptId'),
       composer: parsePersistedComposer(snapshot.composer),

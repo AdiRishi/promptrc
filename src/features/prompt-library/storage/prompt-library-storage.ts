@@ -11,8 +11,13 @@ export type PromptLibraryHydrationResult =
     }
   | {
       source: 'remote'
-      prompts: PromptRecord[]
+      snapshot: PromptLibraryRemoteSnapshot
     }
+
+export type PromptLibraryRemoteSnapshot = {
+  prompts: PromptRecord[]
+  isFresh: boolean
+}
 
 type PromptLibraryStorageBase = {
   reportError: (error: unknown) => string
@@ -29,6 +34,8 @@ export type RemotePromptLibraryStorage = PromptLibraryStorageBase & {
   deletePrompt: (promptId: string) => Promise<void>
   hydrate: () => Promise<Extract<PromptLibraryHydrationResult, { source: 'remote' }>>
   incrementUses: (promptId: string) => Promise<PromptRecord>
+  seedPrompts: (prompts: PromptRecord[]) => Promise<PromptRecord[]>
+  setFreshness: (isFresh: boolean) => Promise<{ isFresh: boolean }>
   savePrompt: (prompt: PromptRecord) => Promise<PromptRecord>
 }
 

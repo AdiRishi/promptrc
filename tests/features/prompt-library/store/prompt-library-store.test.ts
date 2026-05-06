@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 
+import { createStarterPrompts } from '@/features/prompt-library/lib/starter-prompts'
 import { createPromptLibraryStore } from '@/features/prompt-library/store/prompt-library-store'
 
 const createStorageMock = () => {
@@ -94,5 +95,58 @@ describe('prompt library store', () => {
 
     expect(store.getState().prompts).toEqual([])
     expect(store.getState().selectedPromptId).toBeNull()
+    expect(store.getState().isFresh).toBe(true)
+  })
+
+  it('adds Starter Prompts while preserving freshness and selecting Start Here', () => {
+    const store = createPromptLibraryStore()
+    const starterPrompts = createStarterPrompts()
+
+    store.getState().actions.seedStarterPrompts(starterPrompts)
+
+    expect(store.getState().prompts.map((prompt) => prompt.title)).toEqual([
+      'Start Here',
+      'Bug Hunt',
+      'PRD Shaper',
+      'Executive Summary',
+      'Decision Partner',
+      'Difficult Reply',
+    ])
+    expect(store.getState().selectedPromptId).toBe(starterPrompts[0]?.id)
+    expect(store.getState().isFresh).toBe(true)
+  })
+
+  it('ends freshness for ownership actions but not browsing, selecting, or searching', () => {
+    const store = createPromptLibraryStore()
+    const starterPrompts = createStarterPrompts()
+    const { actions } = store.getState()
+
+    actions.seedStarterPrompts(starterPrompts)
+    actions.setQuery('prd')
+    actions.selectPrompt(starterPrompts[1]?.id ?? null)
+
+    expect(store.getState().isFresh).toBe(true)
+
+    actions.startNew()
+    actions.updateDraft('title', 'Owned Prompt')
+    actions.updateDraft('body', 'This is mine now.')
+    actions.saveComposer()
+
+    expect(store.getState().isFresh).toBe(false)
+
+    actions.seedStarterPrompts(starterPrompts)
+    actions.duplicatePrompt(starterPrompts[0]?.id ?? '')
+
+    expect(store.getState().isFresh).toBe(false)
+
+    actions.seedStarterPrompts(starterPrompts)
+    actions.incrementUses(starterPrompts[0]?.id ?? '')
+
+    expect(store.getState().isFresh).toBe(false)
+
+    actions.seedStarterPrompts(starterPrompts)
+    actions.deletePrompt(starterPrompts[0]?.id ?? '')
+
+    expect(store.getState().isFresh).toBe(false)
   })
 })

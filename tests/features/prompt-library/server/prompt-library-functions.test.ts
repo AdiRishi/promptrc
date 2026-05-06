@@ -1,10 +1,14 @@
 import { env } from 'cloudflare:workers'
 import { describe, expect, it } from 'vitest'
 
+import { createStarterPrompts } from '@/features/prompt-library/lib/starter-prompts'
 import {
   deletePromptForUser,
+  getPromptLibraryForUser,
   incrementPromptUsesForUser,
   listPromptsForUser,
+  seedPromptsForUser,
+  setPromptLibraryFreshnessForUser,
   upsertPromptForUser,
 } from '@/features/prompt-library/server/prompt-library-functions'
 import { type PromptRecord } from '@/features/prompt-library/types'
@@ -34,6 +38,52 @@ describe('prompt library server persistence', () => {
     expect(columns.find((column) => column.name === 'id')?.pk).toBe(1)
     expect(columns.find((column) => column.name === 'ext_user_id')?.pk).toBe(0)
     expect(indexes.some((index) => index.name === 'idx_prompts_user_updated_at')).toBe(true)
+
+    const { results: stateColumns } = await env.DB.prepare(
+      'PRAGMA table_info(prompt_library_state)',
+    ).all<{
+      name: string
+      pk: number
+    }>()
+
+    expect(stateColumns.find((column) => column.name === 'ext_user_id')?.pk).toBe(1)
+    expect(stateColumns.find((column) => column.name === 'is_fresh')).toBeTruthy()
+  })
+
+  it('persists Prompt Library freshness per Clerk user even when the prompt list is empty', async () => {
+    await expect(getPromptLibraryForUser(env.DB, 'user_a')).resolves.toMatchObject({
+      prompts: [],
+      isFresh: true,
+    })
+
+    await setPromptLibraryFreshnessForUser(env.DB, 'user_a', false)
+
+    await expect(getPromptLibraryForUser(env.DB, 'user_a')).resolves.toMatchObject({
+      prompts: [],
+      isFresh: false,
+    })
+    await expect(getPromptLibraryForUser(env.DB, 'user_b')).resolves.toMatchObject({
+      prompts: [],
+      isFresh: true,
+    })
+  })
+
+  it('seeds Starter Prompts without ending remote Prompt Library freshness', async () => {
+    const starterPrompts = createStarterPrompts()
+
+    await seedPromptsForUser(env.DB, 'user_a', starterPrompts)
+
+    const library = await getPromptLibraryForUser(env.DB, 'user_a')
+
+    expect(library.prompts.map((prompt) => prompt.title)).toEqual([
+      'Start Here',
+      'Bug Hunt',
+      'PRD Shaper',
+      'Executive Summary',
+      'Decision Partner',
+      'Difficult Reply',
+    ])
+    expect(library.isFresh).toBe(true)
   })
 
   it('upserts and lists prompts for the authenticated Clerk user only', async () => {
