@@ -1,6 +1,7 @@
-import { Box, Plug } from 'lucide-react'
+import { Box, Braces, FileCode2, Folder, Plug } from 'lucide-react'
 import { type ComponentProps, type ReactNode, isValidElement, memo } from 'react'
-import { FaGithub } from 'react-icons/fa'
+import { FaGithub, FaReact } from 'react-icons/fa'
+import { SiJavascript, SiTypescript } from 'react-icons/si'
 import Markdown, { type Components, defaultUrlTransform } from 'react-markdown'
 import remarkBreaks from 'remark-breaks'
 import remarkGfm from 'remark-gfm'
@@ -39,7 +40,7 @@ const markdownComponents = {
     const mention = href ? createPromptMentionToken(rawLabel, href) : null
 
     if (mention) {
-      return <PromptMentionChip token={mention} />
+      return <PromptMentionLink token={mention} />
     }
 
     const isExternal = Boolean(href && /^https?:\/\//i.test(href))
@@ -47,7 +48,7 @@ const markdownComponents = {
     return (
       <a
         className={cn(
-          'rounded-[2px] text-primary underline decoration-primary/45 underline-offset-[3px] transition-colors hover:text-[var(--primary-hover)] hover:decoration-primary focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-primary',
+          'rounded-[2px] text-[#7eb6f2] underline decoration-[#7eb6f2]/40 underline-offset-[3px] transition-colors hover:text-[#9fcbff] hover:decoration-[#9fcbff]/60 focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-primary',
           className,
         )}
         href={href}
@@ -323,29 +324,81 @@ function MarkdownHeading({ children, className, marker, rank, ...props }: Markdo
   )
 }
 
-function PromptMentionChip({ token }: { token: PromptMentionToken }) {
-  const isGitHubPlugin = token.kind === 'plugin' && token.label.toLowerCase() === 'github'
-  const Icon = token.kind === 'skill' ? Box : isGitHubPlugin ? FaGithub : Plug
+function PromptMentionLink({ token }: { token: PromptMentionToken }) {
+  const lowerLabel = token.label.toLowerCase()
+  const isGitHub = lowerLabel === 'github'
+  const Icon = mentionIconForToken(token, isGitHub)
+  const label = token.lineNumber ? `${token.label} (line ${token.lineNumber})` : token.label
 
   return (
-    <span
+    <a
       aria-label={`${token.kind}: ${token.label}`}
+      href={token.href}
       className={cn(
-        'inline-flex max-w-full translate-y-[0.03em] items-center gap-1 rounded-[5px] border px-1.5 py-[0.08rem] align-baseline text-[0.9em] leading-none font-semibold whitespace-nowrap shadow-[inset_0_1px_0_rgba(255,255,255,0.07)]',
-        token.kind === 'skill'
-          ? 'border-secondary-foreground/20 bg-secondary-foreground/14 text-secondary-foreground'
-          : 'border-secondary-foreground/18 bg-secondary-foreground/16 text-secondary-foreground',
+        'inline-flex max-w-full translate-y-[0.08em] items-center gap-1.5 rounded-[3px] align-baseline text-[1em] leading-none font-medium text-[#7eb6f2] no-underline decoration-transparent underline-offset-[3px] transition-colors hover:text-[#9fcbff] hover:decoration-[#9fcbff]/55 focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-primary',
+        (token.kind === 'plugin' || token.kind === 'app') &&
+          !isGitHub &&
+          'text-[#6f7890] hover:text-[#9fcbff]',
       )}
       title={`${token.rawLabel} -> ${token.href}`}
     >
       <Icon
         aria-hidden="true"
-        className={cn('size-[0.95em] shrink-0', isGitHubPlugin ? 'text-background' : undefined)}
-        strokeWidth={isGitHubPlugin ? undefined : token.kind === 'skill' ? 2.25 : 2.5}
+        className={cn(
+          'size-[0.92em] shrink-0',
+          token.kind === 'skill' && 'text-[#7eb6f2]',
+          token.kind === 'file' && 'text-[#7eb6f2]',
+          token.kind === 'directory' && 'text-[#7eb6f2]',
+          (token.kind === 'plugin' || token.kind === 'app') && !isGitHub && 'text-current',
+          isGitHub && 'text-current',
+        )}
+        strokeWidth={token.kind === 'skill' ? 2.2 : 2}
       />
-      <span className="min-w-0 truncate">{token.label}</span>
-    </span>
+      <span className="min-w-0 truncate">{label}</span>
+    </a>
   )
+}
+
+function mentionIconForToken(token: PromptMentionToken, isGitHub: boolean) {
+  if (isGitHub) {
+    return FaGithub
+  }
+
+  switch (token.kind) {
+    case 'app':
+    case 'plugin':
+      return Plug
+    case 'directory':
+      return Folder
+    case 'file':
+      return fileIconForLabel(token.label)
+    case 'skill':
+      return Box
+    default:
+      return Plug
+  }
+}
+
+function fileIconForLabel(label: string) {
+  const extension = label.split('.').at(-1)?.toLowerCase()
+
+  if (extension === 'tsx' || extension === 'jsx') {
+    return FaReact
+  }
+
+  if (extension === 'ts') {
+    return SiTypescript
+  }
+
+  if (extension === 'js') {
+    return SiJavascript
+  }
+
+  if (extension === 'json') {
+    return Braces
+  }
+
+  return FileCode2
 }
 
 function textFromReactNode(node: ReactNode): string {
@@ -365,7 +418,7 @@ function textFromReactNode(node: ReactNode): string {
 }
 
 function urlTransform(url: string, key: string) {
-  if (key === 'href' && url.startsWith('plugin://')) {
+  if (key === 'href' && (url.startsWith('app://') || url.startsWith('plugin://'))) {
     return url
   }
 
