@@ -19,6 +19,7 @@ import remarkGfm from 'remark-gfm'
 import {
   type PromptMentionToken,
   createPromptMentionToken,
+  shouldPreservePromptReferenceHref,
 } from '@/features/prompt-library/rendering/prompt-mention-rendering'
 import { cn } from '@/lib/utils'
 
@@ -27,6 +28,22 @@ type PromptBodyRendererProps = {
 }
 
 const remarkPlugins = [remarkGfm, remarkBreaks]
+const appReferenceIconRules = [
+  { Icon: Globe, labelIncludes: 'browser' },
+  { Icon: Monitor, labelIncludes: 'computer' },
+] as const
+const fileIconByExtension = {
+  js: SiJavascript,
+  jsx: FaReact,
+  json: Braces,
+  jsonc: Braces,
+  md: FileText,
+  mdx: FileText,
+  ts: SiTypescript,
+  tsx: FaReact,
+  txt: FileText,
+} as const
+const shellFileExtensions = new Set(['bash', 'fish', 'ps1', 'sh', 'zsh'])
 
 export const PromptBodyRenderer = memo(function PromptBodyMarkdownRenderer({
   body,
@@ -377,12 +394,12 @@ function mentionIconForToken(token: PromptMentionToken, isGitHub: boolean) {
   const lowerLabel = token.label.toLowerCase()
 
   if (token.kind === 'app' || token.kind === 'plugin') {
-    if (lowerLabel.includes('browser')) {
-      return Globe
-    }
+    const matchingRule = appReferenceIconRules.find((rule) =>
+      lowerLabel.includes(rule.labelIncludes),
+    )
 
-    if (lowerLabel.includes('computer')) {
-      return Monitor
+    if (matchingRule) {
+      return matchingRule.Icon
     }
   }
 
@@ -404,37 +421,15 @@ function mentionIconForToken(token: PromptMentionToken, isGitHub: boolean) {
 function fileIconForLabel(label: string) {
   const extension = label.split('.').at(-1)?.toLowerCase()
 
-  if (extension === 'tsx' || extension === 'jsx') {
-    return FaReact
+  if (!extension) {
+    return FileCode2
   }
 
-  if (extension === 'ts') {
-    return SiTypescript
-  }
-
-  if (extension === 'js') {
-    return SiJavascript
-  }
-
-  if (extension === 'json' || extension === 'jsonc') {
-    return Braces
-  }
-
-  if (extension === 'md' || extension === 'mdx' || extension === 'txt') {
-    return FileText
-  }
-
-  if (
-    extension === 'bash' ||
-    extension === 'fish' ||
-    extension === 'ps1' ||
-    extension === 'sh' ||
-    extension === 'zsh'
-  ) {
+  if (shellFileExtensions.has(extension)) {
     return Terminal
   }
 
-  return FileCode2
+  return fileIconByExtension[extension as keyof typeof fileIconByExtension] ?? FileCode2
 }
 
 function locationLabelForToken(token: PromptMentionToken) {
@@ -466,13 +461,7 @@ function textFromReactNode(node: ReactNode): string {
 }
 
 function urlTransform(url: string, key: string) {
-  if (
-    key === 'href' &&
-    (url.startsWith('app://') ||
-      url.startsWith('file://') ||
-      url.startsWith('plugin://') ||
-      /^[A-Za-z]:[\\/]/.test(url))
-  ) {
+  if (key === 'href' && shouldPreservePromptReferenceHref(url)) {
     return url
   }
 

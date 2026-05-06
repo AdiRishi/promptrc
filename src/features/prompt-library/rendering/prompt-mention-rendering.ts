@@ -18,6 +18,26 @@ export type PromptBodyToken =
   | PromptMentionToken
 
 const MARKDOWN_LINK_PATTERN = /\[([^\]\n]+)\]\(([^)\n]+)\)/g
+const WINDOWS_DRIVE_PATH_PATTERN = /^[A-Za-z]:[\\/]/
+
+const preferredReferenceNames = {
+  browser: 'Browser',
+  'browser-use': 'Browser',
+  computer: 'Computer',
+  'computer-use': 'Computer',
+  figma: 'Figma',
+  gmail: 'Gmail',
+  github: 'GitHub',
+  'google-calendar': 'Google Calendar',
+  'google-drive': 'Google Drive',
+  linear: 'Linear',
+  notion: 'Notion',
+  'outlook-calendar': 'Outlook Calendar',
+  'outlook-email': 'Outlook Email',
+  sharepoint: 'SharePoint',
+  slack: 'Slack',
+  teams: 'Teams',
+} as const
 
 export const parsePromptBodyMentions = (body: string): PromptBodyToken[] => {
   const tokens: PromptBodyToken[] = []
@@ -66,51 +86,96 @@ export const createPromptMentionToken = (
 ): PromptMentionToken | null => {
   const trimmedLabel = rawLabel.trim()
 
-  if (trimmedLabel.startsWith('$') && isSkillReference(href)) {
-    return {
-      href,
-      kind: 'skill',
-      label: humanizeMentionLabel(trimmedLabel.slice(1)),
-      rawLabel,
-      type: 'mention',
-    }
+  return (
+    createSkillMentionToken(trimmedLabel, rawLabel, href) ??
+    createPluginMentionToken(trimmedLabel, rawLabel, href) ??
+    createAppMentionToken(trimmedLabel, rawLabel, href) ??
+    createLocalPathMentionToken(trimmedLabel, rawLabel, href)
+  )
+}
+
+export const shouldPreservePromptReferenceHref = (href: string) => {
+  return (
+    href.startsWith('app://') ||
+    href.startsWith('file://') ||
+    href.startsWith('plugin://') ||
+    isWindowsDrivePath(href)
+  )
+}
+
+const createSkillMentionToken = (trimmedLabel: string, rawLabel: string, href: string) => {
+  if (!trimmedLabel.startsWith('$') || !isSkillReference(href)) {
+    return null
   }
 
-  if (trimmedLabel.startsWith('@') && href.startsWith('plugin://')) {
-    return {
-      href,
-      kind: 'plugin',
-      label: humanizeMentionLabel(trimmedLabel.slice(1), href),
-      rawLabel,
-      type: 'mention',
-    }
+  return mentionToken({
+    href,
+    kind: 'skill',
+    label: humanizeMentionLabel(trimmedLabel.slice(1)),
+    rawLabel,
+  })
+}
+
+const createPluginMentionToken = (trimmedLabel: string, rawLabel: string, href: string) => {
+  if (!trimmedLabel.startsWith('@') || !href.startsWith('plugin://')) {
+    return null
   }
 
-  if (href.startsWith('app://')) {
-    return {
-      href,
-      kind: 'app',
-      label: humanizeMentionLabel(trimmedLabel.replace(/^@/, ''), href),
-      rawLabel,
-      type: 'mention',
-    }
+  return mentionToken({
+    href,
+    kind: 'plugin',
+    label: humanizeMentionLabel(trimmedLabel.slice(1), href),
+    rawLabel,
+  })
+}
+
+const createAppMentionToken = (trimmedLabel: string, rawLabel: string, href: string) => {
+  if (!href.startsWith('app://')) {
+    return null
   }
 
+  return mentionToken({
+    href,
+    kind: 'app',
+    label: humanizeMentionLabel(trimmedLabel.replace(/^@/, ''), href),
+    rawLabel,
+  })
+}
+
+const createLocalPathMentionToken = (trimmedLabel: string, rawLabel: string, href: string) => {
   const fileReference = parseLocalFileReference(href)
 
-  if (fileReference) {
-    return {
-      columnNumber: fileReference.columnNumber,
-      href,
-      kind: fileReference.kind,
-      label: fileReferenceLabel(trimmedLabel, fileReference.label, fileReference.locationSuffix),
-      lineNumber: fileReference.lineNumber,
-      rawLabel,
-      type: 'mention',
-    }
+  if (!fileReference) {
+    return null
   }
 
-  return null
+  return mentionToken({
+    columnNumber: fileReference.columnNumber,
+    href,
+    kind: fileReference.kind,
+    label: fileReferenceLabel(trimmedLabel, fileReference.label, fileReference.locationSuffix),
+    lineNumber: fileReference.lineNumber,
+    rawLabel,
+  })
+}
+
+const mentionToken = ({
+  columnNumber,
+  href,
+  kind,
+  label,
+  lineNumber,
+  rawLabel,
+}: Omit<PromptMentionToken, 'type'>): PromptMentionToken => {
+  return {
+    href,
+    kind,
+    label,
+    rawLabel,
+    type: 'mention',
+    ...(lineNumber ? { lineNumber } : {}),
+    ...(columnNumber ? { columnNumber } : {}),
+  }
 }
 
 const isSkillReference = (href: string) => {
@@ -171,7 +236,7 @@ const localPathFromHref = (href: string) => {
     return href
   }
 
-  if (/^[A-Za-z]:[\\/]/.test(href)) {
+  if (isWindowsDrivePath(href)) {
     return href
   }
 
@@ -213,40 +278,7 @@ const fileReferenceLabel = (rawLabel: string, fallbackLabel: string, locationSuf
 const preferredReferenceName = (value: string) => {
   const normalized = value.trim().replace(/^@/, '').toLowerCase()
 
-  switch (normalized) {
-    case 'browser-use':
-    case 'browser':
-      return 'Browser'
-    case 'computer-use':
-    case 'computer':
-      return 'Computer'
-    case 'figma':
-      return 'Figma'
-    case 'gmail':
-      return 'Gmail'
-    case 'github':
-      return 'GitHub'
-    case 'google-calendar':
-      return 'Google Calendar'
-    case 'google-drive':
-      return 'Google Drive'
-    case 'linear':
-      return 'Linear'
-    case 'notion':
-      return 'Notion'
-    case 'outlook-calendar':
-      return 'Outlook Calendar'
-    case 'outlook-email':
-      return 'Outlook Email'
-    case 'sharepoint':
-      return 'SharePoint'
-    case 'slack':
-      return 'Slack'
-    case 'teams':
-      return 'Teams'
-    default:
-      return null
-  }
+  return preferredReferenceNames[normalized as keyof typeof preferredReferenceNames] ?? null
 }
 
 const humanizeWord = (word: string) => {
@@ -257,4 +289,8 @@ const humanizeWord = (word: string) => {
   }
 
   return `${lowerWord.slice(0, 1).toUpperCase()}${lowerWord.slice(1)}`
+}
+
+const isWindowsDrivePath = (href: string) => {
+  return WINDOWS_DRIVE_PATH_PATTERN.test(href)
 }
