@@ -114,7 +114,9 @@ export const createPromptMentionToken = (
 }
 
 const isSkillReference = (href: string) => {
-  return href.endsWith('/SKILL.md') || href.includes('/skills/')
+  const normalizedHref = href.replaceAll('\\', '/')
+
+  return normalizedHref.endsWith('/SKILL.md') || normalizedHref.includes('/skills/')
 }
 
 const humanizeMentionLabel = (value: string, href?: string) => {
@@ -150,8 +152,8 @@ const parseLocalFileReference = (href: string) => {
   }
 
   const location = parseFileLocation(localPath)
-  const path = location.path.replace(/\/+$/, '') || location.path
-  const label = path.split('/').filter(Boolean).at(-1) ?? path
+  const path = location.path.replace(/[\\/]+$/, '') || location.path
+  const label = path.split(/[\\/]/).filter(Boolean).at(-1) ?? path
 
   return {
     kind: hasFileExtension(label) ? ('file' as const) : ('directory' as const),
@@ -166,6 +168,10 @@ const localPathFromHref = (href: string) => {
   }
 
   if (href.startsWith('/') || href.startsWith('./') || href.startsWith('../')) {
+    return href
+  }
+
+  if (/^[A-Za-z]:[\\/]/.test(href)) {
     return href
   }
 
@@ -201,7 +207,7 @@ const fileReferenceLabel = (rawLabel: string, fallbackLabel: string, locationSuf
       ? rawLabel.slice(0, -locationSuffix.length)
       : rawLabel
 
-  return label.replace(/\/+$/, '') || fallbackLabel
+  return label.replace(/[\\/]+$/, '') || fallbackLabel
 }
 
 const preferredReferenceName = (value: string) => {

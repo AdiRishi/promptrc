@@ -468,7 +468,10 @@ function textFromReactNode(node: ReactNode): string {
 function urlTransform(url: string, key: string) {
   if (
     key === 'href' &&
-    (url.startsWith('app://') || url.startsWith('file://') || url.startsWith('plugin://'))
+    (url.startsWith('app://') ||
+      url.startsWith('file://') ||
+      url.startsWith('plugin://') ||
+      /^[A-Za-z]:[\\/]/.test(url))
   ) {
     return url
   }

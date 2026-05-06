@@ -116,6 +116,33 @@ describe('prompt mention rendering', () => {
     ])
   })
 
+  it('preserves Windows drive-letter skill and file references', () => {
+    const tokens = parsePromptBodyMentions(
+      'Use [$to-prd](C:/Users/arishi/.agents/skills/to-prd/SKILL.md) and [prompt-body-renderer.tsx:42](C:/Users/arishi/promptrc/src/features/prompt-library/components/prompt-body-renderer.tsx:42).',
+    )
+
+    expect(tokens).toEqual([
+      { text: 'Use ', type: 'text' },
+      {
+        href: 'C:/Users/arishi/.agents/skills/to-prd/SKILL.md',
+        kind: 'skill',
+        label: 'To Prd',
+        rawLabel: '$to-prd',
+        type: 'mention',
+      },
+      { text: ' and ', type: 'text' },
+      {
+        href: 'C:/Users/arishi/promptrc/src/features/prompt-library/components/prompt-body-renderer.tsx:42',
+        kind: 'file',
+        label: 'prompt-body-renderer.tsx',
+        lineNumber: 42,
+        rawLabel: 'prompt-body-renderer.tsx:42',
+        type: 'mention',
+      },
+      { text: '.', type: 'text' },
+    ])
+  })
+
   it('leaves normal markdown links as text', () => {
     const body = 'Read [the docs](https://example.com) before writing.'
 

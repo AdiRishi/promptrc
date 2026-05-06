@@ -73,4 +73,20 @@ const ok = true
     expect(document.querySelector('[aria-label="directory: src"]')).toBeTruthy()
     expect(screen.getByText('settings.json (line 12, column 4)')).toBeTruthy()
   })
+
+  it('keeps Windows drive-letter reference hrefs renderable', () => {
+    render(
+      <PromptBodyRenderer
+        body={
+          'Use [$to-prd](C:/Users/arishi/.agents/skills/to-prd/SKILL.md) and [prompt-body-renderer.tsx:42](C:/Users/arishi/promptrc/src/features/prompt-library/components/prompt-body-renderer.tsx:42).'
+        }
+      />,
+    )
+
+    expect(screen.getByRole('link', { name: 'skill: To Prd' }).getAttribute('href')).toBe(
+      'C:/Users/arishi/.agents/skills/to-prd/SKILL.md',
+    )
+    expect(document.querySelector('[aria-label="file: prompt-body-renderer.tsx"]')).toBeTruthy()
+    expect(screen.getByText('prompt-body-renderer.tsx (line 42)')).toBeTruthy()
+  })
 })
