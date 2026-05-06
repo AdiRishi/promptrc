@@ -11,8 +11,9 @@ count.txt
 .wrangler
 .output
 .vinxi
+public/sitemap.xml
 todos.json
-stats.html
+coverage
 
 # wrangler
 worker-configuration.d.ts
