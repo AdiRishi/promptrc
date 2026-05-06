@@ -266,7 +266,7 @@ function PromptViewer({
           </span>
         </div>
 
-        <div className="relative border-l-2 border-l-primary bg-background px-5 py-5 text-[14px] leading-[1.75] whitespace-pre-wrap">
+        <div className="relative border-l-2 border-l-primary bg-background px-5 py-5 text-[14px] leading-[1.75]">
           <span className="absolute -top-2 left-3 bg-card px-2 text-[10px] tracking-[0.2em] text-accent-foreground">
             // PROMPT
           </span>

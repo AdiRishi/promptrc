@@ -1,17 +1,19 @@
 export type PromptMentionKind = 'skill' | 'plugin'
 
+export type PromptMentionToken = {
+  href: string
+  kind: PromptMentionKind
+  label: string
+  rawLabel: string
+  type: 'mention'
+}
+
 export type PromptBodyToken =
   | {
       text: string
       type: 'text'
     }
-  | {
-      href: string
-      kind: PromptMentionKind
-      label: string
-      rawLabel: string
-      type: 'mention'
-    }
+  | PromptMentionToken
 
 const CODEX_MENTION_LINK_PATTERN = /\[([@$][^\]\n]+)\]\(([^)\n]+)\)/g
 
@@ -29,7 +31,7 @@ export const parsePromptBodyMentions = (body: string): PromptBodyToken[] => {
       continue
     }
 
-    const mention = createMentionToken(rawLabel, href)
+    const mention = createPromptMentionToken(rawLabel, href)
 
     if (!mention) {
       continue
@@ -56,7 +58,10 @@ export const parsePromptBodyMentions = (body: string): PromptBodyToken[] => {
   return tokens.length ? tokens : [{ text: body, type: 'text' }]
 }
 
-const createMentionToken = (rawLabel: string, href: string): PromptBodyToken | null => {
+export const createPromptMentionToken = (
+  rawLabel: string,
+  href: string,
+): PromptMentionToken | null => {
   if (rawLabel.startsWith('$') && isSkillReference(href)) {
     return {
       href,
