@@ -1,12 +1,5 @@
-import {
-  createStarterPrompts,
-  hasStarterPrompts,
-} from '@/features/prompt-library/lib/starter-prompts'
-import { readLocalPromptLibrarySnapshot } from '@/features/prompt-library/storage/local-prompt-library-storage'
-import {
-  type PromptLibraryHydrationResult,
-  type PromptLibraryStorage,
-} from '@/features/prompt-library/storage/prompt-library-storage'
+import { makePromptLibraryReady } from '@/features/prompt-library/storage/prompt-library-lifecycle'
+import { type PromptLibraryStorage } from '@/features/prompt-library/storage/prompt-library-storage'
 import {
   type PromptLibraryStoreApi,
   getPromptLibraryPersistedSnapshot,
@@ -25,73 +18,11 @@ export type PromptLibraryClient = {
   recordPromptUse: (promptId: string) => Promise<PromptRecord | null>
 }
 
-export const applyHydrationResult = (
-  store: PromptLibraryStoreApi,
-  hydrationResult: PromptLibraryHydrationResult,
-) => {
-  if (hydrationResult.source === 'local') {
-    store.getState().actions.restoreLocalState(hydrationResult.snapshot)
-
-    const state = store.getState()
-
-    if (state.isFresh && state.prompts.length === 0) {
-      store.getState().actions.seedStarterPrompts(createStarterPrompts())
-    }
-
-    if (state.isFresh && hasStarterPrompts(state.prompts) && !state.selectedPromptId) {
-      store.getState().actions.seedStarterPrompts(state.prompts)
-    }
-
-    return
-  }
-
-  store.getState().actions.replacePrompts(hydrationResult.snapshot.prompts, {
-    isFresh: hydrationResult.snapshot.isFresh,
-  })
-}
-
-export const seedFreshPromptLibrary = async (
-  storage: PromptLibraryStorage,
-  store: PromptLibraryStoreApi,
-) => {
-  const state = store.getState()
-
-  if (!state.isFresh || hasStarterPrompts(state.prompts) || state.prompts.length > 0) {
-    return
-  }
-
-  if (storage.mode === 'remote') {
-    const localSnapshot = readLocalPromptLibrarySnapshot()
-
-    if (localSnapshot?.prompts.length) {
-      store.getState().actions.offerFirstSignInCopy(localSnapshot.prompts)
-      return
-    }
-
-    if (localSnapshot && !localSnapshot.isFresh) {
-      await storage.setFreshness(false)
-      store.getState().actions.markPromptLibraryNotFresh()
-      return
-    }
-  }
-
-  const starterPrompts = createStarterPrompts()
-
-  if (storage.mode === 'remote') {
-    await storage.seedPrompts(starterPrompts)
-  }
-
-  store.getState().actions.seedStarterPrompts(starterPrompts)
-}
-
 export const hydratePromptLibrary = async (
   storage: PromptLibraryStorage,
   store: PromptLibraryStoreApi,
 ) => {
-  const hydrationResult = await storage.hydrate()
-
-  applyHydrationResult(store, hydrationResult)
-  await seedFreshPromptLibrary(storage, store)
+  await makePromptLibraryReady(storage, store)
 }
 
 export const createPromptLibraryClient = (

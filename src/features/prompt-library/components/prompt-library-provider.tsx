@@ -77,3 +77,7 @@ export const usePromptLibraryMeta = () => {
 export const usePromptLibraryClient = () => {
   return usePromptLibraryContext().library
 }
+
+export const usePromptLibraryStoreApi = () => {
+  return usePromptLibraryContext().store
+}

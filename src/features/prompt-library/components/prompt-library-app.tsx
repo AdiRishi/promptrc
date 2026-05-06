@@ -9,7 +9,6 @@ import { FirstSignInCopyDialog } from '@/features/prompt-library/components/firs
 import { PromptHelpOverlay } from '@/features/prompt-library/components/prompt-help-overlay'
 import {
   PromptLibraryProvider,
-  usePromptLibraryClient,
   usePromptLibraryMeta,
   usePromptLibraryStore,
 } from '@/features/prompt-library/components/prompt-library-provider'
@@ -21,15 +20,10 @@ import { PromptTreePanel } from '@/features/prompt-library/components/prompt-tre
 import { PromptWorkspace } from '@/features/prompt-library/components/prompt-workspace'
 import { usePromptLibraryCommands } from '@/features/prompt-library/hooks/use-prompt-library-commands'
 import {
-  getPromptCategories,
-  groupPromptsByCategory,
-  matchesPromptQuery,
-} from '@/features/prompt-library/lib/prompt-library-utils'
-import {
-  type PromptRecord,
-  type PromptSyncMode,
-  type PromptSyncStatus,
-} from '@/features/prompt-library/types'
+  type PromptLibraryProjection,
+  createPromptLibraryProjection,
+} from '@/features/prompt-library/lib/prompt-library-projection'
+import { type PromptSyncMode, type PromptSyncStatus } from '@/features/prompt-library/types'
 import { SITE_GITHUB_URL } from '@/lib/site-config'
 
 export function PromptLibraryApp() {
@@ -51,24 +45,20 @@ function PromptLibraryScreen() {
   const syncStatus = usePromptLibraryStore((state) => state.syncStatus)
   const actions = usePromptLibraryStore((state) => state.actions)
   const { searchInputRef, titleInputRef } = usePromptLibraryMeta()
-  const library = usePromptLibraryClient()
   const [isHelpOpen, setIsHelpOpen] = useState(false)
   const toggleHelp = useCallback(() => setIsHelpOpen((open) => !open), [])
   const closeHelp = useCallback(() => setIsHelpOpen(false), [])
 
   const deferredQuery = useDeferredValue(query)
-  const filteredPrompts = useMemo(
-    () => prompts.filter((prompt) => matchesPromptQuery(prompt, deferredQuery)),
-    [deferredQuery, prompts],
+  const projection = useMemo(
+    () =>
+      createPromptLibraryProjection({
+        prompts,
+        query: deferredQuery,
+        selectedPromptId,
+      }),
+    [deferredQuery, prompts, selectedPromptId],
   )
-  const groupedPrompts = useMemo(() => groupPromptsByCategory(filteredPrompts), [filteredPrompts])
-  const categoryKeys = useMemo(() => Object.keys(groupedPrompts), [groupedPrompts])
-  const categories = useMemo(() => getPromptCategories(prompts), [prompts])
-  const activePrompt = useMemo(
-    () => prompts.find((prompt) => prompt.id === selectedPromptId) ?? null,
-    [prompts, selectedPromptId],
-  )
-  const flatPromptIds = useMemo(() => filteredPrompts.map((prompt) => prompt.id), [filteredPrompts])
 
   const {
     copyActivePrompt,
@@ -77,16 +67,7 @@ function PromptLibraryScreen() {
     saveComposer,
     selectPrompt,
     startEditActivePrompt,
-  } = usePromptLibraryCommands({
-    actions,
-    activePrompt,
-    composerMode: composer.mode,
-    confirmDeleteId,
-    flatPromptIds,
-    prompts,
-    library,
-    titleInputRef,
-  })
+  } = usePromptLibraryCommands()
 
   useEffect(() => {
     if (!hasHydrated) {
@@ -149,15 +130,7 @@ function PromptLibraryScreen() {
         keys: ['j', 'k'],
         label: 'next . prev',
         action: () => {
-          if (!flatPromptIds.length) {
-            return
-          }
-
-          const currentIndex = selectedPromptId ? flatPromptIds.indexOf(selectedPromptId) : -1
-          const nextPromptId =
-            flatPromptIds[Math.min(currentIndex + 1, flatPromptIds.length - 1)] ?? flatPromptIds[0]
-
-          actions.selectPrompt(nextPromptId ?? null)
+          actions.selectPrompt(projection.getNextPromptId())
         },
       },
       {
@@ -188,17 +161,14 @@ function PromptLibraryScreen() {
       copyActivePrompt,
       deletePrompt,
       duplicatePrompt,
-      flatPromptIds,
+      projection,
       searchInputRef,
-      selectedPromptId,
       startEditActivePrompt,
     ],
   )
 
   usePromptLibraryHotkeys({
-    activePrompt,
     composerMode: composer.mode,
-    filteredPromptIds: flatPromptIds,
     isHelpOpen,
     onCancelComposer: actions.cancelComposer,
     onCopyActivePrompt: copyActivePrompt,
@@ -209,8 +179,8 @@ function PromptLibraryScreen() {
     onStartEdit: startEditActivePrompt,
     onStartNew: actions.startNew,
     onToggleHelp: toggleHelp,
+    projection,
     searchInputRef,
-    selectedPromptId,
   })
 
   return (
@@ -219,9 +189,9 @@ function PromptLibraryScreen() {
 
       <div className="relative z-10 grid min-h-[calc(100vh-42px)] grid-cols-1 md:grid-cols-[280px_minmax(0,1fr)] xl:grid-cols-[320px_minmax(0,1fr)_280px]">
         <PromptTreePanel
-          categoryKeys={categoryKeys}
-          filteredCount={flatPromptIds.length}
-          groupedPrompts={groupedPrompts}
+          categoryKeys={projection.categoryKeys}
+          filteredCount={projection.orderedPromptIds.length}
+          groupedPrompts={projection.groupedPrompts}
           isComposerOpen={composer.mode !== 'view'}
           onClearQuery={actions.clearQuery}
           onSelectPrompt={selectPrompt}
@@ -231,11 +201,11 @@ function PromptLibraryScreen() {
         />
 
         <PromptWorkspace
-          activePrompt={activePrompt}
-          categories={categories}
+          activePrompt={projection.activePrompt}
+          categories={projection.categories}
           composer={composer}
           confirmDeleteId={confirmDeleteId}
-          filteredCount={flatPromptIds.length}
+          filteredCount={projection.orderedPromptIds.length}
           onCancelComposer={actions.cancelComposer}
           onCopyPrompt={copyActivePrompt}
           onDeletePrompt={deletePrompt}
@@ -338,11 +308,9 @@ function PromptTopBar({ promptCount, syncMode, syncStatus }: PromptTopBarProps) 
 }
 
 type PromptLibraryHotkeysOptions = {
-  activePrompt: PromptRecord | null
   composerMode: 'view' | 'new' | 'edit'
-  filteredPromptIds: string[]
   isHelpOpen: boolean
-  selectedPromptId: string | null
+  projection: PromptLibraryProjection
   searchInputRef: React.RefObject<HTMLInputElement | null>
   onStartNew: () => void
   onStartEdit: () => void
@@ -356,11 +324,9 @@ type PromptLibraryHotkeysOptions = {
 }
 
 function usePromptLibraryHotkeys({
-  activePrompt,
   composerMode,
-  filteredPromptIds,
   isHelpOpen,
-  selectedPromptId,
+  projection,
   searchInputRef,
   onStartNew,
   onStartEdit,
@@ -413,7 +379,7 @@ function usePromptLibraryHotkeys({
         event.key.toLowerCase() === 'c' &&
         !window.getSelection()?.toString()
       ) {
-        if (!activePrompt) {
+        if (!projection.activePrompt) {
           return
         }
 
@@ -427,7 +393,7 @@ function usePromptLibraryHotkeys({
     if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'c') {
       const selectedText = window.getSelection()?.toString()
 
-      if (selectedText || !activePrompt) {
+      if (selectedText || !projection.activePrompt) {
         return
       }
 
@@ -451,36 +417,29 @@ function usePromptLibraryHotkeys({
         searchInputRef.current?.select()
         break
       case 'j': {
-        if (!filteredPromptIds.length) {
+        const nextPromptId = projection.getNextPromptId()
+
+        if (!nextPromptId) {
           return
         }
 
         event.preventDefault()
-
-        const currentIndex = selectedPromptId ? filteredPromptIds.indexOf(selectedPromptId) : -1
-        const nextPromptId =
-          filteredPromptIds[Math.min(currentIndex + 1, filteredPromptIds.length - 1)] ??
-          filteredPromptIds[0]
-
-        onSelectPrompt(nextPromptId ?? null)
+        onSelectPrompt(nextPromptId)
         break
       }
       case 'k': {
-        if (!filteredPromptIds.length) {
+        const previousPromptId = projection.getPreviousPromptId()
+
+        if (!previousPromptId) {
           return
         }
 
         event.preventDefault()
-
-        const currentIndex = selectedPromptId ? filteredPromptIds.indexOf(selectedPromptId) : 0
-        const previousPromptId =
-          filteredPromptIds[Math.max(currentIndex - 1, 0)] ?? filteredPromptIds[0]
-
-        onSelectPrompt(previousPromptId ?? null)
+        onSelectPrompt(previousPromptId)
         break
       }
       case 'e':
-        if (!activePrompt) {
+        if (!projection.activePrompt) {
           return
         }
 
@@ -488,7 +447,7 @@ function usePromptLibraryHotkeys({
         onStartEdit()
         break
       case 'd':
-        if (!activePrompt) {
+        if (!projection.activePrompt) {
           return
         }
 
@@ -496,7 +455,7 @@ function usePromptLibraryHotkeys({
         onDuplicatePrompt()
         break
       case 'x':
-        if (!activePrompt) {
+        if (!projection.activePrompt) {
           return
         }
 

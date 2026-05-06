@@ -1,4 +1,3 @@
-import { DEFAULT_PROMPT_CATEGORIES } from '@/features/prompt-library/lib/prompt-library-data'
 import {
   type PromptDraft,
   type PromptRecord,
@@ -71,38 +70,4 @@ export const relativeTime = (iso: string) => {
 
 export const generatePromptId = () => {
   return crypto.randomUUID()
-}
-
-export const matchesPromptQuery = (prompt: PromptRecord, query: string) => {
-  const normalizedQuery = query.trim().toLowerCase()
-
-  if (!normalizedQuery) {
-    return true
-  }
-
-  return [prompt.title, prompt.body, prompt.category, prompt.tags.join(' ')]
-    .join(' ')
-    .toLowerCase()
-    .includes(normalizedQuery)
-}
-
-export const groupPromptsByCategory = (prompts: PromptRecord[]) => {
-  return prompts.reduce<Record<string, PromptRecord[]>>((groups, prompt) => {
-    const key = prompt.category
-    const existing = groups[key] ?? []
-
-    groups[key] = [...existing, prompt]
-
-    return groups
-  }, {})
-}
-
-export const getPromptCategories = (prompts: PromptRecord[]) => {
-  const categories = new Set<string>(DEFAULT_PROMPT_CATEGORIES)
-
-  for (const prompt of prompts) {
-    categories.add(prompt.category)
-  }
-
-  return Array.from(categories)
 }
