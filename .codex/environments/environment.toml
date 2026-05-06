@@ -2,7 +2,24 @@ version = 1
 name = "promptrc"
 
 [setup]
-script = "corepack enable && pnpm install --frozen-lockfile"
+script = """
+set -euo pipefail
+
+copy_local_file() {
+  if [ -f "$CODEX_SOURCE_TREE_PATH/$1" ]; then
+    install -m 600 "$CODEX_SOURCE_TREE_PATH/$1" "$CODEX_WORKTREE_PATH/$1"
+  elif [ "${2:-required}" = "required" ]; then
+    printf 'Warning: %s not found in source tree; skipping local env copy.\n' "$1"
+  fi
+}
+
+copy_local_file .env
+copy_local_file .env.local optional
+
+corepack enable
+pnpm install --frozen-lockfile
+pnpm db:migrate
+"""
 
 [[actions]]
 name = "Run"
