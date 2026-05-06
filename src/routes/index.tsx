@@ -10,7 +10,7 @@ import {
   jsonLdScripts,
   seo,
 } from '@/lib/seo'
-import { SITE_DEFAULT_TITLE, SITE_DESCRIPTION, SITE_KEYWORDS } from '@/lib/site-config'
+import { SITE_DEFAULT_TITLE, SITE_DESCRIPTION } from '@/lib/site-config'
 
 export const Route = createFileRoute('/')({
   component: HomeRoute,
@@ -18,7 +18,6 @@ export const Route = createFileRoute('/')({
     meta: seo({
       title: SITE_DEFAULT_TITLE,
       description: SITE_DESCRIPTION,
-      keywords: SITE_KEYWORDS,
       path: '/',
     }),
     links: [canonicalLink('/')],

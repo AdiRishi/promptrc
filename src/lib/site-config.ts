@@ -1,31 +1,51 @@
 export const SITE_NAME = 'promptrc'
 export const SITE_AUTHOR = SITE_NAME
-export const SITE_DEFAULT_TITLE = 'promptrc | terminal-inspired AI prompt library'
+export const SITE_APP_HEADING = 'promptrc terminal-inspired AI prompt manager and prompt library'
+export const SITE_DEFAULT_TITLE = 'promptrc | terminal-inspired AI prompt manager'
 export const SITE_DESCRIPTION =
-  'A terminal-inspired prompt library for storing, searching, and reusing your best AI prompts.'
-export const SITE_KEYWORDS =
-  'promptrc, prompt library, AI prompts, prompt manager, terminal UI, prompt workflow'
+  'A terminal-inspired, local-first prompt library for storing, organizing, searching, and reusing AI prompts across ChatGPT, Claude, coding, writing, and product workflows.'
+export const SITE_KEYWORD_LIST = [
+  'promptrc',
+  'AI prompt manager',
+  'AI prompt library',
+  'prompt organizer',
+  'ChatGPT prompts',
+  'Claude prompts',
+  'reusable prompts',
+  'prompt workflow',
+  'local-first prompt library',
+] as const
+export const SITE_KEYWORDS = SITE_KEYWORD_LIST.join(', ')
+export const SITE_ALTERNATE_NAMES = [
+  'promptrc prompt library',
+  'promptrc prompt manager',
+  'promptrc AI prompt organizer',
+] as const
+export const SITE_AUDIENCE =
+  'AI power users, developers, writers, product managers, and operators who reuse prompts across ChatGPT, Claude, and other AI tools.'
 export const SITE_THEME_COLOR = '#0b0c0e'
 export const SITE_BACKGROUND_COLOR = '#0b0c0e'
 export const SITE_IN_LANGUAGE = 'en'
-export const SITE_OG_LOCALE = 'en_AU'
+export const SITE_OG_LOCALE = 'en_US'
 export const SITE_SOCIAL_IMAGE_PATH = '/og-preview.png'
 export const SITE_SOCIAL_IMAGE_ALT =
-  'promptrc interface showing a terminal-inspired AI prompt library with searchable prompts'
+  'promptrc interface showing a searchable AI prompt manager with categories, tags, and copy actions'
 export const SITE_LOGO_PATH = '/logo512.png'
 export const SITE_URL_ENV_KEY = 'VITE_SITE_URL'
 export const DEFAULT_SITE_URL = 'http://localhost:8080'
 export const CANONICAL_SITE_URL = 'https://promptrc.app'
 export const SITE_GITHUB_URL = 'https://github.com/AdiRishi/promptrc'
 export const SITE_APPLICATION_CATEGORY = 'ProductivityApplication'
+export const SITE_APPLICATION_SUB_CATEGORY = 'AI prompt management'
 export const SITE_BROWSER_REQUIREMENTS =
   'Requires JavaScript and works in current evergreen desktop and mobile browsers.'
 export const SITE_FEATURE_LIST = [
-  'Store and organize your best AI prompts in one place',
-  'Search prompts instantly across titles, content, categories, and tags',
-  'Group prompts by category and tag for faster retrieval',
-  'Use a keyboard-first workflow for browsing, editing, and copying prompts',
-  'Keep your prompt library local-first with browser persistence',
+  'Save reusable AI prompts in a personal prompt library',
+  'Search prompt titles, bodies, categories, and tags instantly',
+  'Organize prompts by category and tag without heavyweight content management',
+  'Copy prompt bodies into ChatGPT, Claude, coding tools, and writing workflows',
+  'Use local-first browser storage with optional signed-in cloud sync',
+  'Move quickly with keyboard-first prompt retrieval',
 ] as const
 
 export function getSiteUrl(rawSiteUrl?: string | null) {
