@@ -33,4 +33,12 @@ describe('starter prompts', () => {
     expect(starterPrompts.every((prompt) => prompt.tags.length > 0)).toBe(true)
     expect(starterPrompts.every((prompt) => prompt.uses === 0)).toBe(true)
   })
+
+  it('gives each starter prompt a deterministic remote sort key', () => {
+    const starterPrompts = createStarterPrompts()
+    const updatedTimestamps = starterPrompts.map((prompt) => new Date(prompt.updatedAt).getTime())
+
+    expect(new Set(updatedTimestamps).size).toBe(starterPrompts.length)
+    expect([...updatedTimestamps].sort((a, b) => b - a)).toEqual(updatedTimestamps)
+  })
 })

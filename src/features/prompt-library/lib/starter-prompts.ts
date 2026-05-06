@@ -75,15 +75,19 @@ export const STARTER_PROMPT_TITLES = STARTER_PROMPT_DEFINITIONS.map((prompt) => 
 export const START_HERE_PROMPT_TITLE = STARTER_PROMPT_TITLES[0]
 
 export const createStarterPrompts = (): PromptRecord[] => {
-  const now = new Date().toISOString()
+  const newestTimestamp = Date.now()
 
-  return STARTER_PROMPT_DEFINITIONS.map((prompt) => ({
-    ...prompt,
-    id: generatePromptId(),
-    createdAt: now,
-    updatedAt: now,
-    uses: 0,
-  }))
+  return STARTER_PROMPT_DEFINITIONS.map((prompt, index) => {
+    const timestamp = new Date(newestTimestamp - index).toISOString()
+
+    return {
+      ...prompt,
+      id: generatePromptId(),
+      createdAt: timestamp,
+      updatedAt: timestamp,
+      uses: 0,
+    }
+  })
 }
 
 export const getStartHerePrompt = (prompts: PromptRecord[]) => {
