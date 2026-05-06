@@ -1,8 +1,8 @@
-import { parsePromptLibraryPersistedSnapshot } from '@/features/prompt-library/lib/prompt-library-validation'
+import { parsePromptLibraryPersistedSnapshot } from '@/features/prompt-library/model/prompt-library-validation'
 import {
   type LocalPromptLibraryStorage,
   normalizeStorageError,
-} from '@/features/prompt-library/storage/prompt-library-storage'
+} from '@/features/prompt-library/persistence/prompt-library-storage'
 import { type PromptLibraryPersistedSnapshot } from '@/features/prompt-library/types'
 
 const LOCAL_STORAGE_KEY = 'promptrc.library.v1'

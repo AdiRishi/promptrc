@@ -5,7 +5,7 @@ import { FaGithub } from 'react-icons/fa'
 import {
   type PromptBodyToken,
   parsePromptBodyMentions,
-} from '@/features/prompt-library/lib/prompt-mention-rendering'
+} from '@/features/prompt-library/rendering/prompt-mention-rendering'
 import { cn } from '@/lib/utils'
 
 type PromptBodyRendererProps = {

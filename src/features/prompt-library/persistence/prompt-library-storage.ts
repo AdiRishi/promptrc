@@ -1,5 +1,6 @@
 import {
   type PromptLibraryPersistedSnapshot,
+  type PromptLibraryRemoteSnapshot,
   type PromptRecord,
   type PromptSyncMode,
 } from '@/features/prompt-library/types'
@@ -14,11 +15,6 @@ export type PromptLibraryHydrationResult =
       snapshot: PromptLibraryRemoteSnapshot
     }
 
-export type PromptLibraryRemoteSnapshot = {
-  prompts: PromptRecord[]
-  isFresh: boolean
-}
-
 type PromptLibraryStorageBase = {
   reportError: (error: unknown) => string
 }
@@ -31,12 +27,12 @@ export type LocalPromptLibraryStorage = PromptLibraryStorageBase & {
 
 export type RemotePromptLibraryStorage = PromptLibraryStorageBase & {
   mode: Extract<PromptSyncMode, 'remote'>
-  copyPrompts: (prompts: PromptRecord[]) => Promise<PromptRecord[]>
+  acceptFirstSignInCopy: (prompts: PromptRecord[]) => Promise<PromptRecord[]>
+  addStarterPrompts: (prompts: PromptRecord[]) => Promise<PromptRecord[]>
+  declineFirstSignInCopy: () => Promise<PromptLibraryRemoteSnapshot>
   deletePrompt: (promptId: string) => Promise<void>
   hydrate: () => Promise<Extract<PromptLibraryHydrationResult, { source: 'remote' }>>
-  incrementUses: (promptId: string) => Promise<PromptRecord>
-  seedPrompts: (prompts: PromptRecord[]) => Promise<PromptRecord[]>
-  setFreshness: (isFresh: boolean) => Promise<{ isFresh: boolean }>
+  recordPromptUse: (promptId: string) => Promise<PromptRecord>
   savePrompt: (prompt: PromptRecord) => Promise<PromptRecord>
 }
 

@@ -1,12 +1,12 @@
 import { useMemo } from 'react'
 import { toast } from 'sonner'
 
+import { createPromptLibraryCommandExecutor } from '@/features/prompt-library/commands/prompt-library-command-executor'
 import {
   usePromptLibraryClient,
   usePromptLibraryMeta,
   usePromptLibraryStoreApi,
 } from '@/features/prompt-library/components/prompt-library-provider'
-import { createPromptLibraryCommandExecutor } from '@/features/prompt-library/lib/prompt-library-command-executor'
 
 export function usePromptLibraryCommands() {
   const library = usePromptLibraryClient()

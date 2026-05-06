@@ -2,23 +2,27 @@ import { auth } from '@clerk/tanstack-react-start/server'
 import { createServerFn } from '@tanstack/react-start'
 
 import {
-  assertBoolean,
   assertPromptId,
   assertPromptRecord,
   assertPromptRecords,
-} from '@/features/prompt-library/lib/prompt-library-validation'
-import { createRemotePromptLibraryPersistence } from '@/features/prompt-library/server/remote-prompt-library-persistence'
+} from '@/features/prompt-library/model/prompt-library-validation'
+import { createRemotePromptLibraryPersistence } from '@/features/prompt-library/persistence/remote-prompt-library-persistence'
 
 export {
+  acceptFirstSignInCopyForUser,
+  addStarterPromptsForUser,
   copyPromptsForUser,
   deletePromptForUser,
+  declineFirstSignInCopyForUser,
   getPromptLibraryForUser,
   incrementPromptUsesForUser,
   listPromptsForUser,
+  markPromptLibraryNotFreshForUser,
+  recordPromptUseForUser,
+  savePromptForUser,
   seedPromptsForUser,
-  setPromptLibraryFreshnessForUser,
   upsertPromptForUser,
-} from '@/features/prompt-library/server/remote-prompt-library-persistence'
+} from '@/features/prompt-library/persistence/remote-prompt-library-persistence'
 
 const getDatabase = async () => {
   const { env } = await import('cloudflare:workers')
@@ -59,36 +63,37 @@ export const getRemotePromptLibrary = createServerFn({ method: 'GET' }).handler(
   return promptLibrary.getPromptLibrary()
 })
 
-export const setRemotePromptLibraryFreshness = createServerFn({ method: 'POST' })
-  .inputValidator((value) => assertBoolean(value, 'isFresh'))
-  .handler(async ({ data: isFresh }) => {
-    const promptLibrary = await getAuthenticatedPromptLibraryPersistence()
-
-    return promptLibrary.setFreshness(isFresh)
-  })
-
-export const seedRemoteStarterPrompts = createServerFn({ method: 'POST' })
+export const addRemoteStarterPrompts = createServerFn({ method: 'POST' })
   .inputValidator(assertPromptRecords)
   .handler(async ({ data: prompts }) => {
     const promptLibrary = await getAuthenticatedPromptLibraryPersistence()
 
-    return promptLibrary.seedPrompts(prompts)
+    return promptLibrary.addStarterPrompts(prompts)
   })
 
-export const copyRemotePromptsToPromptLibrary = createServerFn({ method: 'POST' })
+export const acceptRemoteFirstSignInCopy = createServerFn({ method: 'POST' })
   .inputValidator(assertPromptRecords)
   .handler(async ({ data: prompts }) => {
     const promptLibrary = await getAuthenticatedPromptLibraryPersistence()
 
-    return promptLibrary.copyPrompts(prompts)
+    return promptLibrary.acceptFirstSignInCopy(prompts)
   })
+
+export const declineRemoteFirstSignInCopy = createServerFn({ method: 'POST' }).handler(async () => {
+  const promptLibrary = await getAuthenticatedPromptLibraryPersistence()
+
+  return promptLibrary.declineFirstSignInCopy()
+})
+
+export const seedRemoteStarterPrompts = addRemoteStarterPrompts
+export const copyRemotePromptsToPromptLibrary = acceptRemoteFirstSignInCopy
 
 export const upsertRemotePrompt = createServerFn({ method: 'POST' })
   .inputValidator(assertPromptRecord)
   .handler(async ({ data: prompt }) => {
     const promptLibrary = await getAuthenticatedPromptLibraryPersistence()
 
-    return promptLibrary.upsertPrompt(prompt, { markLibraryNotFresh: true })
+    return promptLibrary.savePrompt(prompt)
   })
 
 export const deleteRemotePrompt = createServerFn({ method: 'POST' })
@@ -104,5 +109,5 @@ export const incrementRemotePromptUses = createServerFn({ method: 'POST' })
   .handler(async ({ data: promptId }) => {
     const promptLibrary = await getAuthenticatedPromptLibraryPersistence()
 
-    return promptLibrary.incrementPromptUses(promptId)
+    return promptLibrary.recordPromptUse(promptId)
   })

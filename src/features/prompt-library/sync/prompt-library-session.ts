@@ -1,13 +1,13 @@
-import { makePromptLibraryReady } from '@/features/prompt-library/storage/prompt-library-lifecycle'
 import {
   type LocalPromptLibraryStorage,
   type PromptLibraryStorage,
-} from '@/features/prompt-library/storage/prompt-library-storage'
+} from '@/features/prompt-library/persistence/prompt-library-storage'
 import {
   type PromptLibraryStore,
   type PromptLibraryStoreApi,
   getPromptLibraryPersistedSnapshot,
 } from '@/features/prompt-library/store/prompt-library-store'
+import { makePromptLibraryReady } from '@/features/prompt-library/sync/prompt-library-lifecycle'
 
 type PromptLibrarySessionOptions = {
   storage: PromptLibraryStorage

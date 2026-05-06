@@ -1,7 +1,7 @@
-import { createPromptLibraryProjection } from '@/features/prompt-library/lib/prompt-library-projection'
-import { filenameOf } from '@/features/prompt-library/lib/prompt-library-utils'
-import { type PromptLibraryClient } from '@/features/prompt-library/storage/prompt-library-client'
+import { filenameOf } from '@/features/prompt-library/rendering/prompt-library-formatting'
+import { selectPromptLibraryVisibleState } from '@/features/prompt-library/selectors/prompt-library-selectors'
 import { type PromptLibraryStoreApi } from '@/features/prompt-library/store/prompt-library-store'
+import { type PromptLibraryClient } from '@/features/prompt-library/sync/prompt-library-client'
 import { type PromptRecord } from '@/features/prompt-library/types'
 
 type PromptLibraryClipboard = {
@@ -25,41 +25,29 @@ export const createPromptLibraryCommandExecutor = ({
   notify,
   store,
 }: PromptLibraryCommandExecutorOptions) => {
-  const getProjection = () => {
+  const getVisibleState = () => {
     const state = store.getState()
 
-    return createPromptLibraryProjection({
+    return selectPromptLibraryVisibleState({
       prompts: state.prompts,
       query: state.query,
       selectedPromptId: state.selectedPromptId,
     })
   }
 
-  const markSyncReady = () => {
-    store.getState().actions.setSyncState({ syncMode: library.mode, syncStatus: 'ready' })
-  }
-
-  const markSyncError = (error: unknown) => {
-    const message = library.reportError(error)
-
-    store.getState().actions.setSyncState({
-      syncMode: library.mode,
-      syncStatus: 'error',
-      syncError: message,
-    })
+  const notifySyncFailure = (message: string) => {
     notify(`sync failed - ${message}`)
   }
 
-  const commitPrompt = async (prompt: PromptRecord, operation: 'add' | 'update') => {
-    try {
-      const savedPrompt =
-        operation === 'add' ? await library.addPrompt(prompt) : await library.updatePrompt(prompt)
+  const commitPrompt = async (prompt: PromptRecord) => {
+    const result = await library.savePrompt(prompt)
 
-      store.getState().actions.replacePrompt(savedPrompt)
-      markSyncReady()
-    } catch (error) {
-      markSyncError(error)
+    if (result.status === 'failed') {
+      notifySyncFailure(result.message)
+      return
     }
+
+    store.getState().actions.replacePrompt(result.value)
   }
 
   const selectPrompt = (promptId: string) => {
@@ -72,7 +60,7 @@ export const createPromptLibraryCommandExecutor = ({
   }
 
   const copyActivePrompt = async () => {
-    const activePrompt = getProjection().activePrompt
+    const activePrompt = getVisibleState().activePrompt
 
     if (!activePrompt) {
       return
@@ -87,16 +75,12 @@ export const createPromptLibraryCommandExecutor = ({
 
     store.getState().actions.incrementUses(activePrompt.id)
 
-    try {
-      const syncedPrompt = await library.recordPromptUse(activePrompt.id)
+    const result = await library.recordPromptUse(activePrompt.id)
 
-      if (syncedPrompt) {
-        store.getState().actions.replacePrompt(syncedPrompt)
-      }
-
-      markSyncReady()
-    } catch (error) {
-      markSyncError(error)
+    if (result.status === 'failed') {
+      notifySyncFailure(result.message)
+    } else if (result.value) {
+      store.getState().actions.replacePrompt(result.value)
     }
 
     notify(`copied -> ${activePrompt.title}`)
@@ -112,19 +96,19 @@ export const createPromptLibraryCommandExecutor = ({
     }
 
     if (result.status === 'created') {
-      void commitPrompt(result.prompt, 'add')
+      void commitPrompt(result.prompt)
       notify(`wrote ${filenameOf(result.prompt.title)}.md`)
       return
     }
 
     if (result.status === 'updated') {
-      void commitPrompt(result.prompt, 'update')
+      void commitPrompt(result.prompt)
       notify(`saved ${filenameOf(result.prompt.title)}.md`)
     }
   }
 
   const duplicatePrompt = () => {
-    const activePrompt = getProjection().activePrompt
+    const activePrompt = getVisibleState().activePrompt
 
     if (!activePrompt) {
       return
@@ -133,14 +117,14 @@ export const createPromptLibraryCommandExecutor = ({
     const duplicatedPrompt = store.getState().actions.duplicatePrompt(activePrompt.id)
 
     if (duplicatedPrompt) {
-      void commitPrompt(duplicatedPrompt, 'add')
+      void commitPrompt(duplicatedPrompt)
       notify(`duplicated -> ${duplicatedPrompt.title}`)
     }
   }
 
   const deletePrompt = () => {
-    const projection = getProjection()
-    const activePrompt = projection.activePrompt
+    const visibleState = getVisibleState()
+    const activePrompt = visibleState.activePrompt
 
     if (!activePrompt) {
       return
@@ -154,17 +138,21 @@ export const createPromptLibraryCommandExecutor = ({
       return
     }
 
-    const nextSelectedPromptId = projection.getNearestPromptIdAfterRemoval(activePrompt.id)
+    const nextSelectedPromptId = visibleState.getNearestPromptIdAfterRemoval(activePrompt.id)
     const removedPrompt = actions.deletePrompt(activePrompt.id, nextSelectedPromptId)
 
     if (removedPrompt) {
-      void library.removePrompt(removedPrompt.id).then(markSyncReady).catch(markSyncError)
+      void library.deletePrompt(removedPrompt.id).then((result) => {
+        if (result.status === 'failed') {
+          notifySyncFailure(result.message)
+        }
+      })
       notify(`removed -> ${removedPrompt.title}`)
     }
   }
 
   const startEditActivePrompt = () => {
-    const activePrompt = getProjection().activePrompt
+    const activePrompt = getVisibleState().activePrompt
 
     if (activePrompt) {
       store.getState().actions.startEdit(activePrompt.id)

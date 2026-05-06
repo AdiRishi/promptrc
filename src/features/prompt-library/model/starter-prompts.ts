@@ -1,4 +1,4 @@
-import { generatePromptId } from '@/features/prompt-library/lib/prompt-library-utils'
+import { generatePromptId } from '@/features/prompt-library/model/prompt-library-integrity'
 import { type PromptRecord } from '@/features/prompt-library/types'
 
 type StarterPromptDefinition = {

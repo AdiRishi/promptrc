@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { parsePromptLibraryPersistedSnapshot } from '@/features/prompt-library/lib/prompt-library-validation'
+import { parsePromptLibraryPersistedSnapshot } from '@/features/prompt-library/model/prompt-library-validation'
 import { type PromptRecord } from '@/features/prompt-library/types'
 
 const prompt: PromptRecord = {

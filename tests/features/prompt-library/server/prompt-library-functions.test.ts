@@ -1,15 +1,16 @@
 import { env } from 'cloudflare:workers'
 import { describe, expect, it } from 'vitest'
 
-import { createStarterPrompts } from '@/features/prompt-library/lib/starter-prompts'
+import { createStarterPrompts } from '@/features/prompt-library/model/starter-prompts'
 import {
   copyPromptsForUser,
+  declineFirstSignInCopyForUser,
   deletePromptForUser,
   getPromptLibraryForUser,
   incrementPromptUsesForUser,
   listPromptsForUser,
+  markPromptLibraryNotFreshForUser,
   seedPromptsForUser,
-  setPromptLibraryFreshnessForUser,
   upsertPromptForUser,
 } from '@/features/prompt-library/server/prompt-library-functions'
 import { type PromptRecord } from '@/features/prompt-library/types'
@@ -57,7 +58,7 @@ describe('prompt library server persistence', () => {
       isFresh: true,
     })
 
-    await setPromptLibraryFreshnessForUser(env.DB, 'user_a', false)
+    await markPromptLibraryNotFreshForUser(env.DB, 'user_a')
 
     await expect(getPromptLibraryForUser(env.DB, 'user_a')).resolves.toMatchObject({
       prompts: [],
@@ -84,6 +85,18 @@ describe('prompt library server persistence', () => {
       'Decision Partner',
       'Difficult Reply',
     ])
+    expect(library.isFresh).toBe(true)
+  })
+
+  it('adds Starter Prompts only once to an eligible Fresh Prompt Library', async () => {
+    const starterPrompts = createStarterPrompts()
+    const firstSeed = await seedPromptsForUser(env.DB, 'user_a', starterPrompts)
+    const retrySeed = await seedPromptsForUser(env.DB, 'user_a', createStarterPrompts())
+    const library = await getPromptLibraryForUser(env.DB, 'user_a')
+
+    expect(firstSeed.map((prompt) => prompt.id)).toEqual(starterPrompts.map((prompt) => prompt.id))
+    expect(retrySeed.map((prompt) => prompt.id)).toEqual(firstSeed.map((prompt) => prompt.id))
+    expect(library.prompts).toHaveLength(starterPrompts.length)
     expect(library.isFresh).toBe(true)
   })
 
@@ -133,6 +146,16 @@ describe('prompt library server persistence', () => {
     )
     expect(library.prompts).toHaveLength(2)
     expect(library.isFresh).toBe(false)
+  })
+
+  it('declines First-Sign-In Copy by keeping the remote Prompt Library empty and non-fresh', async () => {
+    await declineFirstSignInCopyForUser(env.DB, 'user_a')
+
+    await expect(getPromptLibraryForUser(env.DB, 'user_a')).resolves.toMatchObject({
+      prompts: [],
+      isFresh: false,
+    })
+    await expect(seedPromptsForUser(env.DB, 'user_a', createStarterPrompts())).resolves.toEqual([])
   })
 
   it('upserts and lists prompts for the authenticated Clerk user only', async () => {

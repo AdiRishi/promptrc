@@ -1,17 +1,17 @@
 import { createStore } from 'zustand/vanilla'
 
-import { INITIAL_PROMPTS } from '@/features/prompt-library/lib/prompt-library-data'
+import { INITIAL_PROMPTS } from '@/features/prompt-library/model/prompt-library-data'
 import {
   createInitialComposerState,
+  createPromptDraft,
   createPromptRecordFromDraft,
   duplicatePromptRecord,
   getExistingSelectedPromptId,
   incrementPromptRecordUses,
   updatePromptRecordFromDraft,
   upsertPromptRecord,
-} from '@/features/prompt-library/lib/prompt-library-domain'
-import { createPromptDraft } from '@/features/prompt-library/lib/prompt-library-utils'
-import { getStartHerePrompt } from '@/features/prompt-library/lib/starter-prompts'
+} from '@/features/prompt-library/model/prompt-library-records'
+import { getStartHerePrompt } from '@/features/prompt-library/model/starter-prompts'
 import {
   type ComposerState,
   type PromptDraft,

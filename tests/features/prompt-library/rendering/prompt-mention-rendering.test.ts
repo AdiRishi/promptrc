@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { parsePromptBodyMentions } from '@/features/prompt-library/lib/prompt-mention-rendering'
+import { parsePromptBodyMentions } from '@/features/prompt-library/rendering/prompt-mention-rendering'
 
 describe('prompt mention rendering', () => {
   it('parses Codex skill references into display tokens', () => {

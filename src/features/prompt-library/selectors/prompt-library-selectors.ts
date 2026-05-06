@@ -1,19 +1,21 @@
-import { DEFAULT_PROMPT_CATEGORIES } from '@/features/prompt-library/lib/prompt-library-data'
+import { DEFAULT_PROMPT_CATEGORIES } from '@/features/prompt-library/model/prompt-library-data'
 import { type PromptRecord } from '@/features/prompt-library/types'
 
-export type PromptLibraryProjection = {
+export type PromptLibraryVisibleState = {
   activePrompt: PromptRecord | null
   categories: string[]
   categoryKeys: string[]
+  emptyReason: 'no-prompts' | 'no-query-matches' | null
   filteredPrompts: PromptRecord[]
   groupedPrompts: Record<string, PromptRecord[]>
   orderedPromptIds: string[]
+  visiblePromptId: string | null
   getNearestPromptIdAfterRemoval: (promptId: string) => string | null
   getNextPromptId: () => string | null
   getPreviousPromptId: () => string | null
 }
 
-export const createPromptLibraryProjection = ({
+export const selectPromptLibraryVisibleState = ({
   prompts,
   query,
   selectedPromptId,
@@ -21,24 +23,30 @@ export const createPromptLibraryProjection = ({
   prompts: PromptRecord[]
   query: string
   selectedPromptId: string | null
-}): PromptLibraryProjection => {
+}): PromptLibraryVisibleState => {
   const filteredPrompts = prompts.filter((prompt) => matchesPromptQuery(prompt, query))
   const groupedPrompts = groupPromptsByCategory(filteredPrompts)
   const orderedPromptIds = filteredPrompts.map((prompt) => prompt.id)
-  const activePrompt = prompts.find((prompt) => prompt.id === selectedPromptId) ?? null
+  const activePrompt =
+    filteredPrompts.find((prompt) => prompt.id === selectedPromptId) ?? filteredPrompts[0] ?? null
   const categories = getPromptCategories(prompts)
   const categoryKeys = Object.keys(groupedPrompts)
+  const visiblePromptId = activePrompt?.id ?? null
+  const emptyReason =
+    prompts.length === 0 ? 'no-prompts' : filteredPrompts.length === 0 ? 'no-query-matches' : null
 
   const getCurrentPromptIndex = () =>
-    selectedPromptId ? orderedPromptIds.indexOf(selectedPromptId) : -1
+    visiblePromptId ? orderedPromptIds.indexOf(visiblePromptId) : -1
 
   return {
     activePrompt,
     categories,
     categoryKeys,
+    emptyReason,
     filteredPrompts,
     groupedPrompts,
     orderedPromptIds,
+    visiblePromptId,
     getNearestPromptIdAfterRemoval: (promptId) => {
       const fallbackPromptIds = orderedPromptIds.includes(promptId)
         ? orderedPromptIds
@@ -65,7 +73,7 @@ export const createPromptLibraryProjection = ({
         return null
       }
 
-      const currentIndex = selectedPromptId ? orderedPromptIds.indexOf(selectedPromptId) : 0
+      const currentIndex = getCurrentPromptIndex()
 
       return orderedPromptIds[Math.max(currentIndex - 1, 0)] ?? orderedPromptIds[0] ?? null
     },

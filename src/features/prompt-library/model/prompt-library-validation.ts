@@ -1,4 +1,8 @@
 import {
+  normalizePromptCategory,
+  normalizePromptTags,
+} from '@/features/prompt-library/model/prompt-library-integrity'
+import {
   type ComposerState,
   type PromptDraft,
   type PromptLibraryPersistedSnapshot,
@@ -47,17 +51,32 @@ const assertStringArray = (value: unknown, fieldName: string) => {
 export const assertPromptRecord = (value: unknown): PromptRecord => {
   const prompt = assertObject(value, 'prompt')
   const uses = prompt.uses
+  const id = assertString(prompt.id, 'id').trim()
+  const title = assertString(prompt.title, 'title').trim()
+  const body = assertString(prompt.body, 'body').trim()
 
   if (typeof uses !== 'number' || !Number.isInteger(uses) || uses < 0) {
     throw new Error('uses must be a non-negative integer')
   }
 
+  if (!id) {
+    throw new Error('id is required')
+  }
+
+  if (!title) {
+    throw new Error('title is required')
+  }
+
+  if (!body) {
+    throw new Error('body is required')
+  }
+
   return {
-    id: assertString(prompt.id, 'id'),
-    title: assertString(prompt.title, 'title'),
-    body: assertString(prompt.body, 'body'),
-    category: assertString(prompt.category, 'category'),
-    tags: assertStringArray(prompt.tags, 'tags'),
+    id,
+    title,
+    body,
+    category: normalizePromptCategory(assertString(prompt.category, 'category')),
+    tags: normalizePromptTags(assertStringArray(prompt.tags, 'tags')),
     createdAt: assertString(prompt.createdAt, 'createdAt'),
     updatedAt: assertString(prompt.updatedAt, 'updatedAt'),
     uses,

@@ -1,8 +1,8 @@
 import { describe, expect, it, vi } from 'vitest'
 
-import { createPromptLibraryCommandExecutor } from '@/features/prompt-library/lib/prompt-library-command-executor'
-import { type PromptLibraryClient } from '@/features/prompt-library/storage/prompt-library-client'
+import { createPromptLibraryCommandExecutor } from '@/features/prompt-library/commands/prompt-library-command-executor'
 import { createPromptLibraryStore } from '@/features/prompt-library/store/prompt-library-store'
+import { type PromptLibraryClient } from '@/features/prompt-library/sync/prompt-library-client'
 import { type PromptRecord } from '@/features/prompt-library/types'
 
 const createPrompt = (overrides: Partial<PromptRecord> = {}): PromptRecord => ({
@@ -20,13 +20,12 @@ const createPrompt = (overrides: Partial<PromptRecord> = {}): PromptRecord => ({
 const createLibrary = (overrides: Partial<PromptLibraryClient> = {}): PromptLibraryClient => ({
   mode: 'local',
   acceptFirstSignInCopy: () => Promise.resolve(),
-  addPrompt: (prompt) => Promise.resolve(prompt),
+  deletePrompt: () => Promise.resolve({ status: 'synced', value: undefined }),
   declineFirstSignInCopy: () => Promise.resolve(),
-  recordPromptUse: () => Promise.resolve(null),
-  removePrompt: () => Promise.resolve(),
+  recordPromptUse: () => Promise.resolve({ status: 'synced', value: null }),
   reportError: (error) => (error instanceof Error ? error.message : 'sync failed'),
+  savePrompt: (prompt) => Promise.resolve({ status: 'synced', value: prompt }),
   sync: () => Promise.resolve(),
-  updatePrompt: (prompt) => Promise.resolve(prompt),
   ...overrides,
 })
 
@@ -41,7 +40,12 @@ describe('prompt library command executor', () => {
     const store = createPromptLibraryStore()
     const clipboard = { writeText: vi.fn(() => Promise.resolve()) }
     const notify = vi.fn()
-    const recordPromptUse = vi.fn(() => Promise.resolve({ ...prompt, uses: 1 }))
+    const recordPromptUse = vi.fn(() =>
+      Promise.resolve({
+        status: 'synced' as const,
+        value: { ...prompt, uses: 1 },
+      }),
+    )
 
     store.getState().actions.replacePrompts([prompt], { isFresh: false })
     store.getState().actions.selectPrompt(prompt.id)
@@ -64,7 +68,9 @@ describe('prompt library command executor', () => {
   it('saves a new Prompt through the Prompt Library client', async () => {
     const store = createPromptLibraryStore()
     const notify = vi.fn()
-    const addPrompt = vi.fn((prompt: PromptRecord) => Promise.resolve(prompt))
+    const savePrompt = vi.fn((savedPrompt: PromptRecord) =>
+      Promise.resolve({ status: 'synced' as const, value: savedPrompt }),
+    )
 
     store.getState().actions.startNew()
     store.getState().actions.updateDraft('title', 'Owned Prompt')
@@ -72,7 +78,7 @@ describe('prompt library command executor', () => {
 
     const commands = createPromptLibraryCommandExecutor({
       clipboard: { writeText: () => Promise.resolve() },
-      library: createLibrary({ addPrompt }),
+      library: createLibrary({ savePrompt }),
       notify,
       store,
     })
@@ -80,7 +86,7 @@ describe('prompt library command executor', () => {
     commands.saveComposer()
     await flushPromises()
 
-    expect(addPrompt).toHaveBeenCalledWith(
+    expect(savePrompt).toHaveBeenCalledWith(
       expect.objectContaining({
         title: 'Owned Prompt',
         body: 'Keep this close.',
@@ -98,14 +104,16 @@ describe('prompt library command executor', () => {
     ]
     const store = createPromptLibraryStore()
     const notify = vi.fn()
-    const removePrompt = vi.fn(() => Promise.resolve())
+    const deletePrompt = vi.fn(() =>
+      Promise.resolve({ status: 'synced' as const, value: undefined }),
+    )
 
     store.getState().actions.replacePrompts(prompts, { isFresh: false })
     store.getState().actions.selectPrompt('prompt-beta')
 
     const commands = createPromptLibraryCommandExecutor({
       clipboard: { writeText: () => Promise.resolve() },
-      library: createLibrary({ removePrompt }),
+      library: createLibrary({ deletePrompt }),
       notify,
       store,
     })
@@ -114,11 +122,41 @@ describe('prompt library command executor', () => {
     commands.deletePrompt()
     await flushPromises()
 
-    expect(removePrompt).toHaveBeenCalledWith('prompt-beta')
+    expect(deletePrompt).toHaveBeenCalledWith('prompt-beta')
     expect(store.getState().selectedPromptId).toBe('prompt-gamma')
     expect(store.getState().prompts.map((prompt) => prompt.id)).toEqual([
       'prompt-alpha',
       'prompt-gamma',
     ])
+  })
+
+  it('keeps optimistic Prompt changes visible when remote sync fails', async () => {
+    const store = createPromptLibraryStore()
+    const notify = vi.fn()
+    const savePrompt = vi.fn(() =>
+      Promise.resolve({
+        status: 'failed' as const,
+        message: 'D1 unavailable',
+        error: new Error('D1 unavailable'),
+      }),
+    )
+
+    store.getState().actions.startNew()
+    store.getState().actions.updateDraft('title', 'Owned Prompt')
+    store.getState().actions.updateDraft('body', 'Keep this close.')
+
+    const commands = createPromptLibraryCommandExecutor({
+      clipboard: { writeText: () => Promise.resolve() },
+      library: createLibrary({ savePrompt }),
+      notify,
+      store,
+    })
+
+    commands.saveComposer()
+    await flushPromises()
+
+    expect(savePrompt).toHaveBeenCalledOnce()
+    expect(store.getState().prompts[0]?.title).toBe('Owned Prompt')
+    expect(notify).toHaveBeenCalledWith('sync failed - D1 unavailable')
   })
 })

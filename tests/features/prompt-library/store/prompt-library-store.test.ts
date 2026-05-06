@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 
-import { createStarterPrompts } from '@/features/prompt-library/lib/starter-prompts'
+import { createStarterPrompts } from '@/features/prompt-library/model/starter-prompts'
 import { createPromptLibraryStore } from '@/features/prompt-library/store/prompt-library-store'
 
 const createStorageMock = () => {
