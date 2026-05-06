@@ -1,4 +1,14 @@
-import { Box, Braces, FileCode2, Folder, Plug } from 'lucide-react'
+import {
+  Box,
+  Braces,
+  FileCode2,
+  FileText,
+  Folder,
+  Globe,
+  Monitor,
+  Plug,
+  Terminal,
+} from 'lucide-react'
 import { type ComponentProps, type ReactNode, isValidElement, memo } from 'react'
 import { FaGithub, FaReact } from 'react-icons/fa'
 import { SiJavascript, SiTypescript } from 'react-icons/si'
@@ -328,7 +338,7 @@ function PromptMentionLink({ token }: { token: PromptMentionToken }) {
   const lowerLabel = token.label.toLowerCase()
   const isGitHub = lowerLabel === 'github'
   const Icon = mentionIconForToken(token, isGitHub)
-  const label = token.lineNumber ? `${token.label} (line ${token.lineNumber})` : token.label
+  const label = locationLabelForToken(token)
 
   return (
     <a
@@ -364,6 +374,18 @@ function mentionIconForToken(token: PromptMentionToken, isGitHub: boolean) {
     return FaGithub
   }
 
+  const lowerLabel = token.label.toLowerCase()
+
+  if (token.kind === 'app' || token.kind === 'plugin') {
+    if (lowerLabel.includes('browser')) {
+      return Globe
+    }
+
+    if (lowerLabel.includes('computer')) {
+      return Monitor
+    }
+  }
+
   switch (token.kind) {
     case 'app':
     case 'plugin':
@@ -394,11 +416,37 @@ function fileIconForLabel(label: string) {
     return SiJavascript
   }
 
-  if (extension === 'json') {
+  if (extension === 'json' || extension === 'jsonc') {
     return Braces
   }
 
+  if (extension === 'md' || extension === 'mdx' || extension === 'txt') {
+    return FileText
+  }
+
+  if (
+    extension === 'bash' ||
+    extension === 'fish' ||
+    extension === 'ps1' ||
+    extension === 'sh' ||
+    extension === 'zsh'
+  ) {
+    return Terminal
+  }
+
   return FileCode2
+}
+
+function locationLabelForToken(token: PromptMentionToken) {
+  if (!token.lineNumber) {
+    return token.label
+  }
+
+  if (token.columnNumber) {
+    return `${token.label} (line ${token.lineNumber}, column ${token.columnNumber})`
+  }
+
+  return `${token.label} (line ${token.lineNumber})`
 }
 
 function textFromReactNode(node: ReactNode): string {
@@ -418,7 +466,10 @@ function textFromReactNode(node: ReactNode): string {
 }
 
 function urlTransform(url: string, key: string) {
-  if (key === 'href' && (url.startsWith('app://') || url.startsWith('plugin://'))) {
+  if (
+    key === 'href' &&
+    (url.startsWith('app://') || url.startsWith('file://') || url.startsWith('plugin://'))
+  ) {
     return url
   }
 

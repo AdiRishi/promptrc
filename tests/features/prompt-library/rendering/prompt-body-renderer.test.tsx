@@ -57,4 +57,20 @@ const ok = true
       'https://example.com',
     )
   })
+
+  it('renders fallback reference cases without degrading normal links', () => {
+    render(
+      <PromptBodyRenderer
+        body={
+          'Open [@browser-use](plugin://browser-use@openai-bundled), [@computer-use](app://computer-use), [settings.json:12:4](file:///Users/arishi/personal/promptrc/.vscode/settings.json:12:4), and [src/](/Users/arishi/personal/promptrc/src/).'
+        }
+      />,
+    )
+
+    expect(document.querySelector('[aria-label="plugin: Browser"]')).toBeTruthy()
+    expect(document.querySelector('[aria-label="app: Computer"]')).toBeTruthy()
+    expect(document.querySelector('[aria-label="file: settings.json"]')).toBeTruthy()
+    expect(document.querySelector('[aria-label="directory: src"]')).toBeTruthy()
+    expect(screen.getByText('settings.json (line 12, column 4)')).toBeTruthy()
+  })
 })

@@ -72,6 +72,50 @@ describe('prompt mention rendering', () => {
     ])
   })
 
+  it('uses sensible defaults for URI labels, file URLs, columns, and trailing directories', () => {
+    const tokens = parsePromptBodyMentions(
+      'Open [@browser-use](plugin://browser-use@openai-bundled), [@computer-use](app://computer-use), [settings.json:12:4](file:///Users/arishi/personal/promptrc/.vscode/settings.json:12:4), and [src/](/Users/arishi/personal/promptrc/src/).',
+    )
+
+    expect(tokens).toEqual([
+      { text: 'Open ', type: 'text' },
+      {
+        href: 'plugin://browser-use@openai-bundled',
+        kind: 'plugin',
+        label: 'Browser',
+        rawLabel: '@browser-use',
+        type: 'mention',
+      },
+      { text: ', ', type: 'text' },
+      {
+        href: 'app://computer-use',
+        kind: 'app',
+        label: 'Computer',
+        rawLabel: '@computer-use',
+        type: 'mention',
+      },
+      { text: ', ', type: 'text' },
+      {
+        columnNumber: 4,
+        href: 'file:///Users/arishi/personal/promptrc/.vscode/settings.json:12:4',
+        kind: 'file',
+        label: 'settings.json',
+        lineNumber: 12,
+        rawLabel: 'settings.json:12:4',
+        type: 'mention',
+      },
+      { text: ', and ', type: 'text' },
+      {
+        href: '/Users/arishi/personal/promptrc/src/',
+        kind: 'directory',
+        label: 'src',
+        rawLabel: 'src/',
+        type: 'mention',
+      },
+      { text: '.', type: 'text' },
+    ])
+  })
+
   it('leaves normal markdown links as text', () => {
     const body = 'Read [the docs](https://example.com) before writing.'
 
