@@ -53,6 +53,7 @@ const ok = true
     expect(document.querySelector('[aria-label="file: prompt-workspace.tsx"]')).toBeTruthy()
     expect(document.querySelector('[aria-label="directory: prompt-library"]')).toBeTruthy()
     expect(screen.getByText('prompt-workspace.tsx (line 269)')).toBeTruthy()
+    expect(screen.getAllByRole('link')).toHaveLength(1)
     expect(screen.getByRole('link', { name: 'docs' }).getAttribute('href')).toBe(
       'https://example.com',
     )
@@ -83,9 +84,7 @@ const ok = true
       />,
     )
 
-    expect(screen.getByRole('link', { name: 'skill: To Prd' }).getAttribute('href')).toBe(
-      'C:/Users/arishi/.agents/skills/to-prd/SKILL.md',
-    )
+    expect(screen.queryByRole('link')).toBeNull()
     expect(document.querySelector('[aria-label="file: prompt-body-markdown.tsx"]')).toBeTruthy()
     expect(screen.getByText('prompt-body-markdown.tsx (line 42)')).toBeTruthy()
   })

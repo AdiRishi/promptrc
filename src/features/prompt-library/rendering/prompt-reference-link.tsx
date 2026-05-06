@@ -40,16 +40,14 @@ export function PromptReferenceLink({ token }: { token: PromptReferenceToken }) 
   const label = referenceLabel(token)
 
   return (
-    <a
+    <span
       aria-label={`${token.kind}: ${token.label}`}
       className={cn(
-        'inline-flex max-w-full translate-y-[0.08em] items-center gap-1.5 rounded-[3px] align-baseline text-[1em] leading-none font-medium text-[#7eb6f2] no-underline decoration-transparent underline-offset-[3px] transition-colors hover:text-[#9fcbff] hover:decoration-[#9fcbff]/55 focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-primary',
+        'inline-flex max-w-full translate-y-[0.08em] cursor-default items-center gap-1.5 rounded-[3px] align-baseline text-[1em] leading-none font-medium text-[#7eb6f2] no-underline decoration-transparent underline-offset-[3px] transition-colors hover:text-[#9fcbff] hover:decoration-[#9fcbff]/55',
         (token.kind === 'plugin' || token.kind === 'app') &&
           !isGitHub &&
           'text-[#6f7890] hover:text-[#9fcbff]',
       )}
-      href={token.href}
-      title={`${token.rawLabel} -> ${token.href}`}
     >
       <Icon
         aria-hidden="true"
@@ -63,7 +61,7 @@ export function PromptReferenceLink({ token }: { token: PromptReferenceToken }) 
         strokeWidth={token.kind === 'skill' ? 2.2 : 2}
       />
       <span className="min-w-0 truncate">{label}</span>
-    </a>
+    </span>
   )
 }
 
