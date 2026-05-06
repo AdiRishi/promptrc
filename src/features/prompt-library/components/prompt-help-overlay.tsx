@@ -1,44 +1,10 @@
 import { useEffect, useRef } from 'react'
 
 import { Kbd, KbdGroup } from '@/components/ui/kbd'
-
-type HelpRow = {
-  keys: string[]
-  label: string
-}
-
-type HelpGroup = {
-  heading: string
-  rows: HelpRow[]
-}
-
-const HELP_GROUPS: HelpGroup[] = [
-  {
-    heading: 'navigate',
-    rows: [
-      { keys: ['j'], label: 'next prompt' },
-      { keys: ['k'], label: 'previous prompt' },
-      { keys: ['/'], label: 'focus search' },
-    ],
-  },
-  {
-    heading: 'edit',
-    rows: [
-      { keys: ['n'], label: 'new prompt' },
-      { keys: ['e'], label: 'edit selected' },
-      { keys: ['d'], label: 'duplicate' },
-      { keys: ['⌘', 'C'], label: 'copy body' },
-      { keys: ['x'], label: 'delete (twice to confirm)' },
-    ],
-  },
-  {
-    heading: 'meta',
-    rows: [
-      { keys: ['?'], label: 'toggle this help' },
-      { keys: ['esc'], label: 'cancel · dismiss' },
-    ],
-  },
-]
+import {
+  PROMPT_LIBRARY_HELP_GROUPS,
+  getPromptLibraryCommand,
+} from '@/features/prompt-library/commands/prompt-library-command-surface'
 
 type PromptHelpOverlayProps = {
   isOpen: boolean
@@ -101,7 +67,7 @@ export function PromptHelpOverlay({ isOpen, onClose }: PromptHelpOverlayProps) {
         </div>
 
         <div className="flex flex-col gap-5 px-6 py-6">
-          {HELP_GROUPS.map((group, groupIndex) => (
+          {PROMPT_LIBRARY_HELP_GROUPS.map((group, groupIndex) => (
             <section
               className="animate-[help-row-in_0.22s_ease_both]"
               key={group.heading}
@@ -116,7 +82,7 @@ export function PromptHelpOverlay({ isOpen, onClose }: PromptHelpOverlayProps) {
               </h3>
 
               <ul className="flex flex-col gap-[3px]">
-                {group.rows.map((row) => (
+                {getHelpRows(group).map((row) => (
                   <li
                     className="group grid grid-cols-[92px_1fr] items-center gap-4 rounded-[2px] px-1 py-[3px] transition-colors hover:bg-primary/8"
                     key={row.label}
@@ -148,4 +114,12 @@ export function PromptHelpOverlay({ isOpen, onClose }: PromptHelpOverlayProps) {
       </div>
     </div>
   )
+}
+
+const getHelpRows = (group: (typeof PROMPT_LIBRARY_HELP_GROUPS)[number]) => {
+  if ('rows' in group) {
+    return group.rows
+  }
+
+  return group.commandIds.map((commandId) => getPromptLibraryCommand(commandId))
 }

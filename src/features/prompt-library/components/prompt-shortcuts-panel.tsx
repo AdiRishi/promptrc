@@ -1,6 +1,7 @@
 import { Kbd, KbdGroup } from '@/components/ui/kbd'
 
 export type PromptShortcutDefinition = {
+  disabled: boolean
   keys: string[]
   label: string
   action: () => void
@@ -20,7 +21,8 @@ export function PromptShortcutsPanel({ shortcuts }: PromptShortcutsPanelProps) {
       <div className="flex flex-col gap-1">
         {shortcuts.map((shortcut) => (
           <button
-            className="grid grid-cols-[74px_1fr] items-center gap-3 rounded-[4px] px-2 py-1.5 text-left transition-colors hover:bg-primary/8 active:bg-primary/14"
+            className="grid grid-cols-[74px_1fr] items-center gap-3 rounded-[4px] px-2 py-1.5 text-left transition-colors hover:bg-primary/8 active:bg-primary/14 disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:bg-transparent"
+            disabled={shortcut.disabled}
             key={`${shortcut.label}-${shortcut.keys.join('-')}`}
             onClick={shortcut.action}
             title="click, or press the shortcut"

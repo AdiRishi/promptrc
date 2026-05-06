@@ -5,11 +5,17 @@ import { Cloud, HardDrive, LogIn } from 'lucide-react'
 import { useCallback, useDeferredValue, useEffect, useEffectEvent, useMemo, useState } from 'react'
 import { FaGithub } from 'react-icons/fa'
 
+import {
+  PROMPT_LIBRARY_SHORTCUT_COMMAND_IDS,
+  type PromptLibraryCommandId,
+  type PromptLibraryCommandState,
+  canRunPromptLibraryCommand,
+  getPromptLibraryCommand,
+} from '@/features/prompt-library/commands/prompt-library-command-surface'
 import { FirstSignInCopyDialog } from '@/features/prompt-library/components/first-sign-in-copy-dialog'
 import { PromptHelpOverlay } from '@/features/prompt-library/components/prompt-help-overlay'
 import {
   PromptLibraryProvider,
-  usePromptLibraryClient,
   usePromptLibraryMeta,
   usePromptLibraryStore,
 } from '@/features/prompt-library/components/prompt-library-provider'
@@ -21,15 +27,10 @@ import { PromptTreePanel } from '@/features/prompt-library/components/prompt-tre
 import { PromptWorkspace } from '@/features/prompt-library/components/prompt-workspace'
 import { usePromptLibraryCommands } from '@/features/prompt-library/hooks/use-prompt-library-commands'
 import {
-  getPromptCategories,
-  groupPromptsByCategory,
-  matchesPromptQuery,
-} from '@/features/prompt-library/lib/prompt-library-utils'
-import {
-  type PromptRecord,
-  type PromptSyncMode,
-  type PromptSyncStatus,
-} from '@/features/prompt-library/types'
+  type PromptLibraryVisibleState,
+  selectPromptLibraryVisibleState,
+} from '@/features/prompt-library/selectors/prompt-library-selectors'
+import { type PromptSyncMode, type PromptSyncStatus } from '@/features/prompt-library/types'
 import { SITE_GITHUB_URL } from '@/lib/site-config'
 
 export function PromptLibraryApp() {
@@ -51,24 +52,20 @@ function PromptLibraryScreen() {
   const syncStatus = usePromptLibraryStore((state) => state.syncStatus)
   const actions = usePromptLibraryStore((state) => state.actions)
   const { searchInputRef, titleInputRef } = usePromptLibraryMeta()
-  const library = usePromptLibraryClient()
   const [isHelpOpen, setIsHelpOpen] = useState(false)
   const toggleHelp = useCallback(() => setIsHelpOpen((open) => !open), [])
   const closeHelp = useCallback(() => setIsHelpOpen(false), [])
 
   const deferredQuery = useDeferredValue(query)
-  const filteredPrompts = useMemo(
-    () => prompts.filter((prompt) => matchesPromptQuery(prompt, deferredQuery)),
-    [deferredQuery, prompts],
+  const visibleState = useMemo(
+    () =>
+      selectPromptLibraryVisibleState({
+        prompts,
+        query: deferredQuery,
+        selectedPromptId,
+      }),
+    [deferredQuery, prompts, selectedPromptId],
   )
-  const groupedPrompts = useMemo(() => groupPromptsByCategory(filteredPrompts), [filteredPrompts])
-  const categoryKeys = useMemo(() => Object.keys(groupedPrompts), [groupedPrompts])
-  const categories = useMemo(() => getPromptCategories(prompts), [prompts])
-  const activePrompt = useMemo(
-    () => prompts.find((prompt) => prompt.id === selectedPromptId) ?? null,
-    [prompts, selectedPromptId],
-  )
-  const flatPromptIds = useMemo(() => filteredPrompts.map((prompt) => prompt.id), [filteredPrompts])
 
   const {
     copyActivePrompt,
@@ -77,16 +74,63 @@ function PromptLibraryScreen() {
     saveComposer,
     selectPrompt,
     startEditActivePrompt,
-  } = usePromptLibraryCommands({
-    actions,
-    activePrompt,
-    composerMode: composer.mode,
-    confirmDeleteId,
-    flatPromptIds,
-    prompts,
-    library,
-    titleInputRef,
-  })
+  } = usePromptLibraryCommands()
+
+  const commandState = useMemo<PromptLibraryCommandState>(
+    () => ({
+      composerMode: composer.mode,
+      hasActivePrompt: Boolean(visibleState.activePrompt),
+    }),
+    [composer.mode, visibleState.activePrompt],
+  )
+
+  const runCommand = useCallback(
+    (commandId: PromptLibraryCommandId) => {
+      if (!canRunPromptLibraryCommand(commandId, commandState)) {
+        return
+      }
+
+      switch (commandId) {
+        case 'copy-prompt-body':
+          void copyActivePrompt()
+          break
+        case 'delete-prompt':
+          deletePrompt()
+          break
+        case 'duplicate-prompt':
+          duplicatePrompt()
+          break
+        case 'edit-prompt':
+          startEditActivePrompt()
+          break
+        case 'focus-search':
+          searchInputRef.current?.focus()
+          searchInputRef.current?.select()
+          break
+        case 'new-prompt':
+          actions.startNew()
+          break
+        case 'next-prompt':
+          actions.selectPrompt(visibleState.getNextPromptId())
+          break
+        case 'previous-prompt':
+          actions.selectPrompt(visibleState.getPreviousPromptId())
+          break
+        default:
+          break
+      }
+    },
+    [
+      actions,
+      commandState,
+      copyActivePrompt,
+      deletePrompt,
+      duplicatePrompt,
+      visibleState,
+      searchInputRef,
+      startEditActivePrompt,
+    ],
+  )
 
   useEffect(() => {
     if (!hasHydrated) {
@@ -131,86 +175,28 @@ function PromptLibraryScreen() {
   }, [actions, confirmDeleteId])
 
   const shortcuts = useMemo<PromptShortcutDefinition[]>(
-    () => [
-      {
-        keys: ['n'],
-        label: 'new prompt',
-        action: actions.startNew,
-      },
-      {
-        keys: ['/'],
-        label: 'focus search',
-        action: () => {
-          searchInputRef.current?.focus()
-          searchInputRef.current?.select()
-        },
-      },
-      {
-        keys: ['j', 'k'],
-        label: 'next . prev',
-        action: () => {
-          if (!flatPromptIds.length) {
-            return
-          }
+    () =>
+      PROMPT_LIBRARY_SHORTCUT_COMMAND_IDS.map((commandId) => {
+        const command = getPromptLibraryCommand(commandId)
 
-          const currentIndex = selectedPromptId ? flatPromptIds.indexOf(selectedPromptId) : -1
-          const nextPromptId =
-            flatPromptIds[Math.min(currentIndex + 1, flatPromptIds.length - 1)] ?? flatPromptIds[0]
-
-          actions.selectPrompt(nextPromptId ?? null)
-        },
-      },
-      {
-        keys: ['e'],
-        label: 'edit selected',
-        action: startEditActivePrompt,
-      },
-      {
-        keys: ['d'],
-        label: 'duplicate',
-        action: duplicatePrompt,
-      },
-      {
-        keys: ['Cmd', 'C'],
-        label: 'copy body',
-        action: () => {
-          void copyActivePrompt()
-        },
-      },
-      {
-        keys: ['x'],
-        label: 'delete',
-        action: deletePrompt,
-      },
-    ],
-    [
-      actions,
-      copyActivePrompt,
-      deletePrompt,
-      duplicatePrompt,
-      flatPromptIds,
-      searchInputRef,
-      selectedPromptId,
-      startEditActivePrompt,
-    ],
+        return {
+          action: () => runCommand(commandId),
+          disabled: !canRunPromptLibraryCommand(commandId, commandState),
+          keys: command.keys,
+          label: command.label,
+        }
+      }),
+    [commandState, runCommand],
   )
 
   usePromptLibraryHotkeys({
-    activePrompt,
     composerMode: composer.mode,
-    filteredPromptIds: flatPromptIds,
     isHelpOpen,
     onCancelComposer: actions.cancelComposer,
-    onCopyActivePrompt: copyActivePrompt,
-    onDeletePrompt: deletePrompt,
-    onDuplicatePrompt: duplicatePrompt,
+    onRunCommand: runCommand,
     onSaveComposer: saveComposer,
-    onSelectPrompt: actions.selectPrompt,
-    onStartEdit: startEditActivePrompt,
-    onStartNew: actions.startNew,
     onToggleHelp: toggleHelp,
-    searchInputRef,
-    selectedPromptId,
+    visibleState,
   })
 
   return (
@@ -219,23 +205,24 @@ function PromptLibraryScreen() {
 
       <div className="relative z-10 grid min-h-[calc(100vh-42px)] grid-cols-1 md:grid-cols-[280px_minmax(0,1fr)] xl:grid-cols-[320px_minmax(0,1fr)_280px]">
         <PromptTreePanel
-          categoryKeys={categoryKeys}
-          filteredCount={flatPromptIds.length}
-          groupedPrompts={groupedPrompts}
+          categoryKeys={visibleState.categoryKeys}
+          filteredCount={visibleState.orderedPromptIds.length}
+          groupedPrompts={visibleState.groupedPrompts}
           isComposerOpen={composer.mode !== 'view'}
           onClearQuery={actions.clearQuery}
           onSelectPrompt={selectPrompt}
           query={query}
-          selectedPromptId={selectedPromptId}
+          selectedPromptId={visibleState.visiblePromptId}
           totalCount={prompts.length}
         />
 
         <PromptWorkspace
-          activePrompt={activePrompt}
-          categories={categories}
+          activePrompt={visibleState.activePrompt}
+          categories={visibleState.categories}
           composer={composer}
           confirmDeleteId={confirmDeleteId}
-          filteredCount={flatPromptIds.length}
+          emptyReason={visibleState.emptyReason}
+          filteredCount={visibleState.orderedPromptIds.length}
           onCancelComposer={actions.cancelComposer}
           onCopyPrompt={copyActivePrompt}
           onDeletePrompt={deletePrompt}
@@ -301,7 +288,7 @@ function PromptTopBar({ promptCount, syncMode, syncStatus }: PromptTopBarProps) 
           <FaGithub aria-hidden="true" className="size-3.5" />
         </a>
         <span>
-          {promptCount} {promptCount === 1 ? 'entry' : 'entries'}
+          {promptCount} {promptCount === 1 ? 'Prompt' : 'Prompts'}
         </span>
         <span className="flex items-center gap-1.5">
           <SyncIcon aria-hidden="true" className="size-3 text-accent-foreground" />
@@ -338,38 +325,22 @@ function PromptTopBar({ promptCount, syncMode, syncStatus }: PromptTopBarProps) 
 }
 
 type PromptLibraryHotkeysOptions = {
-  activePrompt: PromptRecord | null
   composerMode: 'view' | 'new' | 'edit'
-  filteredPromptIds: string[]
   isHelpOpen: boolean
-  selectedPromptId: string | null
-  searchInputRef: React.RefObject<HTMLInputElement | null>
-  onStartNew: () => void
-  onStartEdit: () => void
+  visibleState: PromptLibraryVisibleState
   onSaveComposer: () => void
   onCancelComposer: () => void
-  onDuplicatePrompt: () => void
-  onDeletePrompt: () => void
-  onCopyActivePrompt: () => void | Promise<void>
-  onSelectPrompt: (promptId: string | null) => void
+  onRunCommand: (commandId: PromptLibraryCommandId) => void
   onToggleHelp: () => void
 }
 
 function usePromptLibraryHotkeys({
-  activePrompt,
   composerMode,
-  filteredPromptIds,
   isHelpOpen,
-  selectedPromptId,
-  searchInputRef,
-  onStartNew,
-  onStartEdit,
+  visibleState,
   onSaveComposer,
   onCancelComposer,
-  onDuplicatePrompt,
-  onDeletePrompt,
-  onCopyActivePrompt,
-  onSelectPrompt,
+  onRunCommand,
   onToggleHelp,
 }: PromptLibraryHotkeysOptions) {
   const onKeyDown = useEffectEvent((event: KeyboardEvent) => {
@@ -411,14 +382,15 @@ function usePromptLibraryHotkeys({
       if (
         (event.metaKey || event.ctrlKey) &&
         event.key.toLowerCase() === 'c' &&
+        composerMode === 'view' &&
         !window.getSelection()?.toString()
       ) {
-        if (!activePrompt) {
+        if (!visibleState.activePrompt) {
           return
         }
 
         event.preventDefault()
-        void onCopyActivePrompt()
+        onRunCommand('copy-prompt-body')
       }
 
       return
@@ -427,12 +399,12 @@ function usePromptLibraryHotkeys({
     if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'c') {
       const selectedText = window.getSelection()?.toString()
 
-      if (selectedText || !activePrompt) {
+      if (selectedText || !visibleState.activePrompt) {
         return
       }
 
       event.preventDefault()
-      void onCopyActivePrompt()
+      onRunCommand('copy-prompt-body')
       return
     }
 
@@ -443,65 +415,45 @@ function usePromptLibraryHotkeys({
     switch (event.key) {
       case 'n':
         event.preventDefault()
-        onStartNew()
+        onRunCommand('new-prompt')
         break
       case '/':
         event.preventDefault()
-        searchInputRef.current?.focus()
-        searchInputRef.current?.select()
+        onRunCommand('focus-search')
         break
       case 'j': {
-        if (!filteredPromptIds.length) {
-          return
-        }
-
         event.preventDefault()
-
-        const currentIndex = selectedPromptId ? filteredPromptIds.indexOf(selectedPromptId) : -1
-        const nextPromptId =
-          filteredPromptIds[Math.min(currentIndex + 1, filteredPromptIds.length - 1)] ??
-          filteredPromptIds[0]
-
-        onSelectPrompt(nextPromptId ?? null)
+        onRunCommand('next-prompt')
         break
       }
       case 'k': {
-        if (!filteredPromptIds.length) {
-          return
-        }
-
         event.preventDefault()
-
-        const currentIndex = selectedPromptId ? filteredPromptIds.indexOf(selectedPromptId) : 0
-        const previousPromptId =
-          filteredPromptIds[Math.max(currentIndex - 1, 0)] ?? filteredPromptIds[0]
-
-        onSelectPrompt(previousPromptId ?? null)
+        onRunCommand('previous-prompt')
         break
       }
       case 'e':
-        if (!activePrompt) {
+        if (!visibleState.activePrompt) {
           return
         }
 
         event.preventDefault()
-        onStartEdit()
+        onRunCommand('edit-prompt')
         break
       case 'd':
-        if (!activePrompt) {
+        if (!visibleState.activePrompt) {
           return
         }
 
         event.preventDefault()
-        onDuplicatePrompt()
+        onRunCommand('duplicate-prompt')
         break
       case 'x':
-        if (!activePrompt) {
+        if (!visibleState.activePrompt) {
           return
         }
 
         event.preventDefault()
-        onDeletePrompt()
+        onRunCommand('delete-prompt')
         break
       case '?':
         event.preventDefault()

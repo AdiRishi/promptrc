@@ -1,16 +1,16 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { STARTER_PROMPT_TITLES } from '@/features/prompt-library/lib/starter-prompts'
+import { STARTER_PROMPT_TITLES } from '@/features/prompt-library/model/starter-prompts'
 import {
   createLocalPromptLibraryStorage,
   readLocalPromptLibrarySnapshot,
-} from '@/features/prompt-library/storage/local-prompt-library-storage'
-import { createPromptLibraryClient } from '@/features/prompt-library/storage/prompt-library-client'
+} from '@/features/prompt-library/persistence/local-prompt-library-storage'
 import {
   type LocalPromptLibraryStorage,
   type RemotePromptLibraryStorage,
-} from '@/features/prompt-library/storage/prompt-library-storage'
+} from '@/features/prompt-library/persistence/prompt-library-storage'
 import { createPromptLibraryStore } from '@/features/prompt-library/store/prompt-library-store'
+import { createPromptLibraryClient } from '@/features/prompt-library/sync/prompt-library-client'
 import {
   type PromptLibraryPersistedSnapshot,
   type PromptRecord,
@@ -63,6 +63,37 @@ const createStorageMock = () => {
   }
 }
 
+const createRemoteStorage = (
+  overrides: Partial<RemotePromptLibraryStorage> = {},
+): RemotePromptLibraryStorage => ({
+  mode: 'remote',
+  acceptFirstSignInCopy: (prompts) => Promise.resolve(prompts),
+  addStarterPrompts: (starterPrompts) => Promise.resolve(starterPrompts),
+  declineFirstSignInCopy: () =>
+    Promise.resolve({
+      prompts: [],
+      isFresh: false,
+    }),
+  deletePrompt: () => Promise.resolve(),
+  hydrate: () =>
+    Promise.resolve({
+      source: 'remote',
+      snapshot: {
+        prompts: [],
+        isFresh: false,
+      },
+    }),
+  recordPromptUse: (promptId) =>
+    Promise.resolve({
+      ...prompt,
+      id: promptId,
+      uses: prompt.uses + 1,
+    }),
+  reportError: (error) => (error instanceof Error ? error.message : 'sync failed'),
+  savePrompt: (savedPrompt) => Promise.resolve(savedPrompt),
+  ...overrides,
+})
+
 describe('prompt library client', () => {
   beforeEach(() => {
     Object.defineProperty(window, 'localStorage', {
@@ -71,8 +102,7 @@ describe('prompt library client', () => {
     })
   })
 
-  it('persists the current snapshot for local mutations', async () => {
-    const persistedSnapshots: PromptLibraryPersistedSnapshot[] = []
+  it('returns synced results for local mutations while session persistence owns local writes', async () => {
     const store = createPromptLibraryStore()
     const storage: LocalPromptLibraryStorage = {
       mode: 'local',
@@ -81,22 +111,23 @@ describe('prompt library client', () => {
           source: 'local',
           snapshot: null,
         }),
-      persistSnapshot: (snapshot) => {
-        persistedSnapshots.push(snapshot)
-      },
+      persistSnapshot: vi.fn(),
       reportError: () => 'sync failed',
     }
     const client = createPromptLibraryClient(storage, store)
 
-    store.getState().actions.replacePrompt(prompt)
-
-    await client.addPrompt(prompt)
-
-    expect(persistedSnapshots.at(-1)?.prompts).toEqual([prompt])
+    await expect(client.savePrompt(prompt)).resolves.toEqual({
+      status: 'synced',
+      value: prompt,
+    })
+    await expect(client.deletePrompt(prompt.id)).resolves.toEqual({
+      status: 'synced',
+      value: undefined,
+    })
+    expect(storage.persistSnapshot).not.toHaveBeenCalled()
   })
 
   it('seeds Starter Prompts once when a local Prompt Library is fresh and empty', async () => {
-    const persistedSnapshots: PromptLibraryPersistedSnapshot[] = []
     const store = createPromptLibraryStore()
     const storage: LocalPromptLibraryStorage = {
       mode: 'local',
@@ -105,9 +136,7 @@ describe('prompt library client', () => {
           source: 'local',
           snapshot: createPersistedSnapshot(),
         }),
-      persistSnapshot: (snapshot) => {
-        persistedSnapshots.push(snapshot)
-      },
+      persistSnapshot: vi.fn(),
       reportError: () => 'sync failed',
     }
     const client = createPromptLibraryClient(storage, store)
@@ -119,57 +148,70 @@ describe('prompt library client', () => {
     )
     expect(store.getState().selectedPromptId).toBe(store.getState().prompts[0]?.id)
     expect(store.getState().isFresh).toBe(true)
-    expect(persistedSnapshots.at(-1)?.prompts.map((starterPrompt) => starterPrompt.title)).toEqual(
-      STARTER_PROMPT_TITLES,
-    )
   })
 
-  it('delegates prompt mutations to remote storage', async () => {
+  it('syncs prompt mutations through remote storage and records sync state', async () => {
     const store = createPromptLibraryStore()
     const savePrompt = vi.fn((savedPrompt: PromptRecord) => Promise.resolve(savedPrompt))
     const deletePrompt = vi.fn(() => Promise.resolve())
-    const incrementUses = vi.fn((promptId: string) =>
+    const recordPromptUse = vi.fn((promptId: string) =>
       Promise.resolve({
         ...prompt,
         id: promptId,
         uses: prompt.uses + 1,
       }),
     )
-    const storage: RemotePromptLibraryStorage = {
-      mode: 'remote',
-      copyPrompts: (prompts) => Promise.resolve(prompts),
-      hydrate: () =>
-        Promise.resolve({
-          source: 'remote',
-          snapshot: {
-            prompts: [],
-            isFresh: false,
-          },
-        }),
+    const storage = createRemoteStorage({
       savePrompt,
-      seedPrompts: (starterPrompts) => Promise.resolve(starterPrompts),
-      setFreshness: (isFresh) => Promise.resolve({ isFresh }),
       deletePrompt,
-      incrementUses,
-      reportError: () => 'sync failed',
-    }
+      recordPromptUse,
+    })
     const client = createPromptLibraryClient(storage, store)
 
-    await expect(client.addPrompt(prompt)).resolves.toEqual(prompt)
-    await client.removePrompt(prompt.id)
-    await expect(client.recordPromptUse(prompt.id)).resolves.toMatchObject({ uses: 1 })
+    await expect(client.savePrompt(prompt)).resolves.toEqual({
+      status: 'synced',
+      value: prompt,
+    })
+    await expect(client.deletePrompt(prompt.id)).resolves.toEqual({
+      status: 'synced',
+      value: undefined,
+    })
+    await expect(client.recordPromptUse(prompt.id)).resolves.toMatchObject({
+      status: 'synced',
+      value: { uses: 1 },
+    })
 
     expect(savePrompt).toHaveBeenCalledWith(prompt)
     expect(deletePrompt).toHaveBeenCalledWith(prompt.id)
-    expect(incrementUses).toHaveBeenCalledWith(prompt.id)
+    expect(recordPromptUse).toHaveBeenCalledWith(prompt.id)
+    expect(store.getState().syncStatus).toBe('ready')
   })
 
-  it('persists Starter Prompts remotely when a remote Prompt Library is fresh and empty', async () => {
+  it('keeps optimistic local changes and makes remote sync failures explicit', async () => {
     const store = createPromptLibraryStore()
-    const seedPrompts = vi.fn((starterPrompts: PromptRecord[]) => Promise.resolve(starterPrompts))
-    const storage: RemotePromptLibraryStorage = {
-      mode: 'remote',
-      copyPrompts: (prompts) => Promise.resolve(prompts),
+    const storage = createRemoteStorage({
+      savePrompt: () => Promise.reject(new Error('D1 unavailable')),
+    })
+    const client = createPromptLibraryClient(storage, store)
+
+    await expect(client.savePrompt(prompt)).resolves.toMatchObject({
+      status: 'failed',
+      message: 'D1 unavailable',
+    })
+    expect(store.getState()).toMatchObject({
+      syncMode: 'remote',
+      syncStatus: 'error',
+      syncError: 'D1 unavailable',
+    })
+  })
+
+  it('adds Starter Prompts remotely when a remote Prompt Library is fresh and empty', async () => {
+    const store = createPromptLibraryStore()
+    const addStarterPrompts = vi.fn((starterPrompts: PromptRecord[]) =>
+      Promise.resolve(starterPrompts),
+    )
+    const storage = createRemoteStorage({
+      addStarterPrompts,
       hydrate: () =>
         Promise.resolve({
           source: 'remote',
@@ -178,28 +220,22 @@ describe('prompt library client', () => {
             isFresh: true,
           },
         }),
-      savePrompt: (savedPrompt) => Promise.resolve(savedPrompt),
-      seedPrompts,
-      setFreshness: () => Promise.resolve({ isFresh: false }),
-      deletePrompt: () => Promise.resolve(),
-      incrementUses: () => Promise.resolve(prompt),
-      reportError: () => 'sync failed',
-    }
+    })
     const client = createPromptLibraryClient(storage, store)
 
     await client.sync()
 
-    expect(seedPrompts).toHaveBeenCalledOnce()
-    expect(seedPrompts.mock.calls[0]?.[0].map((starterPrompt) => starterPrompt.title)).toEqual(
-      STARTER_PROMPT_TITLES,
-    )
+    expect(addStarterPrompts).toHaveBeenCalledOnce()
+    expect(
+      addStarterPrompts.mock.calls[0]?.[0].map((starterPrompt) => starterPrompt.title),
+    ).toEqual(STARTER_PROMPT_TITLES)
     expect(store.getState().prompts.map((starterPrompt) => starterPrompt.title)).toEqual(
       STARTER_PROMPT_TITLES,
     )
     expect(store.getState().isFresh).toBe(true)
   })
 
-  it('offers First-Sign-In Copy before seeding remote Starter Prompts when local Prompts exist', async () => {
+  it('offers First-Sign-In Copy before adding remote Starter Prompts when local Prompts exist', async () => {
     createLocalPromptLibraryStorage().persistSnapshot(
       createPersistedSnapshot({
         prompts: [prompt],
@@ -209,10 +245,11 @@ describe('prompt library client', () => {
     )
 
     const store = createPromptLibraryStore()
-    const seedPrompts = vi.fn((starterPrompts: PromptRecord[]) => Promise.resolve(starterPrompts))
-    const storage: RemotePromptLibraryStorage = {
-      mode: 'remote',
-      copyPrompts: (prompts) => Promise.resolve(prompts),
+    const addStarterPrompts = vi.fn((starterPrompts: PromptRecord[]) =>
+      Promise.resolve(starterPrompts),
+    )
+    const storage = createRemoteStorage({
+      addStarterPrompts,
       hydrate: () =>
         Promise.resolve({
           source: 'remote',
@@ -221,18 +258,12 @@ describe('prompt library client', () => {
             isFresh: true,
           },
         }),
-      savePrompt: (savedPrompt) => Promise.resolve(savedPrompt),
-      seedPrompts,
-      setFreshness: () => Promise.resolve({ isFresh: false }),
-      deletePrompt: () => Promise.resolve(),
-      incrementUses: () => Promise.resolve(prompt),
-      reportError: () => 'sync failed',
-    }
+    })
     const client = createPromptLibraryClient(storage, store)
 
     await client.sync()
 
-    expect(seedPrompts).not.toHaveBeenCalled()
+    expect(addStarterPrompts).not.toHaveBeenCalled()
     expect(store.getState().prompts).toEqual([])
     expect(store.getState().firstSignInCopy).toMatchObject({
       status: 'prompting',
@@ -255,12 +286,10 @@ describe('prompt library client', () => {
         id: 'remote-prompt-alpha',
       },
     ]
-    const copyPrompts = vi.fn(() => Promise.resolve(copiedPrompts))
+    const acceptFirstSignInCopy = vi.fn(() => Promise.resolve(copiedPrompts))
     const savePrompt = vi.fn((savedPrompt: PromptRecord) => Promise.resolve(savedPrompt))
-    const setFreshness = vi.fn((isFresh: boolean) => Promise.resolve({ isFresh }))
-    const storage: RemotePromptLibraryStorage = {
-      mode: 'remote',
-      copyPrompts,
+    const storage = createRemoteStorage({
+      acceptFirstSignInCopy,
       hydrate: () =>
         Promise.resolve({
           source: 'remote',
@@ -270,22 +299,16 @@ describe('prompt library client', () => {
           },
         }),
       savePrompt,
-      seedPrompts: (starterPrompts) => Promise.resolve(starterPrompts),
-      setFreshness,
-      deletePrompt: () => Promise.resolve(),
-      incrementUses: () => Promise.resolve(prompt),
-      reportError: () => 'sync failed',
-    }
+    })
     const store = createPromptLibraryStore()
     const client = createPromptLibraryClient(storage, store)
 
     await client.sync()
     await client.acceptFirstSignInCopy()
 
-    expect(copyPrompts).toHaveBeenCalledOnce()
-    expect(copyPrompts).toHaveBeenCalledWith([prompt])
+    expect(acceptFirstSignInCopy).toHaveBeenCalledOnce()
+    expect(acceptFirstSignInCopy).toHaveBeenCalledWith([prompt])
     expect(savePrompt).not.toHaveBeenCalled()
-    expect(setFreshness).not.toHaveBeenCalled()
     expect(store.getState().prompts).toEqual(copiedPrompts)
     expect(store.getState().isFresh).toBe(false)
     expect(store.getState().firstSignInCopy.status).toBe('idle')
@@ -301,11 +324,18 @@ describe('prompt library client', () => {
       }),
     )
 
-    const seedPrompts = vi.fn((starterPrompts: PromptRecord[]) => Promise.resolve(starterPrompts))
-    const setFreshness = vi.fn((isFresh: boolean) => Promise.resolve({ isFresh }))
-    const storage: RemotePromptLibraryStorage = {
-      mode: 'remote',
-      copyPrompts: (prompts) => Promise.resolve(prompts),
+    const addStarterPrompts = vi.fn((starterPrompts: PromptRecord[]) =>
+      Promise.resolve(starterPrompts),
+    )
+    const declineFirstSignInCopy = vi.fn(() =>
+      Promise.resolve({
+        prompts: [],
+        isFresh: false,
+      }),
+    )
+    const storage = createRemoteStorage({
+      addStarterPrompts,
+      declineFirstSignInCopy,
       hydrate: () =>
         Promise.resolve({
           source: 'remote',
@@ -314,28 +344,22 @@ describe('prompt library client', () => {
             isFresh: true,
           },
         }),
-      savePrompt: (savedPrompt) => Promise.resolve(savedPrompt),
-      seedPrompts,
-      setFreshness,
-      deletePrompt: () => Promise.resolve(),
-      incrementUses: () => Promise.resolve(prompt),
-      reportError: () => 'sync failed',
-    }
+    })
     const store = createPromptLibraryStore()
     const client = createPromptLibraryClient(storage, store)
 
     await client.sync()
     await client.declineFirstSignInCopy()
 
-    expect(seedPrompts).not.toHaveBeenCalled()
-    expect(setFreshness).toHaveBeenCalledWith(false)
+    expect(addStarterPrompts).not.toHaveBeenCalled()
+    expect(declineFirstSignInCopy).toHaveBeenCalledOnce()
     expect(store.getState().prompts).toEqual([])
     expect(store.getState().selectedPromptId).toBeNull()
     expect(store.getState().isFresh).toBe(false)
     expect(store.getState().firstSignInCopy.status).toBe('idle')
   })
 
-  it('keeps remote empty when a non-fresh local Prompt Library has no Prompts', async () => {
+  it('preserves a local empty choice when a non-fresh local Prompt Library has no Prompts', async () => {
     createLocalPromptLibraryStorage().persistSnapshot(
       createPersistedSnapshot({
         prompts: [],
@@ -343,11 +367,18 @@ describe('prompt library client', () => {
       }),
     )
 
-    const seedPrompts = vi.fn((starterPrompts: PromptRecord[]) => Promise.resolve(starterPrompts))
-    const setFreshness = vi.fn((isFresh: boolean) => Promise.resolve({ isFresh }))
-    const storage: RemotePromptLibraryStorage = {
-      mode: 'remote',
-      copyPrompts: (prompts) => Promise.resolve(prompts),
+    const addStarterPrompts = vi.fn((starterPrompts: PromptRecord[]) =>
+      Promise.resolve(starterPrompts),
+    )
+    const declineFirstSignInCopy = vi.fn(() =>
+      Promise.resolve({
+        prompts: [],
+        isFresh: false,
+      }),
+    )
+    const storage = createRemoteStorage({
+      addStarterPrompts,
+      declineFirstSignInCopy,
       hydrate: () =>
         Promise.resolve({
           source: 'remote',
@@ -356,20 +387,14 @@ describe('prompt library client', () => {
             isFresh: true,
           },
         }),
-      savePrompt: (savedPrompt) => Promise.resolve(savedPrompt),
-      seedPrompts,
-      setFreshness,
-      deletePrompt: () => Promise.resolve(),
-      incrementUses: () => Promise.resolve(prompt),
-      reportError: () => 'sync failed',
-    }
+    })
     const store = createPromptLibraryStore()
     const client = createPromptLibraryClient(storage, store)
 
     await client.sync()
 
-    expect(seedPrompts).not.toHaveBeenCalled()
-    expect(setFreshness).toHaveBeenCalledWith(false)
+    expect(addStarterPrompts).not.toHaveBeenCalled()
+    expect(declineFirstSignInCopy).toHaveBeenCalledOnce()
     expect(store.getState().prompts).toEqual([])
     expect(store.getState().isFresh).toBe(false)
     expect(store.getState().firstSignInCopy.status).toBe('idle')

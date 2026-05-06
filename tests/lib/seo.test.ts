@@ -1,6 +1,14 @@
 import { describe, expect, it } from 'vitest'
 
-import { getHomePageJsonLd, getWebAppJsonLd, seo } from '@/lib/seo'
+import {
+  canonicalLink,
+  getHomePageJsonLd,
+  getOrganizationJsonLd,
+  getWebAppJsonLd,
+  getWebsiteJsonLd,
+  jsonLdScripts,
+  seo,
+} from '@/lib/seo'
 import { SITE_DEFAULT_TITLE, SITE_DESCRIPTION } from '@/lib/site-config'
 
 describe('seo metadata', () => {
@@ -35,6 +43,37 @@ describe('seo metadata', () => {
     })
   })
 
+  it('resolves custom social metadata and canonical links to public URLs', () => {
+    const meta = seo({
+      title: 'Prompt Detail | promptrc',
+      description: 'Inspect a reusable prompt.',
+      path: '/prompts/alpha',
+      image: '/custom-preview.png',
+      imageAlt: 'Custom prompt preview',
+      type: 'article',
+    })
+    const openGraphImage = meta.find(
+      (entry) => 'property' in entry && entry.property === 'og:image',
+    )
+    const canonical = canonicalLink('/prompts/alpha')
+
+    expect(openGraphImage).toEqual({
+      property: 'og:image',
+      content: expect.any(String),
+    })
+    expect(new URL(openGraphImage?.content ?? '').pathname).toBe('/custom-preview.png')
+    expect(meta).toContainEqual({
+      name: 'twitter:image:alt',
+      content: 'Custom prompt preview',
+    })
+    expect(meta).toContainEqual({ property: 'og:type', content: 'article' })
+    expect(canonical).toEqual({
+      rel: 'canonical',
+      href: expect.any(String),
+    })
+    expect(new URL(canonical.href).pathname).toBe('/prompts/alpha')
+  })
+
   it('describes the app and homepage with accurate structured data', () => {
     const webAppJsonLd = getWebAppJsonLd()
     const homePageJsonLd = getHomePageJsonLd()
@@ -58,5 +97,37 @@ describe('seo metadata', () => {
         '@id': expect.stringContaining('#software'),
       },
     })
+  })
+
+  it('serializes structured data scripts for the site publisher graph', () => {
+    const organizationJsonLd = getOrganizationJsonLd()
+    const websiteJsonLd = getWebsiteJsonLd()
+
+    expect(organizationJsonLd).toMatchObject({
+      '@type': 'Organization',
+      '@id': expect.stringContaining('#organization'),
+      logo: {
+        '@type': 'ImageObject',
+        url: expect.stringContaining('/logo512.png'),
+      },
+    })
+    expect(websiteJsonLd).toMatchObject({
+      '@type': 'WebSite',
+      '@id': expect.stringContaining('#website'),
+      publisher: {
+        '@id': expect.stringContaining('#organization'),
+      },
+    })
+
+    expect(jsonLdScripts([organizationJsonLd, websiteJsonLd])).toEqual([
+      {
+        type: 'application/ld+json',
+        children: JSON.stringify(organizationJsonLd),
+      },
+      {
+        type: 'application/ld+json',
+        children: JSON.stringify(websiteJsonLd),
+      },
+    ])
   })
 })

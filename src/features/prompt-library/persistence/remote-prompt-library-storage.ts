@@ -3,18 +3,18 @@ import { useServerFn } from '@tanstack/react-start'
 import { useCallback, useMemo } from 'react'
 
 import {
-  copyRemotePromptsToPromptLibrary,
+  type RemotePromptLibraryStorage,
+  normalizeStorageError,
+} from '@/features/prompt-library/persistence/prompt-library-storage'
+import {
+  acceptRemoteFirstSignInCopy,
+  addRemoteStarterPrompts,
+  declineRemoteFirstSignInCopy,
   deleteRemotePrompt,
   getRemotePromptLibrary,
   incrementRemotePromptUses,
-  seedRemoteStarterPrompts,
-  setRemotePromptLibraryFreshness,
   upsertRemotePrompt,
 } from '@/features/prompt-library/server/prompt-library-functions'
-import {
-  type RemotePromptLibraryStorage,
-  normalizeStorageError,
-} from '@/features/prompt-library/storage/prompt-library-storage'
 
 const getPromptLibraryQueryKey = (userId: string | null) =>
   ['prompt-library', 'prompts', userId ?? 'signed-out'] as const
@@ -25,9 +25,9 @@ export function useRemotePromptLibraryStorage(userId: string | null): RemoteProm
   const upsertPrompt = useServerFn(upsertRemotePrompt)
   const removePrompt = useServerFn(deleteRemotePrompt)
   const incrementPromptUses = useServerFn(incrementRemotePromptUses)
-  const seedStarterPrompts = useServerFn(seedRemoteStarterPrompts)
-  const copyPromptsToPromptLibrary = useServerFn(copyRemotePromptsToPromptLibrary)
-  const setFreshness = useServerFn(setRemotePromptLibraryFreshness)
+  const addStarterPrompts = useServerFn(addRemoteStarterPrompts)
+  const acceptFirstSignInCopy = useServerFn(acceptRemoteFirstSignInCopy)
+  const declineFirstSignInCopy = useServerFn(declineRemoteFirstSignInCopy)
   const queryKey = useMemo(() => getPromptLibraryQueryKey(userId), [userId])
   const invalidatePrompts = useCallback(
     () => queryClient.invalidateQueries({ queryKey }),
@@ -37,16 +37,30 @@ export function useRemotePromptLibraryStorage(userId: string | null): RemoteProm
   return useMemo<RemotePromptLibraryStorage>(
     () => ({
       mode: 'remote',
-      copyPrompts: async (prompts) => {
-        const copiedPrompts = await copyPromptsToPromptLibrary({ data: prompts })
+      acceptFirstSignInCopy: async (prompts) => {
+        const copiedPrompts = await acceptFirstSignInCopy({ data: prompts })
 
         await invalidatePrompts()
 
         return copiedPrompts
       },
+      addStarterPrompts: async (prompts) => {
+        const savedPrompts = await addStarterPrompts({ data: prompts })
+
+        await invalidatePrompts()
+
+        return savedPrompts
+      },
       deletePrompt: async (promptId) => {
         await removePrompt({ data: promptId })
         await invalidatePrompts()
+      },
+      declineFirstSignInCopy: async () => {
+        const result = await declineFirstSignInCopy()
+
+        await invalidatePrompts()
+
+        return result
       },
       hydrate: async () => ({
         source: 'remote',
@@ -55,7 +69,7 @@ export function useRemotePromptLibraryStorage(userId: string | null): RemoteProm
           queryFn: () => getPromptLibrary(),
         }),
       }),
-      incrementUses: async (promptId) => {
+      recordPromptUse: async (promptId) => {
         const updatedPrompt = await incrementPromptUses({ data: promptId })
 
         await invalidatePrompts()
@@ -70,31 +84,17 @@ export function useRemotePromptLibraryStorage(userId: string | null): RemoteProm
 
         return savedPrompt
       },
-      seedPrompts: async (prompts) => {
-        const savedPrompts = await seedStarterPrompts({ data: prompts })
-
-        await invalidatePrompts()
-
-        return savedPrompts
-      },
-      setFreshness: async (isFresh) => {
-        const result = await setFreshness({ data: isFresh })
-
-        await invalidatePrompts()
-
-        return result
-      },
     }),
     [
-      copyPromptsToPromptLibrary,
+      acceptFirstSignInCopy,
+      addStarterPrompts,
+      declineFirstSignInCopy,
       getPromptLibrary,
       incrementPromptUses,
       invalidatePrompts,
       queryClient,
       queryKey,
       removePrompt,
-      seedStarterPrompts,
-      setFreshness,
       upsertPrompt,
     ],
   )

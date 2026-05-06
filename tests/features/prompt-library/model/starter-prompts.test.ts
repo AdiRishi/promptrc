@@ -4,7 +4,7 @@ import {
   STARTER_PROMPT_TITLES,
   createStarterPrompts,
   getStartHerePrompt,
-} from '@/features/prompt-library/lib/starter-prompts'
+} from '@/features/prompt-library/model/starter-prompts'
 
 describe('starter prompts', () => {
   it('creates six ordinary prompts with Start Here as the default selection', () => {

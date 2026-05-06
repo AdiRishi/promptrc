@@ -3,16 +3,16 @@ import { type PropsWithChildren, createContext, use, useMemo, useRef, useState }
 import { useStore } from 'zustand'
 
 import {
-  type PromptLibraryClient,
-  createPromptLibraryClient,
-} from '@/features/prompt-library/storage/prompt-library-client'
-import { usePromptLibraryHydration } from '@/features/prompt-library/storage/use-prompt-library-hydration'
-import { usePromptLibraryStorage } from '@/features/prompt-library/storage/use-prompt-library-storage'
-import {
   type PromptLibraryStore,
   type PromptLibraryStoreApi,
   createPromptLibraryStore,
 } from '@/features/prompt-library/store/prompt-library-store'
+import {
+  type PromptLibraryClient,
+  createPromptLibraryClient,
+} from '@/features/prompt-library/sync/prompt-library-client'
+import { usePromptLibraryHydration } from '@/features/prompt-library/sync/use-prompt-library-hydration'
+import { usePromptLibraryStorage } from '@/features/prompt-library/sync/use-prompt-library-storage'
 
 type PromptLibraryMeta = {
   searchInputRef: React.RefObject<HTMLInputElement | null>
@@ -76,4 +76,8 @@ export const usePromptLibraryMeta = () => {
 
 export const usePromptLibraryClient = () => {
   return usePromptLibraryContext().library
+}
+
+export const usePromptLibraryStoreApi = () => {
+  return usePromptLibraryContext().store
 }

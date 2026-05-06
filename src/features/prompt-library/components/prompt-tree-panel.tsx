@@ -1,4 +1,4 @@
-import { filenameOf } from '@/features/prompt-library/lib/prompt-library-utils'
+import { filenameOf } from '@/features/prompt-library/rendering/prompt-library-formatting'
 import { type PromptRecord } from '@/features/prompt-library/types'
 
 type PromptTreePanelProps = {

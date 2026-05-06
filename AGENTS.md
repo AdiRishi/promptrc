@@ -27,10 +27,10 @@ Apply D1 migrations locally: `pnpx wrangler d1 migrations apply promptrc --local
 
 The prompt library has two backends behind one interface:
 
-- `src/features/prompt-library/storage/prompt-library-storage.ts` — the `PromptLibraryStorage` discriminated union (`mode: 'local' | 'remote'`)
-- `local-prompt-library-storage.ts` — `localStorage` adapter (anonymous users)
-- `remote-prompt-library-storage.ts` — Cloudflare D1 via TanStack server functions (signed-in users)
-- `prompt-library-client.ts` — `createPromptLibraryClient` builds a single `PromptLibraryClient` on top of either storage; components never branch on auth/mode
+- `src/features/prompt-library/persistence/prompt-library-storage.ts` — the `PromptLibraryStorage` discriminated union (`mode: 'local' | 'remote'`)
+- `persistence/local-prompt-library-storage.ts` — `localStorage` adapter (anonymous users)
+- `persistence/remote-prompt-library-storage.ts` — Cloudflare D1 via TanStack server functions (signed-in users)
+- `sync/prompt-library-client.ts` — `createPromptLibraryClient` builds a single `PromptLibraryClient` on top of either storage; components never branch on auth/mode
 
 `PromptLibraryProvider` (`components/prompt-library-provider.tsx`) wires Clerk auth → `usePromptLibraryStorage` (picks adapter) → `createPromptLibraryClient` → Zustand store. Hydration happens in `usePromptLibraryHydration`: local mode subscribes to the store to persist every change; remote mode does not (writes go through server funcs explicitly).
 
@@ -43,6 +43,7 @@ The prompt library has two backends behind one interface:
 - The D1 binding is accessed via `const { env } = await import('cloudflare:workers')` inside `getDatabase()` — **not** a top-level import. Vite externalizes `cloudflare:workers` (see `vite.config.ts` `build.rollupOptions.external`), so a static import would break the client bundle.
 - Every handler calls `requireUserId()` (Clerk `auth()`) and scopes queries by `ext_user_id`. New endpoints must follow this pattern; there is no separate authorization layer.
 - Exported pure DB helpers (`listPromptsForUser`, `upsertPromptForUser`, etc.) exist so tests can call them with a direct `D1Database` handle without going through the serverfn wrapper.
+- D1 row encoding/decoding and remote write transitions live in `persistence/`; the `server/` folder should stay focused on TanStack server-function wrappers and Cloudflare binding access.
 
 ### State
 
@@ -54,7 +55,9 @@ File-based routes in `src/routes/`. The generated `routeTree.gen.ts` is `.gitign
 
 ### Feature layout convention
 
-Colocate under `src/features/<feature>/`: `components/`, `hooks/`, `lib/` (pure helpers), `server/` (serverfn), `storage/` (adapters/persistence), `store/` (Zustand), `types.ts`. New features should follow this same shape.
+Colocate under `src/features/<feature>/`: `components/`, `hooks/`, `model/` (Prompt records, defaults, normalization), `selectors/` (derived state for UI/workflows), `commands/` (shared command metadata and executors), `rendering/` (display formatting and body tokenization), `persistence/` (storage adapters, D1 mapping, remote transitions), `sync/` (client/session/hydration orchestration), `server/` (serverfn wrappers), `store/` (Zustand), `types.ts`. New features should follow this shape when the same concerns exist.
+
+Tests should mirror the feature folders under `tests/features/<feature>/`. Keep server-function tests under a `server/` directory so Vitest routes them to the Cloudflare workers pool.
 
 ### Path alias
 

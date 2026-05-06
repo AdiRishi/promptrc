@@ -12,6 +12,9 @@ export default defineConfig({
     alias,
   },
   test: {
+    coverage: {
+      provider: 'istanbul',
+    },
     projects: [
       {
         resolve: {

@@ -1,6 +1,6 @@
 'use client'
 
-import { startTransition, useState } from 'react'
+import { useState } from 'react'
 
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
@@ -23,7 +23,10 @@ import { Input } from '@/components/ui/input'
 import { Kbd } from '@/components/ui/kbd'
 import { Textarea } from '@/components/ui/textarea'
 import { PromptBodyRenderer } from '@/features/prompt-library/components/prompt-body-renderer'
-import { filenameOf, relativeTime } from '@/features/prompt-library/lib/prompt-library-utils'
+import {
+  filenameOf,
+  relativeTime,
+} from '@/features/prompt-library/rendering/prompt-library-formatting'
 import {
   type ComposerState,
   type PromptDraft,
@@ -35,6 +38,7 @@ type PromptWorkspaceProps = {
   activePrompt: PromptRecord | null
   categories: string[]
   composer: ComposerState
+  emptyReason: 'no-prompts' | 'no-query-matches' | null
   filteredCount: number
   totalCount: number
   query: string
@@ -59,6 +63,7 @@ export function PromptWorkspace({
   activePrompt,
   categories,
   composer,
+  emptyReason,
   filteredCount,
   totalCount,
   query,
@@ -107,8 +112,8 @@ export function PromptWorkspace({
         />
       ) : null}
 
-      {composer.mode === 'view' && !activePrompt && totalCount === 0 ? (
-        <PromptEmptyState onStartNew={onStartNew} />
+      {composer.mode === 'view' && !activePrompt && emptyReason ? (
+        <PromptEmptyState emptyReason={emptyReason} query={query} onStartNew={onStartNew} />
       ) : null}
 
       {composer.mode !== 'view' ? (
@@ -158,11 +163,7 @@ function PromptCommandBar({
             className="w-full bg-transparent text-[14px] outline-none placeholder:text-muted-foreground focus:text-transparent focus:caret-transparent focus:selection:bg-primary/30 focus:selection:text-foreground focus:placeholder:text-transparent"
             onBlur={() => onFocusChange(false)}
             onChange={(event) => {
-              const nextValue = event.target.value
-
-              startTransition(() => {
-                onQueryChange(nextValue)
-              })
+              onQueryChange(event.target.value)
             }}
             onFocus={() => onFocusChange(true)}
             placeholder="search title, body, or #tag - press / to focus"
@@ -275,7 +276,7 @@ function PromptViewer({
 
       <CardFooter className="flex flex-wrap gap-2 px-8 pb-7">
         <Button onClick={onCopyPrompt} size="sm" type="button">
-          Cmd+C - Copy prompt
+          Cmd+C - Copy Prompt Body
         </Button>
         <Button onClick={onStartEdit} size="sm" type="button" variant="outline">
           e - Edit
@@ -391,7 +392,7 @@ function PromptComposer({
 
       <CardFooter className="flex flex-wrap gap-2 px-6 pb-6">
         <Button onClick={onSaveComposer} size="sm" type="button">
-          Cmd+Enter - {composer.mode === 'new' ? 'write file' : 'save'}
+          Cmd+Enter - {composer.mode === 'new' ? 'save Prompt' : 'save'}
         </Button>
         <Button onClick={onCancelComposer} size="sm" type="button" variant="outline">
           esc - cancel
@@ -401,22 +402,42 @@ function PromptComposer({
   )
 }
 
-function PromptEmptyState({ onStartNew }: { onStartNew: () => void }) {
+function PromptEmptyState({
+  emptyReason,
+  query,
+  onStartNew,
+}: {
+  emptyReason: 'no-prompts' | 'no-query-matches'
+  query: string
+  onStartNew: () => void
+}) {
+  const isNoMatch = emptyReason === 'no-query-matches'
+
   return (
     <Empty className="items-start justify-start border border-dashed border-border bg-card/55 px-8 py-9 text-left">
       <EmptyHeader className="items-start gap-2">
         <EmptyTitle className="text-[12px] tracking-[0.15em] text-accent-foreground uppercase">
-          // library is empty
+          {isNoMatch ? '// no matching Prompts' : '// Prompt Library is empty'}
         </EmptyTitle>
         <EmptyDescription className="max-w-none text-[13px] text-muted-foreground">
-          Press <Kbd className="mx-1 align-middle">n</Kbd> to create your first prompt.
+          {isNoMatch ? (
+            <>
+              No Prompts matched <span className="text-primary">"{query}"</span>.
+            </>
+          ) : (
+            <>
+              Press <Kbd className="mx-1 align-middle">n</Kbd> to create your first Prompt.
+            </>
+          )}
         </EmptyDescription>
       </EmptyHeader>
-      <EmptyContent className="items-start">
-        <Button onClick={onStartNew} size="sm" type="button">
-          n - New prompt
-        </Button>
-      </EmptyContent>
+      {isNoMatch ? null : (
+        <EmptyContent className="items-start">
+          <Button onClick={onStartNew} size="sm" type="button">
+            n - New Prompt
+          </Button>
+        </EmptyContent>
+      )}
     </Empty>
   )
 }

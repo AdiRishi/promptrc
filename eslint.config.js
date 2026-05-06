@@ -12,6 +12,7 @@ export default [
       '.agents',
       '.claude',
       'public',
+      'coverage',
       'worker-configuration.d.ts',
       '**/*.gen.ts',
       'eslint.config.js',

@@ -41,3 +41,8 @@ export type PromptLibraryPersistedSnapshot = {
   composer: ComposerState
   isFresh: boolean
 }
+
+export type PromptLibraryRemoteSnapshot = {
+  prompts: PromptRecord[]
+  isFresh: boolean
+}
