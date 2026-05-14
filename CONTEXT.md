@@ -28,6 +28,10 @@ _Avoid_: View count, popularity score
 The single primary grouping that places a **Prompt** in the library tree.
 _Avoid_: Folder, directory, collection
 
+**Category Order**:
+The predictable order in which **Categories** appear in the library tree.
+_Avoid_: Folder order, directory order, recency order
+
 **Tag**:
 A lightweight label that makes a **Prompt** easier to find across categories.
 _Avoid_: Category, folder
@@ -50,6 +54,7 @@ _Avoid_: Migration, sync, merge
 - A **Fresh Prompt Library** receives **Starter Prompts** once unless an eligible **First-Sign-In Copy** decision is made for that library
 - A **Prompt** has exactly one **Prompt Body**
 - A **Prompt** belongs to exactly one **Category**
+- **Category Order** is independent of when a **Prompt** was created, edited, or used
 - A **Prompt** may have zero or more **Tags**
 - A **Tag** may describe prompts across many **Categories**
 - A **Prompt Use** belongs to exactly one **Prompt**
@@ -66,10 +71,14 @@ _Avoid_: Migration, sync, merge
 > **Dev:** "Can a **Prompt** live in multiple **Categories**?"
 > **Domain expert:** "No. A **Category** is the Prompt's single primary home in the tree. Use **Tags** when the same Prompt needs to be found through multiple cross-cutting labels."
 
+> **Dev:** "Should editing a **Prompt** make its **Category** jump to the top of the library tree?"
+> **Domain expert:** "No. **Category Order** should stay predictable while the Prompt's recency changes."
+
 ## Flagged ambiguities
 
 - "entry", "file", and "snippet" may appear in UI metaphors, but the domain term for a saved reusable instruction is **Prompt**.
 - "folder" and "directory" may appear in terminal-inspired visuals, but the domain term for primary prompt grouping is **Category**.
+- "recent", "latest", and "updated" may describe Prompt metadata, but they must not define **Category Order**.
 - A **Fresh Prompt Library** is not the same as an empty **Prompt Library**; deleting all **Prompts** after a real user action must not make the library fresh again.
 - "mock data", "sample prompt", and "seeded prompt" may describe onboarding ideas, but the domain term for a prompt added once to a fresh library is **Starter Prompt**.
 - A **First-Sign-In Copy** is not a general sync or merge feature; it only applies when an empty remote **Prompt Library** would otherwise hide local **Prompts** during sign-in.
