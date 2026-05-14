@@ -46,9 +46,9 @@ describe('prompt library selectors', () => {
 
   it('owns next, previous, and delete-neighbor selection rules', () => {
     const prompts = [
-      createPrompt({ id: 'prompt-alpha', title: 'Alpha' }),
-      createPrompt({ id: 'prompt-beta', title: 'Beta' }),
-      createPrompt({ id: 'prompt-gamma', title: 'Gamma' }),
+      createPrompt({ id: 'prompt-alpha', title: 'Alpha', category: 'Engineering' }),
+      createPrompt({ id: 'prompt-beta', title: 'Beta', category: 'Engineering' }),
+      createPrompt({ id: 'prompt-gamma', title: 'Gamma', category: 'Engineering' }),
     ]
 
     const visibleState = selectPromptLibraryVisibleState({
@@ -61,6 +61,79 @@ describe('prompt library selectors', () => {
     expect(visibleState.getPreviousPromptId()).toBe('prompt-alpha')
     expect(visibleState.getNearestPromptIdAfterRemoval('prompt-beta')).toBe('prompt-gamma')
     expect(visibleState.getNearestPromptIdAfterRemoval('prompt-gamma')).toBe('prompt-beta')
+  })
+
+  it('keeps the visible tree stable when Prompt recency changes', () => {
+    const prompts = [
+      createPrompt({
+        id: 'prompt-workflow-zebra',
+        title: 'Zebra',
+        category: 'Workflow',
+        updatedAt: '2026-04-24T00:04:00.000Z',
+      }),
+      createPrompt({
+        id: 'prompt-benchmarks-alpha',
+        title: 'Alpha',
+        category: 'Benchmarks',
+        updatedAt: '2026-04-24T00:03:00.000Z',
+      }),
+      createPrompt({
+        id: 'prompt-workflow-alpha',
+        title: 'Alpha',
+        category: 'Workflow',
+        updatedAt: '2026-04-24T00:02:00.000Z',
+      }),
+      createPrompt({
+        id: 'prompt-dhawal-beta',
+        title: 'Beta',
+        category: 'Dhawal Ops',
+        updatedAt: '2026-04-24T00:01:00.000Z',
+      }),
+    ]
+
+    const visibleState = selectPromptLibraryVisibleState({
+      prompts,
+      query: '',
+      selectedPromptId: 'prompt-workflow-zebra',
+    })
+
+    expect(visibleState.categoryKeys).toEqual(['Benchmarks', 'Dhawal Ops', 'Workflow'])
+    expect(visibleState.groupedPrompts.Workflow?.map((prompt) => prompt.id)).toEqual([
+      'prompt-workflow-alpha',
+      'prompt-workflow-zebra',
+    ])
+    expect(visibleState.orderedPromptIds).toEqual([
+      'prompt-benchmarks-alpha',
+      'prompt-dhawal-beta',
+      'prompt-workflow-alpha',
+      'prompt-workflow-zebra',
+    ])
+    expect(visibleState.getPreviousPromptId()).toBe('prompt-workflow-alpha')
+  })
+
+  it('keeps composer Category suggestions stable while preserving default Categories first', () => {
+    const prompts = [
+      createPrompt({ id: 'prompt-workflow', category: 'Workflow' }),
+      createPrompt({ id: 'prompt-benchmarks', category: 'Benchmarks' }),
+    ]
+
+    const visibleState = selectPromptLibraryVisibleState({
+      prompts,
+      query: '',
+      selectedPromptId: null,
+    })
+
+    expect(visibleState.categories.slice(0, 8)).toEqual([
+      'Engineering',
+      'Writing',
+      'Thinking',
+      'Teaching',
+      'Product',
+      'Career',
+      'Personal',
+      'Communication',
+    ])
+    expect(visibleState.categories.slice(8)).toEqual(['Benchmarks', 'Workflow'])
   })
 
   it('uses the first matching Prompt when the selected Prompt is hidden by query', () => {

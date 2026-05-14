@@ -24,13 +24,16 @@ export const selectPromptLibraryVisibleState = ({
   query: string
   selectedPromptId: string | null
 }): PromptLibraryVisibleState => {
-  const filteredPrompts = prompts.filter((prompt) => matchesPromptQuery(prompt, query))
+  const promptsInTreeOrder = orderPromptsForTree(prompts)
+  const filteredPrompts = promptsInTreeOrder.filter((prompt) => matchesPromptQuery(prompt, query))
   const groupedPrompts = groupPromptsByCategory(filteredPrompts)
-  const orderedPromptIds = filteredPrompts.map((prompt) => prompt.id)
+  const categoryKeys = Object.keys(groupedPrompts).sort(comparePromptLibraryText)
+  const orderedPromptIds = categoryKeys.flatMap((category) =>
+    (groupedPrompts[category] ?? []).map((prompt) => prompt.id),
+  )
   const activePrompt =
     filteredPrompts.find((prompt) => prompt.id === selectedPromptId) ?? filteredPrompts[0] ?? null
   const categories = getPromptCategories(prompts)
-  const categoryKeys = Object.keys(groupedPrompts)
   const visiblePromptId = activePrompt?.id ?? null
   const emptyReason =
     prompts.length === 0 ? 'no-prompts' : filteredPrompts.length === 0 ? 'no-query-matches' : null
@@ -50,7 +53,7 @@ export const selectPromptLibraryVisibleState = ({
     getNearestPromptIdAfterRemoval: (promptId) => {
       const fallbackPromptIds = orderedPromptIds.includes(promptId)
         ? orderedPromptIds
-        : prompts.map((prompt) => prompt.id)
+        : promptsInTreeOrder.map((prompt) => prompt.id)
       const promptIndex = fallbackPromptIds.indexOf(promptId)
 
       return fallbackPromptIds[promptIndex + 1] ?? fallbackPromptIds[promptIndex - 1] ?? null
@@ -78,6 +81,29 @@ export const selectPromptLibraryVisibleState = ({
       return orderedPromptIds[Math.max(currentIndex - 1, 0)] ?? orderedPromptIds[0] ?? null
     },
   }
+}
+
+const promptLibrarySortCollator = new Intl.Collator(undefined, {
+  numeric: true,
+  sensitivity: 'base',
+})
+
+const comparePromptLibraryText = (left: string, right: string) => {
+  const normalizedLeft = left.trim()
+  const normalizedRight = right.trim()
+  const result = promptLibrarySortCollator.compare(normalizedLeft, normalizedRight)
+
+  return result === 0 ? normalizedLeft.localeCompare(normalizedRight) : result
+}
+
+const orderPromptsForTree = (prompts: PromptRecord[]) => {
+  return [...prompts].sort(
+    (left, right) =>
+      comparePromptLibraryText(left.category, right.category) ||
+      comparePromptLibraryText(left.title, right.title) ||
+      comparePromptLibraryText(left.createdAt, right.createdAt) ||
+      comparePromptLibraryText(left.id, right.id),
+  )
 }
 
 export const matchesPromptQuery = (prompt: PromptRecord, query: string) => {
@@ -112,10 +138,15 @@ export const groupPromptsByCategory = (prompts: PromptRecord[]) => {
 
 export const getPromptCategories = (prompts: PromptRecord[]) => {
   const categories = new Set<string>(DEFAULT_PROMPT_CATEGORIES)
+  const defaultCategories = new Set<string>(DEFAULT_PROMPT_CATEGORIES)
 
   for (const prompt of prompts) {
     categories.add(prompt.category)
   }
 
-  return Array.from(categories)
+  const customCategories = Array.from(categories)
+    .filter((category) => !defaultCategories.has(category))
+    .sort(comparePromptLibraryText)
+
+  return [...DEFAULT_PROMPT_CATEGORIES, ...customCategories]
 }
