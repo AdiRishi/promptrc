@@ -17,7 +17,7 @@ Package manager is **pnpm** (version pinned in `package.json`). Node version is 
 - `pnpm check` — the CI gate: `format:check && lint && typecheck && deploy:dry-run`
 - `pnpm deploy` / `pnpm deploy:dry-run` — publishes via `wrangler --cwd .output`; deploy-dry-run is part of `check` to catch Worker-level misconfig before merge
 
-Run a single test file: `pnpm test <path>` (e.g. `pnpm test tests/features/prompt-library/server/prompt-library-functions.test.ts`). Filter by name with `-t "<pattern>"`.
+Run a single test file: `pnpm test <path>` (e.g. `pnpm test tests/features/prompt-library/persistence/remote/remote-prompt-library-persistence.server.test.ts`). Filter by name with `-t "<pattern>"`.
 
 Apply D1 migrations locally: `pnpx wrangler d1 migrations apply promptrc --local`.
 
@@ -57,7 +57,7 @@ File-based routes in `src/routes/`. The generated `routeTree.gen.ts` is `.gitign
 
 Colocate under `src/features/<feature>/`: `components/`, `hooks/`, `model/` (Prompt records, defaults, normalization), `selectors/` (derived state for UI/workflows), `commands/` (shared command metadata and executors), `rendering/` (display formatting and body tokenization), `persistence/` (storage adapters, D1 mapping, remote transitions), `sync/` (client/session/hydration orchestration), `server/` (serverfn wrappers), `store/` (Zustand), `types.ts`. New features should follow this shape when the same concerns exist.
 
-Tests should mirror the feature folders under `tests/features/<feature>/`. Keep server-function tests under a `server/` directory so Vitest routes them to the Cloudflare workers pool.
+Tests should mirror the feature folders under `tests/features/<feature>/`. Use the `.server.test.ts` suffix for tests that need the Cloudflare workers pool, including D1 persistence and server-function tests.
 
 ### Path alias
 
@@ -67,10 +67,10 @@ Tests should mirror the feature folders under `tests/features/<feature>/`. Keep 
 
 `vitest.config.ts` defines **two projects** in one run:
 
-- `browser-unit` — `jsdom`, includes `tests/**/*.test.{ts,tsx}` but **excludes** `tests/**/server/**`
-- `cloudflare-server` — `@cloudflare/vitest-pool-workers` Miniflare, includes `tests/**/server/**`, runs `tests/setup-cloudflare.ts` which re-applies D1 migrations and truncates `prompts` before each test
+- `browser-unit` — `jsdom`, includes `tests/**/*.test.{ts,tsx}` but **excludes** `tests/**/*.server.test.{ts,tsx}`
+- `cloudflare-server` — `@cloudflare/vitest-pool-workers` Miniflare, includes `tests/**/*.server.test.{ts,tsx}`, runs `tests/setup-cloudflare.ts` which re-applies D1 migrations and truncates `prompts` before each test
 
-**Placement matters:** server-function tests must live under a `server/` directory so they hit the workers pool (and get the D1 binding). Put anything else elsewhere, or it'll run in jsdom without a DB.
+**Naming matters:** D1 and server-function tests must use the `.server.test.ts` suffix so they hit the workers pool (and get the D1 binding). Put browser/unit tests in the mirrored feature folder without that suffix, or they'll run in the wrong environment.
 
 ## Deployment
 

@@ -2,15 +2,12 @@ import {
   createStarterPrompts,
   hasStarterPrompts,
 } from '@/features/prompt-library/model/starter-prompts'
-import { readLocalPromptLibrarySnapshot } from '@/features/prompt-library/persistence/local-prompt-library-storage'
-import {
-  type PromptLibraryHydrationResult,
-  type PromptLibraryStorage,
-} from '@/features/prompt-library/persistence/prompt-library-storage'
+import { readLocalPromptLibrarySnapshot } from '@/features/prompt-library/persistence/local/local-prompt-library-storage'
+import { type PromptLibraryStorage } from '@/features/prompt-library/persistence/prompt-library-storage'
 import { type PromptLibraryStoreApi } from '@/features/prompt-library/store/prompt-library-store'
 import { type PromptLibraryPersistedSnapshot } from '@/features/prompt-library/types'
 
-type FreshPromptLibraryLifecycleOptions = {
+export type FreshPromptLibraryTransitionOptions = {
   readLocalSnapshot?: () => PromptLibraryPersistedSnapshot | null
 }
 
@@ -19,21 +16,6 @@ type FreshPromptLibraryDecision =
   | { localPrompts: PromptLibraryPersistedSnapshot['prompts']; type: 'offer-first-sign-in-copy' }
   | { type: 'preserve-empty-local-choice' }
   | { type: 'add-starter-prompts' }
-
-export const applyPromptLibraryHydrationResult = (
-  store: PromptLibraryStoreApi,
-  hydrationResult: PromptLibraryHydrationResult,
-) => {
-  if (hydrationResult.source === 'local') {
-    store.getState().actions.restoreLocalState(hydrationResult.snapshot)
-    ensureFreshLocalStarterPromptSelection(store)
-    return
-  }
-
-  store.getState().actions.replacePrompts(hydrationResult.snapshot.prompts, {
-    isFresh: hydrationResult.snapshot.isFresh,
-  })
-}
 
 export const decideFreshPromptLibraryTransition = ({
   isRemote,
@@ -68,23 +50,10 @@ export const decideFreshPromptLibraryTransition = ({
   return { type: 'add-starter-prompts' }
 }
 
-const ensureFreshLocalStarterPromptSelection = (store: PromptLibraryStoreApi) => {
-  const state = store.getState()
-
-  if (state.isFresh && state.prompts.length === 0) {
-    store.getState().actions.seedStarterPrompts(createStarterPrompts())
-    return
-  }
-
-  if (state.isFresh && hasStarterPrompts(state.prompts) && !state.selectedPromptId) {
-    store.getState().actions.seedStarterPrompts(state.prompts)
-  }
-}
-
-export const progressFreshPromptLibraryLifecycle = async (
+export const applyFreshPromptLibraryTransition = async (
   storage: PromptLibraryStorage,
   store: PromptLibraryStoreApi,
-  options: FreshPromptLibraryLifecycleOptions = {},
+  options: FreshPromptLibraryTransitionOptions = {},
 ) => {
   const state = store.getState()
   const readLocalSnapshot = options.readLocalSnapshot ?? readLocalPromptLibrarySnapshot
@@ -105,11 +74,7 @@ export const progressFreshPromptLibraryLifecycle = async (
   }
 
   if (decision.type === 'preserve-empty-local-choice') {
-    if (storage.mode === 'remote') {
-      await storage.declineFirstSignInCopy()
-    }
-
-    store.getState().actions.markPromptLibraryNotFresh()
+    await declineFreshPromptLibraryFirstSignInCopy(storage, store)
     return
   }
 
@@ -120,13 +85,40 @@ export const progressFreshPromptLibraryLifecycle = async (
   store.getState().actions.seedStarterPrompts(savedStarterPrompts)
 }
 
-export const makePromptLibraryReady = async (
+export const acceptFreshPromptLibraryFirstSignInCopy = async (
   storage: PromptLibraryStorage,
   store: PromptLibraryStoreApi,
-  options: FreshPromptLibraryLifecycleOptions = {},
 ) => {
-  const hydrationResult = await storage.hydrate()
+  if (storage.mode !== 'remote') {
+    return
+  }
 
-  applyPromptLibraryHydrationResult(store, hydrationResult)
-  await progressFreshPromptLibraryLifecycle(storage, store, options)
+  const localPrompts = store.getState().firstSignInCopy.localPrompts
+
+  if (!localPrompts.length) {
+    return
+  }
+
+  store.getState().actions.beginFirstSignInCopy()
+
+  try {
+    const copiedPrompts = await storage.acceptFirstSignInCopy(localPrompts)
+    store.getState().actions.completeFirstSignInCopy(copiedPrompts)
+  } catch (error) {
+    const message = storage.reportError(error)
+
+    store.getState().actions.failFirstSignInCopy(message)
+    throw error
+  }
+}
+
+export const declineFreshPromptLibraryFirstSignInCopy = async (
+  storage: PromptLibraryStorage,
+  store: PromptLibraryStoreApi,
+) => {
+  if (storage.mode === 'remote') {
+    await storage.declineFirstSignInCopy()
+  }
+
+  store.getState().actions.declineFirstSignInCopy()
 }

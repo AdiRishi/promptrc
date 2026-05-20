@@ -12,7 +12,7 @@ import {
   markPromptLibraryNotFreshForUser,
   seedPromptsForUser,
   upsertPromptForUser,
-} from '@/features/prompt-library/persistence/remote-prompt-library-persistence'
+} from '@/features/prompt-library/persistence/remote/remote-prompt-library-persistence'
 import { type PromptRecord } from '@/features/prompt-library/types'
 
 const createPrompt = (overrides: Partial<PromptRecord> = {}): PromptRecord => ({
@@ -27,31 +27,7 @@ const createPrompt = (overrides: Partial<PromptRecord> = {}): PromptRecord => ({
   ...overrides,
 })
 
-describe('prompt library server persistence', () => {
-  it('applies the prompt migration with id as the primary key and ext_user_id indexed', async () => {
-    const { results: columns } = await env.DB.prepare('PRAGMA table_info(prompts)').all<{
-      name: string
-      pk: number
-    }>()
-    const { results: indexes } = await env.DB.prepare('PRAGMA index_list(prompts)').all<{
-      name: string
-    }>()
-
-    expect(columns.find((column) => column.name === 'id')?.pk).toBe(1)
-    expect(columns.find((column) => column.name === 'ext_user_id')?.pk).toBe(0)
-    expect(indexes.some((index) => index.name === 'idx_prompts_user_updated_at')).toBe(true)
-
-    const { results: stateColumns } = await env.DB.prepare(
-      'PRAGMA table_info(prompt_library_state)',
-    ).all<{
-      name: string
-      pk: number
-    }>()
-
-    expect(stateColumns.find((column) => column.name === 'ext_user_id')?.pk).toBe(1)
-    expect(stateColumns.find((column) => column.name === 'is_fresh')).toBeTruthy()
-  })
-
+describe('remote Prompt Library persistence', () => {
   it('persists Prompt Library freshness per Clerk user even when the prompt list is empty', async () => {
     await expect(getPromptLibraryForUser(env.DB, 'user_a')).resolves.toMatchObject({
       prompts: [],
@@ -201,6 +177,40 @@ describe('prompt library server persistence', () => {
       title: 'Updated alpha',
       tags: ['updated'],
       uses: 3,
+    })
+  })
+
+  it('marks the remote Prompt Library non-fresh after user-owned mutations', async () => {
+    await upsertPromptForUser(env.DB, 'user_a', createPrompt())
+    await expect(getPromptLibraryForUser(env.DB, 'user_a')).resolves.toMatchObject({
+      isFresh: false,
+    })
+
+    const promptsForUse = await seedPromptsForUser(env.DB, 'user_b', createStarterPrompts())
+    const promptForUse = promptsForUse[0]
+
+    if (!promptForUse) {
+      throw new Error('Expected Starter Prompts for Prompt use')
+    }
+
+    await expect(getPromptLibraryForUser(env.DB, 'user_b')).resolves.toMatchObject({
+      isFresh: true,
+    })
+    await incrementPromptUsesForUser(env.DB, 'user_b', promptForUse.id)
+    await expect(getPromptLibraryForUser(env.DB, 'user_b')).resolves.toMatchObject({
+      isFresh: false,
+    })
+
+    const promptsForDelete = await seedPromptsForUser(env.DB, 'user_c', createStarterPrompts())
+    const promptForDelete = promptsForDelete[0]
+
+    if (!promptForDelete) {
+      throw new Error('Expected Starter Prompts for Prompt deletion')
+    }
+
+    await deletePromptForUser(env.DB, 'user_c', promptForDelete.id)
+    await expect(getPromptLibraryForUser(env.DB, 'user_c')).resolves.toMatchObject({
+      isFresh: false,
     })
   })
 

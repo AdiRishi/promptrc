@@ -4,7 +4,7 @@ import { STARTER_PROMPT_TITLES } from '@/features/prompt-library/model/starter-p
 import {
   createLocalPromptLibraryStorage,
   readLocalPromptLibrarySnapshot,
-} from '@/features/prompt-library/persistence/local-prompt-library-storage'
+} from '@/features/prompt-library/persistence/local/local-prompt-library-storage'
 import {
   type LocalPromptLibraryStorage,
   type RemotePromptLibraryStorage,

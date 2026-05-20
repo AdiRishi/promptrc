@@ -2,7 +2,7 @@ import {
   copyPromptForRemoteLibrary,
   normalizePromptRecord,
 } from '@/features/prompt-library/model/prompt-library-integrity'
-import { createD1PromptLibraryAdapter } from '@/features/prompt-library/persistence/d1-prompt-library-adapter'
+import { createD1PromptLibraryAdapter } from '@/features/prompt-library/persistence/remote/d1-prompt-library-adapter'
 import {
   type PromptLibraryRemoteSnapshot,
   type PromptRecord,
@@ -20,9 +20,9 @@ export const createRemotePromptLibraryPersistence = (db: D1Database, extUserId: 
       addStarterPromptsForUser(db, extUserId, starterPrompts),
     declineFirstSignInCopy: () => declineFirstSignInCopyForUser(db, extUserId),
     deletePrompt: async (promptId: string) => {
-      const result = await promptLibrary.deletePrompt(promptId).run()
+      const changes = await promptLibrary.deletePrompt(promptId)
 
-      if (result.meta.changes === 0) {
+      if (changes === 0) {
         throw new Error('Prompt not found')
       }
 
@@ -33,9 +33,9 @@ export const createRemotePromptLibraryPersistence = (db: D1Database, extUserId: 
     getPromptLibrary: () => getPromptLibraryForUser(db, extUserId),
     listPrompts: () => promptLibrary.listPrompts(),
     recordPromptUse: async (promptId: string) => {
-      const result = await promptLibrary.incrementPromptUses(promptId).run()
+      const changes = await promptLibrary.incrementPromptUses(promptId)
 
-      if (result.meta.changes === 0) {
+      if (changes === 0) {
         throw new Error('Prompt not found')
       }
 
@@ -51,9 +51,9 @@ export const createRemotePromptLibraryPersistence = (db: D1Database, extUserId: 
     },
     savePrompt: async (prompt: PromptRecord) => {
       const normalizedPrompt = normalizePromptRecord(prompt)
-      const result = await promptLibrary.preparePromptUpsert(normalizedPrompt).run()
+      const changes = await promptLibrary.upsertPrompt(normalizedPrompt)
 
-      if (result.meta.changes === 0) {
+      if (changes === 0) {
         throw new Error('Prompt id already exists')
       }
 
@@ -106,11 +106,7 @@ export const addStarterPromptsForUser = async (
     return []
   }
 
-  await promptLibrary.batch(
-    starterPrompts.map((prompt) =>
-      promptLibrary.preparePromptUpsert(normalizePromptRecord(prompt)),
-    ),
-  )
+  await promptLibrary.addPrompts(starterPrompts.map((prompt) => normalizePromptRecord(prompt)))
 
   return starterPrompts.map(normalizePromptRecord)
 }
@@ -129,10 +125,7 @@ export const acceptFirstSignInCopyForUser = async (
 
   const copiedPrompts = localPrompts.map((prompt) => copyPromptForRemoteLibrary(prompt))
 
-  await promptLibrary.batch([
-    ...copiedPrompts.map((prompt) => promptLibrary.preparePromptUpsert(prompt)),
-    promptLibrary.prepareFreshnessUpsert(false),
-  ])
+  await promptLibrary.addPromptsAndSetFreshness(copiedPrompts, false)
 
   return copiedPrompts
 }
