@@ -101,9 +101,21 @@ export const createD1PromptLibraryAdapter = (db: D1Database, extUserId: string) 
   }
 
   return {
-    batch: (statements: D1PreparedStatement[]) => db.batch(statements),
-    deletePrompt: (promptId: string) =>
-      db.prepare('DELETE FROM prompts WHERE ext_user_id = ? AND id = ?').bind(extUserId, promptId),
+    addPrompts: (prompts: PromptRecord[]) =>
+      db.batch(prompts.map((prompt) => preparePromptUpsert(prompt))),
+    addPromptsAndSetFreshness: (prompts: PromptRecord[], isFresh: boolean) =>
+      db.batch([
+        ...prompts.map((prompt) => preparePromptUpsert(prompt)),
+        prepareFreshnessUpsert(isFresh),
+      ]),
+    deletePrompt: async (promptId: string) => {
+      const result = await db
+        .prepare('DELETE FROM prompts WHERE ext_user_id = ? AND id = ?')
+        .bind(extUserId, promptId)
+        .run()
+
+      return result.meta.changes
+    },
     findPrompt: async (promptId: string) => {
       const { results } = await db
         .prepare(
@@ -138,8 +150,8 @@ export const createD1PromptLibraryAdapter = (db: D1Database, extUserId: string) 
 
       return row ? row.is_fresh === 1 : true
     },
-    incrementPromptUses: (promptId: string) =>
-      db
+    incrementPromptUses: async (promptId: string) => {
+      const result = await db
         .prepare(
           `
             UPDATE prompts
@@ -148,7 +160,11 @@ export const createD1PromptLibraryAdapter = (db: D1Database, extUserId: string) 
             WHERE ext_user_id = ? AND id = ?
           `,
         )
-        .bind(new Date().toISOString(), extUserId, promptId),
+        .bind(new Date().toISOString(), extUserId, promptId)
+        .run()
+
+      return result.meta.changes
+    },
     listPrompts: async () => {
       const { results } = await db
         .prepare(
@@ -164,8 +180,11 @@ export const createD1PromptLibraryAdapter = (db: D1Database, extUserId: string) 
 
       return results.map(rowToPrompt)
     },
-    prepareFreshnessUpsert,
-    preparePromptUpsert,
     setFreshness: (isFresh: boolean) => prepareFreshnessUpsert(isFresh).run(),
+    upsertPrompt: async (prompt: PromptRecord) => {
+      const result = await preparePromptUpsert(prompt).run()
+
+      return result.meta.changes
+    },
   }
 }

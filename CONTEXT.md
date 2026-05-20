@@ -48,6 +48,10 @@ _Avoid_: Empty library, new user
 A user-approved copy of all local **Prompts** into an empty remote **Prompt Library** during first sign-in.
 _Avoid_: Migration, sync, merge
 
+**Fresh Prompt Library Transition**:
+The decision that determines whether a **Fresh Prompt Library** receives **Starter Prompts**, offers **First-Sign-In Copy**, or preserves a user's prior empty **Prompt Library** choice.
+_Avoid_: Onboarding branch, migration flow, empty-state setup
+
 ## Relationships
 
 - A **Prompt Library** contains zero or more **Prompts**
@@ -62,6 +66,8 @@ _Avoid_: Migration, sync, merge
 - A **Starter Prompt** is a **Prompt** once it has been added to a user's **Prompt Library**
 - A **First-Sign-In Copy** copies local **Prompts** into a remote **Prompt Library** without removing them from local storage
 - A **First-Sign-In Copy** is not a **Prompt Use**
+- A **Fresh Prompt Library Transition** happens after a **Prompt Library** hydrates and before normal Prompt use begins
+- A **Fresh Prompt Library Transition** may create **Starter Prompts**, offer **First-Sign-In Copy**, or mark the remote **Prompt Library** non-fresh without creating Prompts
 
 ## Example dialogue
 
@@ -85,3 +91,4 @@ _Avoid_: Migration, sync, merge
 - "copy" can mean either copying a **Prompt Body** for reuse, which records a **Prompt Use**, or **First-Sign-In Copy**, which copies local **Prompts** into remote storage and does not record **Prompt Uses**.
 - Local-first persistence is an architectural/product strategy, not a domain term for this glossary.
 - Codex skill and plugin references inside a **Prompt Body** are treated as markdown/rendering features, not standalone domain concepts.
+- A **Fresh Prompt Library Transition** is not a general synchronization flow; it only resolves the first usable state for a fresh local or remote **Prompt Library**.

@@ -6,6 +6,10 @@ import { useCallback, useDeferredValue, useEffect, useEffectEvent, useMemo, useS
 import { FaGithub } from 'react-icons/fa'
 
 import {
+  getPromptLibraryKeyboardCommandId,
+  runPromptLibraryCommand,
+} from '@/features/prompt-library/commands/prompt-library-command-router'
+import {
   PROMPT_LIBRARY_SHORTCUT_COMMAND_IDS,
   type PromptLibraryCommandId,
   type PromptLibraryCommandState,
@@ -86,39 +90,20 @@ function PromptLibraryScreen() {
 
   const runCommand = useCallback(
     (commandId: PromptLibraryCommandId) => {
-      if (!canRunPromptLibraryCommand(commandId, commandState)) {
-        return
-      }
-
-      switch (commandId) {
-        case 'copy-prompt-body':
-          void copyActivePrompt()
-          break
-        case 'delete-prompt':
-          deletePrompt()
-          break
-        case 'duplicate-prompt':
-          duplicatePrompt()
-          break
-        case 'edit-prompt':
-          startEditActivePrompt()
-          break
-        case 'focus-search':
+      runPromptLibraryCommand(commandId, {
+        commandState,
+        copyActivePrompt,
+        deletePrompt,
+        duplicatePrompt,
+        focusSearch: () => {
           searchInputRef.current?.focus()
           searchInputRef.current?.select()
-          break
-        case 'new-prompt':
-          actions.startNew()
-          break
-        case 'next-prompt':
-          actions.selectPrompt(visibleState.getNextPromptId())
-          break
-        case 'previous-prompt':
-          actions.selectPrompt(visibleState.getPreviousPromptId())
-          break
-        default:
-          break
-      }
+        },
+        selectNextPrompt: () => actions.selectPrompt(visibleState.getNextPromptId()),
+        selectPreviousPrompt: () => actions.selectPrompt(visibleState.getPreviousPromptId()),
+        startEditActivePrompt,
+        startNewPrompt: actions.startNew,
+      })
     },
     [
       actions,
@@ -190,6 +175,7 @@ function PromptLibraryScreen() {
   )
 
   usePromptLibraryHotkeys({
+    commandState,
     composerMode: composer.mode,
     isHelpOpen,
     onCancelComposer: actions.cancelComposer,
@@ -325,6 +311,7 @@ function PromptTopBar({ promptCount, syncMode, syncStatus }: PromptTopBarProps) 
 }
 
 type PromptLibraryHotkeysOptions = {
+  commandState: PromptLibraryCommandState
   composerMode: 'view' | 'new' | 'edit'
   isHelpOpen: boolean
   visibleState: PromptLibraryVisibleState
@@ -335,6 +322,7 @@ type PromptLibraryHotkeysOptions = {
 }
 
 function usePromptLibraryHotkeys({
+  commandState,
   composerMode,
   isHelpOpen,
   visibleState,
@@ -379,18 +367,18 @@ function usePromptLibraryHotkeys({
     }
 
     if (isTyping) {
-      if (
-        (event.metaKey || event.ctrlKey) &&
-        event.key.toLowerCase() === 'c' &&
-        composerMode === 'view' &&
-        !window.getSelection()?.toString()
-      ) {
-        if (!visibleState.activePrompt) {
-          return
-        }
+      const commandId = getPromptLibraryKeyboardCommandId({
+        key: event.key.toLowerCase(),
+        isCopyShortcut:
+          (event.metaKey || event.ctrlKey) &&
+          event.key.toLowerCase() === 'c' &&
+          composerMode === 'view' &&
+          !window.getSelection()?.toString(),
+      })
 
+      if (commandId && canRunPromptLibraryCommand(commandId, commandState)) {
         event.preventDefault()
-        onRunCommand('copy-prompt-body')
+        onRunCommand(commandId)
       }
 
       return
@@ -404,7 +392,15 @@ function usePromptLibraryHotkeys({
       }
 
       event.preventDefault()
-      onRunCommand('copy-prompt-body')
+      const commandId = getPromptLibraryKeyboardCommandId({
+        key: event.key.toLowerCase(),
+        isCopyShortcut: true,
+      })
+
+      if (commandId && canRunPromptLibraryCommand(commandId, commandState)) {
+        onRunCommand(commandId)
+      }
+
       return
     }
 
@@ -412,55 +408,20 @@ function usePromptLibraryHotkeys({
       return
     }
 
-    switch (event.key) {
-      case 'n':
-        event.preventDefault()
-        onRunCommand('new-prompt')
-        break
-      case '/':
-        event.preventDefault()
-        onRunCommand('focus-search')
-        break
-      case 'j': {
-        event.preventDefault()
-        onRunCommand('next-prompt')
-        break
-      }
-      case 'k': {
-        event.preventDefault()
-        onRunCommand('previous-prompt')
-        break
-      }
-      case 'e':
-        if (!visibleState.activePrompt) {
-          return
-        }
+    if (event.key === '?') {
+      event.preventDefault()
+      onToggleHelp()
+      return
+    }
 
-        event.preventDefault()
-        onRunCommand('edit-prompt')
-        break
-      case 'd':
-        if (!visibleState.activePrompt) {
-          return
-        }
+    const commandId = getPromptLibraryKeyboardCommandId({
+      key: event.key.toLowerCase(),
+      isCopyShortcut: false,
+    })
 
-        event.preventDefault()
-        onRunCommand('duplicate-prompt')
-        break
-      case 'x':
-        if (!visibleState.activePrompt) {
-          return
-        }
-
-        event.preventDefault()
-        onRunCommand('delete-prompt')
-        break
-      case '?':
-        event.preventDefault()
-        onToggleHelp()
-        break
-      default:
-        break
+    if (commandId && canRunPromptLibraryCommand(commandId, commandState)) {
+      event.preventDefault()
+      onRunCommand(commandId)
     }
   })
 

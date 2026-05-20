@@ -1,5 +1,9 @@
 import { type PromptLibraryStorage } from '@/features/prompt-library/persistence/prompt-library-storage'
 import { type PromptLibraryStoreApi } from '@/features/prompt-library/store/prompt-library-store'
+import {
+  acceptFreshPromptLibraryFirstSignInCopy,
+  declineFreshPromptLibraryFirstSignInCopy,
+} from '@/features/prompt-library/sync/fresh-prompt-library-transition'
 import { makePromptLibraryReady } from '@/features/prompt-library/sync/prompt-library-lifecycle'
 import { type PromptRecord, type PromptSyncMode } from '@/features/prompt-library/types'
 
@@ -92,30 +96,9 @@ export const createPromptLibraryClient = (
 
   return {
     mode: storage.mode,
-    acceptFirstSignInCopy: async () => {
-      const localPrompts = store.getState().firstSignInCopy.localPrompts
-
-      if (!localPrompts.length) {
-        return
-      }
-
-      store.getState().actions.beginFirstSignInCopy()
-
-      try {
-        const copiedPrompts = await storage.acceptFirstSignInCopy(localPrompts)
-        store.getState().actions.completeFirstSignInCopy(copiedPrompts)
-      } catch (error) {
-        const message = storage.reportError(error)
-
-        store.getState().actions.failFirstSignInCopy(message)
-        throw error
-      }
-    },
+    acceptFirstSignInCopy: () => acceptFreshPromptLibraryFirstSignInCopy(storage, store),
     deletePrompt: (promptId) => syncMutation(() => storage.deletePrompt(promptId)),
-    declineFirstSignInCopy: async () => {
-      await storage.declineFirstSignInCopy()
-      store.getState().actions.declineFirstSignInCopy()
-    },
+    declineFirstSignInCopy: () => declineFreshPromptLibraryFirstSignInCopy(storage, store),
     reportError: storage.reportError,
     savePrompt: (prompt) => syncMutation(() => storage.savePrompt(prompt)),
     sync,
