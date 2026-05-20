@@ -65,13 +65,19 @@ export function usePromptLibraryHotkeys({
     }
 
     if (isTyping) {
+      const isCopyShortcut =
+        (event.metaKey || event.ctrlKey) &&
+        event.key.toLowerCase() === 'c' &&
+        composerMode === 'view' &&
+        !window.getSelection()?.toString()
+
+      if (!isCopyShortcut) {
+        return
+      }
+
       const commandId = getPromptLibraryKeyboardCommandId({
         key: event.key.toLowerCase(),
-        isCopyShortcut:
-          (event.metaKey || event.ctrlKey) &&
-          event.key.toLowerCase() === 'c' &&
-          composerMode === 'view' &&
-          !window.getSelection()?.toString(),
+        isCopyShortcut: true,
       })
 
       if (commandId && canRunPromptLibraryCommand(commandId, commandState)) {
