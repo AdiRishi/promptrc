@@ -1,12 +1,12 @@
 import { describe, expect, it, vi } from 'vitest'
 
-import { type RemotePromptLibraryStorage } from '@/features/prompt-library/persistence/prompt-library-storage'
-import { createPromptLibraryStore } from '@/features/prompt-library/store/prompt-library-store'
 import {
   acceptFreshPromptLibraryFirstSignInCopy,
   applyFreshPromptLibraryTransition,
   decideFreshPromptLibraryTransition,
-} from '@/features/prompt-library/sync/fresh-prompt-library-transition'
+} from '@/features/prompt-library/lifecycle/fresh-prompt-library-transition'
+import { type RemotePromptLibraryStorage } from '@/features/prompt-library/persistence/prompt-library-storage'
+import { createPromptLibraryStore } from '@/features/prompt-library/store/prompt-library-store'
 import {
   type PromptLibraryPersistedSnapshot,
   type PromptRecord,

@@ -6,7 +6,7 @@ import {
   assertPromptRecord,
   assertPromptRecords,
 } from '@/features/prompt-library/model/prompt-library-validation'
-import { createRemotePromptLibraryPersistence } from '@/features/prompt-library/persistence/remote-prompt-library-persistence'
+import { createRemotePromptLibraryPersistence } from '@/features/prompt-library/persistence/remote/remote-prompt-library-persistence'
 
 export {
   acceptFirstSignInCopyForUser,
@@ -22,7 +22,7 @@ export {
   savePromptForUser,
   seedPromptsForUser,
   upsertPromptForUser,
-} from '@/features/prompt-library/persistence/remote-prompt-library-persistence'
+} from '@/features/prompt-library/persistence/remote/remote-prompt-library-persistence'
 
 const getDatabase = async () => {
   const { env } = await import('cloudflare:workers')

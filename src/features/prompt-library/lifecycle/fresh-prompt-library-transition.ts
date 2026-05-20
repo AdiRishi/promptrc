@@ -2,7 +2,7 @@ import {
   createStarterPrompts,
   hasStarterPrompts,
 } from '@/features/prompt-library/model/starter-prompts'
-import { readLocalPromptLibrarySnapshot } from '@/features/prompt-library/persistence/local-prompt-library-storage'
+import { readLocalPromptLibrarySnapshot } from '@/features/prompt-library/persistence/local/local-prompt-library-storage'
 import { type PromptLibraryStorage } from '@/features/prompt-library/persistence/prompt-library-storage'
 import { type PromptLibraryStoreApi } from '@/features/prompt-library/store/prompt-library-store'
 import { type PromptLibraryPersistedSnapshot } from '@/features/prompt-library/types'

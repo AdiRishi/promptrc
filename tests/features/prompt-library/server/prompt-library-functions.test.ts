@@ -12,7 +12,7 @@ import {
   markPromptLibraryNotFreshForUser,
   seedPromptsForUser,
   upsertPromptForUser,
-} from '@/features/prompt-library/persistence/remote-prompt-library-persistence'
+} from '@/features/prompt-library/persistence/remote/remote-prompt-library-persistence'
 import { type PromptRecord } from '@/features/prompt-library/types'
 
 const createPrompt = (overrides: Partial<PromptRecord> = {}): PromptRecord => ({

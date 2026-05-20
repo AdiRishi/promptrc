@@ -6,11 +6,13 @@ import {
   createPromptDraft,
   createPromptRecordFromDraft,
   duplicatePromptRecord,
-  getExistingSelectedPromptId,
   incrementPromptRecordUses,
   updatePromptRecordFromDraft,
+} from '@/features/prompt-library/model/prompt-library-integrity'
+import {
+  getExistingSelectedPromptId,
   upsertPromptRecord,
-} from '@/features/prompt-library/model/prompt-library-records'
+} from '@/features/prompt-library/model/prompt-record-collection'
 import { getStartHerePrompt } from '@/features/prompt-library/model/starter-prompts'
 import {
   type ComposerState,

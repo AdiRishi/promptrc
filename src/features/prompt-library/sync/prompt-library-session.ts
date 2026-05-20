@@ -1,3 +1,4 @@
+import { makePromptLibraryReady } from '@/features/prompt-library/lifecycle/prompt-library-hydration'
 import {
   type LocalPromptLibraryStorage,
   type PromptLibraryStorage,
@@ -7,7 +8,6 @@ import {
   type PromptLibraryStoreApi,
   getPromptLibraryPersistedSnapshot,
 } from '@/features/prompt-library/store/prompt-library-store'
-import { makePromptLibraryReady } from '@/features/prompt-library/sync/prompt-library-lifecycle'
 
 type PromptLibrarySessionOptions = {
   storage: PromptLibraryStorage

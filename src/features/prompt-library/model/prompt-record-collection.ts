@@ -1,14 +1,5 @@
 import { type PromptRecord } from '@/features/prompt-library/types'
 
-export {
-  createInitialComposerState,
-  createPromptDraft,
-  createPromptRecordFromDraft,
-  duplicatePromptRecord,
-  incrementPromptRecordUses,
-  updatePromptRecordFromDraft,
-} from '@/features/prompt-library/model/prompt-library-integrity'
-
 export const getExistingSelectedPromptId = (
   prompts: PromptRecord[],
   selectedPromptId: string | null,

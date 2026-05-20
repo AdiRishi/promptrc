@@ -1,4 +1,8 @@
 import {
+  type FreshPromptLibraryTransitionOptions,
+  applyFreshPromptLibraryTransition,
+} from '@/features/prompt-library/lifecycle/fresh-prompt-library-transition'
+import {
   createStarterPrompts,
   hasStarterPrompts,
 } from '@/features/prompt-library/model/starter-prompts'
@@ -7,10 +11,6 @@ import {
   type PromptLibraryStorage,
 } from '@/features/prompt-library/persistence/prompt-library-storage'
 import { type PromptLibraryStoreApi } from '@/features/prompt-library/store/prompt-library-store'
-import {
-  type FreshPromptLibraryTransitionOptions,
-  applyFreshPromptLibraryTransition,
-} from '@/features/prompt-library/sync/fresh-prompt-library-transition'
 
 export const applyPromptLibraryHydrationResult = (
   store: PromptLibraryStoreApi,

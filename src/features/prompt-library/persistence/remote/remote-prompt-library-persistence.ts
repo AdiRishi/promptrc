@@ -2,7 +2,7 @@ import {
   copyPromptForRemoteLibrary,
   normalizePromptRecord,
 } from '@/features/prompt-library/model/prompt-library-integrity'
-import { createD1PromptLibraryAdapter } from '@/features/prompt-library/persistence/d1-prompt-library-adapter'
+import { createD1PromptLibraryAdapter } from '@/features/prompt-library/persistence/remote/d1-prompt-library-adapter'
 import {
   type PromptLibraryRemoteSnapshot,
   type PromptRecord,

@@ -1,10 +1,10 @@
-import { type PromptLibraryStorage } from '@/features/prompt-library/persistence/prompt-library-storage'
-import { type PromptLibraryStoreApi } from '@/features/prompt-library/store/prompt-library-store'
 import {
   acceptFreshPromptLibraryFirstSignInCopy,
   declineFreshPromptLibraryFirstSignInCopy,
-} from '@/features/prompt-library/sync/fresh-prompt-library-transition'
-import { makePromptLibraryReady } from '@/features/prompt-library/sync/prompt-library-lifecycle'
+} from '@/features/prompt-library/lifecycle/fresh-prompt-library-transition'
+import { makePromptLibraryReady } from '@/features/prompt-library/lifecycle/prompt-library-hydration'
+import { type PromptLibraryStorage } from '@/features/prompt-library/persistence/prompt-library-storage'
+import { type PromptLibraryStoreApi } from '@/features/prompt-library/store/prompt-library-store'
 import { type PromptRecord, type PromptSyncMode } from '@/features/prompt-library/types'
 
 export type PromptLibraryMutationResult<TValue> =
