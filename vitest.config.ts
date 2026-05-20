@@ -25,7 +25,7 @@ export default defineConfig({
           environment: 'jsdom',
           globals: true,
           include: ['tests/**/*.test.{ts,tsx}'],
-          exclude: ['tests/**/server/**/*.test.{ts,tsx}'],
+          exclude: ['tests/**/*.server.test.{ts,tsx}'],
         },
       },
       {
@@ -46,7 +46,7 @@ export default defineConfig({
         ],
         test: {
           name: 'cloudflare-server',
-          include: ['tests/**/server/**/*.test.{ts,tsx}'],
+          include: ['tests/**/*.server.test.{ts,tsx}'],
           setupFiles: ['tests/setup-cloudflare.ts'],
         },
       },
