@@ -3,9 +3,12 @@ import { describe, expect, it, vi } from 'vitest'
 import {
   acceptFreshPromptLibraryFirstSignInCopy,
   applyFreshPromptLibraryTransition,
-  decideFreshPromptLibraryTransition,
 } from '@/features/prompt-library/lifecycle/fresh-prompt-library-transition'
-import { type RemotePromptLibraryStorage } from '@/features/prompt-library/persistence/prompt-library-storage'
+import { STARTER_PROMPT_TITLES } from '@/features/prompt-library/model/starter-prompts'
+import {
+  type LocalPromptLibraryStorage,
+  type RemotePromptLibraryStorage,
+} from '@/features/prompt-library/persistence/prompt-library-storage'
 import { createPromptLibraryStore } from '@/features/prompt-library/store/prompt-library-store'
 import {
   type PromptLibraryPersistedSnapshot,
@@ -73,7 +76,37 @@ const createRemoteStorage = (
   ...overrides,
 })
 
+const createLocalStorage = (
+  overrides: Partial<LocalPromptLibraryStorage> = {},
+): LocalPromptLibraryStorage => ({
+  mode: 'local',
+  hydrate: () =>
+    Promise.resolve({
+      source: 'local',
+      snapshot: null,
+    }),
+  persistSnapshot: () => undefined,
+  reportError: (error) => (error instanceof Error ? error.message : 'sync failed'),
+  ...overrides,
+})
+
 describe('Fresh Prompt Library transition', () => {
+  it('seeds Starter Prompts into a local Fresh Prompt Library', async () => {
+    const store = createPromptLibraryStore()
+    const storage = createLocalStorage()
+
+    store.getState().actions.replacePrompts([], { isFresh: true })
+
+    await applyFreshPromptLibraryTransition(storage, store)
+
+    expect(store.getState().prompts.map((starterPrompt) => starterPrompt.title)).toEqual(
+      STARTER_PROMPT_TITLES,
+    )
+    expect(store.getState().selectedPromptId).toBe(store.getState().prompts[0]?.id)
+    expect(store.getState().isFresh).toBe(true)
+    expect(store.getState().firstSignInCopy.status).toBe('idle')
+  })
+
   it('offers First-Sign-In Copy before adding Starter Prompts', async () => {
     const store = createPromptLibraryStore()
     const addStarterPrompts = vi.fn((starterPrompts: PromptRecord[]) =>
@@ -124,6 +157,26 @@ describe('Fresh Prompt Library transition', () => {
     expect(store.getState().firstSignInCopy.status).toBe('idle')
   })
 
+  it('keeps First-Sign-In Copy retryable when the remote copy fails', async () => {
+    const store = createPromptLibraryStore()
+    const storage = createRemoteStorage({
+      acceptFirstSignInCopy: () => Promise.reject(new Error('D1 unavailable')),
+    })
+
+    store.getState().actions.offerFirstSignInCopy([prompt])
+
+    await expect(acceptFreshPromptLibraryFirstSignInCopy(storage, store)).rejects.toThrow(
+      'D1 unavailable',
+    )
+
+    expect(store.getState().prompts).toEqual([])
+    expect(store.getState().firstSignInCopy).toMatchObject({
+      status: 'error',
+      localPrompts: [prompt],
+      error: 'D1 unavailable',
+    })
+  })
+
   it('accepts First-Sign-In Copy through the transition interface', async () => {
     const store = createPromptLibraryStore()
     const copiedPrompt = { ...prompt, id: 'remote-prompt-alpha' }
@@ -141,16 +194,5 @@ describe('Fresh Prompt Library transition', () => {
       selectedPromptId: copiedPrompt.id,
     })
     expect(store.getState().firstSignInCopy.status).toBe('idle')
-  })
-
-  it('decides that a local Fresh Prompt Library should receive Starter Prompts', () => {
-    expect(
-      decideFreshPromptLibraryTransition({
-        isRemote: false,
-        localSnapshot: null,
-        prompts: [],
-        isFresh: true,
-      }),
-    ).toEqual({ type: 'add-starter-prompts' })
   })
 })
