@@ -2,6 +2,7 @@ import { Show, UserButton } from '@clerk/tanstack-react-start'
 import { Cloud, HardDrive, LogIn } from 'lucide-react'
 import { FaGithub } from 'react-icons/fa'
 
+import { TerminalChromeBar, TerminalTrafficLights } from '@/components/terminal-chrome'
 import { type PromptSyncMode, type PromptSyncStatus } from '@/features/prompt-library/types'
 import { SITE_GITHUB_URL } from '@/lib/site-config'
 
@@ -23,12 +24,8 @@ export function PromptTopBar({ promptCount, syncMode, syncStatus }: PromptTopBar
       : 'local'
 
   return (
-    <div className="relative z-10 flex min-h-[42px] items-center gap-[10px] border-b border-border bg-muted px-4 py-[8px]">
-      <div className="flex items-center gap-1.5" aria-hidden="true">
-        <span className="size-2.5 rounded-full bg-[rgb(255,95,87)]" />
-        <span className="size-2.5 rounded-full bg-[rgb(255,189,46)]" />
-        <span className="size-2.5 rounded-full bg-[rgb(40,200,64)]" />
-      </div>
+    <TerminalChromeBar>
+      <TerminalTrafficLights />
 
       <div className="ml-[14px] min-w-0 text-[12px] tracking-[0.05em] text-muted-foreground">
         <span className="font-medium text-foreground">~/.promptrc</span>{' '}
@@ -78,6 +75,6 @@ export function PromptTopBar({ promptCount, syncMode, syncStatus }: PromptTopBar
           />
         </Show>
       </div>
-    </div>
+    </TerminalChromeBar>
   )
 }
