@@ -1,3 +1,4 @@
+import { TerminalCommandFrame } from '@/components/terminal-chrome'
 import { Kbd } from '@/components/ui/kbd'
 
 type PromptCommandBarProps = {
@@ -21,8 +22,8 @@ export function PromptCommandBar({
 }: PromptCommandBarProps) {
   return (
     <>
-      <div
-        className="relative mb-5 flex items-center gap-2 border border-border bg-card px-4 py-3"
+      <TerminalCommandFrame
+        className="relative mb-5 flex items-center gap-2 text-[13px]"
         data-focused={searchFocused ? 'true' : 'false'}
       >
         <span className="font-semibold text-accent-foreground">~/.promptrc</span>
@@ -50,7 +51,7 @@ export function PromptCommandBar({
         </div>
 
         <Kbd>/</Kbd>
-      </div>
+      </TerminalCommandFrame>
 
       <div className="mb-4 text-[12px] text-muted-foreground">
         <span className="text-accent-foreground">[ok]</span> matched{' '}

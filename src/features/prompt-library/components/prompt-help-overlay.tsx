@@ -1,10 +1,12 @@
 import { useEffect, useRef } from 'react'
 
-import { Kbd, KbdGroup } from '@/components/ui/kbd'
+import { TerminalTrafficLights } from '@/components/terminal-chrome'
+import { Kbd } from '@/components/ui/kbd'
 import {
   PROMPT_LIBRARY_HELP_GROUPS,
   getPromptLibraryCommand,
 } from '@/features/prompt-library/commands/prompt-library-command-surface'
+import { PromptShortcutHelpRow } from '@/features/prompt-library/components/prompt-shortcut-row'
 
 type PromptHelpOverlayProps = {
   isOpen: boolean
@@ -48,11 +50,7 @@ export function PromptHelpOverlay({ isOpen, onClose }: PromptHelpOverlayProps) {
         tabIndex={-1}
       >
         <div className="flex items-center gap-2.5 border-b border-border bg-muted px-4 py-2.5">
-          <div aria-hidden="true" className="flex items-center gap-1.5">
-            <span className="size-2.5 rounded-full bg-[rgb(255,95,87)]" />
-            <span className="size-2.5 rounded-full bg-[rgb(255,189,46)]" />
-            <span className="size-2.5 rounded-full bg-[rgb(40,200,64)]" />
-          </div>
+          <TerminalTrafficLights />
           <h2
             className="ml-3 text-[12px] tracking-[0.05em] text-muted-foreground"
             id="prompt-help-title"
@@ -83,22 +81,7 @@ export function PromptHelpOverlay({ isOpen, onClose }: PromptHelpOverlayProps) {
 
               <ul className="flex flex-col gap-[3px]">
                 {getHelpRows(group).map((row) => (
-                  <li
-                    className="group grid grid-cols-[92px_1fr] items-center gap-4 rounded-[2px] px-1 py-[3px] transition-colors hover:bg-primary/8"
-                    key={row.label}
-                  >
-                    <KbdGroup className="flex-wrap justify-start gap-1">
-                      {row.keys.map((key) => (
-                        <Kbd className="min-w-[22px]" key={key}>
-                          {key}
-                        </Kbd>
-                      ))}
-                    </KbdGroup>
-
-                    <span className="text-[13px] text-foreground/85 transition-colors group-hover:text-foreground">
-                      {row.label}
-                    </span>
-                  </li>
+                  <PromptShortcutHelpRow key={row.label} keys={row.keys} label={row.label} />
                 ))}
               </ul>
             </section>

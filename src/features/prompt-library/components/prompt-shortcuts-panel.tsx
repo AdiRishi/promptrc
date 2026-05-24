@@ -1,4 +1,4 @@
-import { Kbd, KbdGroup } from '@/components/ui/kbd'
+import { PromptShortcutButtonRow } from '@/features/prompt-library/components/prompt-shortcut-row'
 
 export type PromptShortcutDefinition = {
   disabled: boolean
@@ -20,22 +20,13 @@ export function PromptShortcutsPanel({ shortcuts }: PromptShortcutsPanelProps) {
 
       <div className="flex flex-col gap-1">
         {shortcuts.map((shortcut) => (
-          <button
-            className="grid grid-cols-[74px_1fr] items-center gap-3 rounded-[4px] px-2 py-1.5 text-left transition-colors hover:bg-primary/8 active:bg-primary/14 disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:bg-transparent"
+          <PromptShortcutButtonRow
             disabled={shortcut.disabled}
             key={`${shortcut.label}-${shortcut.keys.join('-')}`}
             onClick={shortcut.action}
-            title="click, or press the shortcut"
-            type="button"
-          >
-            <KbdGroup className="flex-wrap gap-1">
-              {shortcut.keys.map((key) => (
-                <Kbd key={key}>{key}</Kbd>
-              ))}
-            </KbdGroup>
-
-            <span className="truncate text-[12px]">{shortcut.label}</span>
-          </button>
+            keys={shortcut.keys}
+            label={shortcut.label}
+          />
         ))}
       </div>
     </aside>
