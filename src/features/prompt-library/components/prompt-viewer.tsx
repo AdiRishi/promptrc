@@ -1,5 +1,17 @@
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  PromptNoteBody,
+  PromptNoteBodyMarker,
+  PromptNoteContent,
+  PromptNoteFooter,
+  PromptNoteHeader,
+  PromptNoteHeaderAside,
+  PromptNoteHeaderItems,
+  PromptNoteMetadata,
+  PromptNoteShell,
+  PromptNoteTitle,
+  PromptNoteTitleRow,
+} from '@/features/prompt-library/components/prompt-note-shell'
 import { PromptBodyMarkdown } from '@/features/prompt-library/rendering/prompt-body-markdown'
 import { relativeTime } from '@/features/prompt-library/rendering/prompt-library-formatting'
 import { type PromptRecord } from '@/features/prompt-library/types'
@@ -22,9 +34,9 @@ export function PromptViewer({
   onDeletePrompt,
 }: PromptViewerProps) {
   return (
-    <Card className="gap-0">
-      <CardHeader className="grid-cols-[1fr_auto] border-b border-border bg-card/95 py-3">
-        <div className="flex min-w-0 flex-wrap items-center gap-x-5 gap-y-1 text-[11px] text-muted-foreground">
+    <PromptNoteShell>
+      <PromptNoteHeader>
+        <PromptNoteHeaderItems>
           <span>
             <span className="text-primary">●</span> prompt
           </span>
@@ -34,22 +46,19 @@ export function PromptViewer({
               +{prompt.uses} {prompt.uses === 1 ? 'use' : 'uses'}
             </span>
           ) : null}
-        </div>
+        </PromptNoteHeaderItems>
 
-        <span
-          className="truncate text-[11px] text-muted-foreground"
-          title={new Date(prompt.updatedAt).toLocaleString()}
-        >
+        <PromptNoteHeaderAside title={new Date(prompt.updatedAt).toLocaleString()}>
           updated {relativeTime(prompt.updatedAt)}
-        </span>
-      </CardHeader>
+        </PromptNoteHeaderAside>
+      </PromptNoteHeader>
 
-      <CardContent className="px-8 py-7">
-        <CardTitle className="mb-[10px] text-[26px] leading-[1.15] font-semibold tracking-[-0.01em] before:mr-2 before:text-accent-foreground before:content-['>']">
-          {prompt.title}
-        </CardTitle>
+      <PromptNoteContent>
+        <PromptNoteTitleRow>
+          <PromptNoteTitle>{prompt.title}</PromptNoteTitle>
+        </PromptNoteTitleRow>
 
-        <div className="mb-6 flex flex-wrap gap-x-4 gap-y-2 text-[11px] text-muted-foreground">
+        <PromptNoteMetadata>
           <span>
             category:{' '}
             <span className="text-accent-foreground">{prompt.category.toLowerCase()}</span>
@@ -72,17 +81,15 @@ export function PromptViewer({
               {new Date(prompt.createdAt).toISOString().slice(0, 10)}
             </span>
           </span>
-        </div>
+        </PromptNoteMetadata>
 
-        <div className="relative border-l-2 border-l-primary bg-background px-5 py-5 text-[14px] leading-[1.75]">
-          <span className="absolute -top-2 left-3 bg-card px-2 text-[10px] tracking-[0.2em] text-accent-foreground">
-            // PROMPT
-          </span>
+        <PromptNoteBody>
+          <PromptNoteBodyMarker>// PROMPT</PromptNoteBodyMarker>
           <PromptBodyMarkdown body={prompt.body} />
-        </div>
-      </CardContent>
+        </PromptNoteBody>
+      </PromptNoteContent>
 
-      <CardFooter className="flex flex-wrap gap-2 px-8 pb-7">
+      <PromptNoteFooter>
         <Button onClick={onCopyPrompt} size="sm" type="button">
           Cmd+C - Copy Prompt Body
         </Button>
@@ -101,7 +108,7 @@ export function PromptViewer({
         >
           {confirmDeleteId === prompt.id ? 'press again to confirm' : 'Delete'}
         </Button>
-      </CardFooter>
-    </Card>
+      </PromptNoteFooter>
+    </PromptNoteShell>
   )
 }
