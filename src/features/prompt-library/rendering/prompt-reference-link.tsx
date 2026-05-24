@@ -9,6 +9,7 @@ import {
   Plug,
   Terminal,
 } from 'lucide-react'
+import { type ComponentProps } from 'react'
 import { FaGithub, FaReact } from 'react-icons/fa'
 import { SiJavascript, SiTypescript } from 'react-icons/si'
 
@@ -34,7 +35,11 @@ const fileIconByExtension = {
 
 const shellFileExtensions = new Set(['bash', 'fish', 'ps1', 'sh', 'zsh'])
 
-export function PromptReferenceLink({ token }: { token: PromptReferenceToken }) {
+type PromptReferenceLinkProps = ComponentProps<'span'> & {
+  token: PromptReferenceToken
+}
+
+export function PromptReferenceLink({ className, token, ...props }: PromptReferenceLinkProps) {
   const isGitHub = token.label.toLowerCase() === 'github'
   const Icon = referenceIconForToken(token, isGitHub)
   const label = referenceLabel(token)
@@ -47,7 +52,9 @@ export function PromptReferenceLink({ token }: { token: PromptReferenceToken }) 
         (token.kind === 'plugin' || token.kind === 'app') &&
           !isGitHub &&
           'text-[#6f7890] hover:text-[#9fcbff]',
+        className,
       )}
+      {...props}
     >
       <Icon
         aria-hidden="true"

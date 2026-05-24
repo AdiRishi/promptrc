@@ -1,7 +1,12 @@
-import { render, screen } from '@testing-library/react'
-import { describe, expect, it } from 'vitest'
+import { cleanup, render, screen } from '@testing-library/react'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { PromptBodyMarkdown } from '@/features/prompt-library/rendering/prompt-body-markdown'
+
+afterEach(() => {
+  cleanup()
+  window.getSelection()?.removeAllRanges()
+})
 
 describe('PromptBodyMarkdown', () => {
   it('renders CommonMark and GFM markdown elements with React components', () => {
@@ -30,9 +35,9 @@ const ok = true
     expect(screen.getByRole('link', { name: 'docs' }).getAttribute('href')).toBe(
       'https://example.com',
     )
-    expect(screen.getByText('bold').tagName).toBe('STRONG')
-    expect(screen.getByText('emphasis').tagName).toBe('EM')
-    expect(screen.getByText('stale').tagName).toBe('DEL')
+    expect(screen.getByText('bold').closest('strong')).toBeTruthy()
+    expect(screen.getByText('emphasis').closest('em')).toBeTruthy()
+    expect(screen.getByText('stale').closest('del')).toBeTruthy()
     expect(screen.getAllByRole('checkbox')).toHaveLength(2)
     expect(screen.getByRole('table')).toBeTruthy()
     expect(screen.getByText(/const ok = true/)).toBeTruthy()
@@ -88,4 +93,94 @@ const ok = true
     expect(document.querySelector('[aria-label="file: prompt-body-markdown.tsx"]')).toBeTruthy()
     expect(screen.getByText('prompt-body-markdown.tsx (line 42)')).toBeTruthy()
   })
+
+  it('copies the source markdown when rendered Prompt Body text is copied natively', () => {
+    const body =
+      'Paragraph with **bold**, [docs](https://example.com), and `inline`.\n\n- [x] Build passes'
+
+    render(<PromptBodyMarkdown body={body} />)
+
+    const markdown = document.querySelector('.prompt-markdown')
+
+    expect(markdown).toBeTruthy()
+    selectNodeContents(markdown!)
+
+    const clipboardData = copySelectedMarkdown()
+
+    expect(clipboardData.setData).toHaveBeenCalledWith('text/plain', body)
+    expect(clipboardData.setData).toHaveBeenCalledOnce()
+  })
+
+  it('copies markdown for the selected rendered inline content', () => {
+    render(
+      <PromptBodyMarkdown
+        body={'Paragraph with **bold**, [docs](https://example.com), and `inline`.'}
+      />,
+    )
+
+    selectNodeContents(screen.getByText('bold'))
+
+    expect(copySelectedMarkdown().setData).toHaveBeenCalledWith('text/plain', '**bold**')
+
+    selectNodeContents(screen.getByText('docs'))
+
+    expect(copySelectedMarkdown().setData).toHaveBeenCalledWith(
+      'text/plain',
+      '[docs](https://example.com)',
+    )
+  })
+
+  it('copies only a partial plain-text selection', () => {
+    render(<PromptBodyMarkdown body={'Paragraph with **bold**.'} />)
+
+    const textSpan = document.querySelector('[data-markdown-source-text]')
+    const textNode = textSpan?.firstChild
+
+    expect(textNode).toBeTruthy()
+    selectText(textNode!, 0, 'Paragraph'.length)
+
+    expect(copySelectedMarkdown().setData).toHaveBeenCalledWith('text/plain', 'Paragraph')
+  })
+
+  it('does not include a list marker when only list item text is selected', () => {
+    render(<PromptBodyMarkdown body={'1. this\n2. is\n3. awesome'} />)
+
+    selectNodeContents(screen.getByText('this'))
+
+    expect(copySelectedMarkdown().setData).toHaveBeenCalledWith('text/plain', 'this')
+  })
 })
+
+function selectNodeContents(node: Node) {
+  const selection = window.getSelection()
+  const range = document.createRange()
+
+  selection?.removeAllRanges()
+  range.selectNodeContents(node)
+  selection?.addRange(range)
+}
+
+function selectText(node: Node, startOffset: number, endOffset: number) {
+  const selection = window.getSelection()
+  const range = document.createRange()
+
+  selection?.removeAllRanges()
+  range.setStart(node, startOffset)
+  range.setEnd(node, endOffset)
+  selection?.addRange(range)
+}
+
+function copySelectedMarkdown() {
+  const clipboardData = {
+    setData: vi.fn(),
+  }
+  const event = new Event('copy', { bubbles: true, cancelable: true })
+
+  Object.defineProperty(event, 'clipboardData', {
+    value: clipboardData,
+  })
+
+  document.dispatchEvent(event)
+
+  return clipboardData
+}

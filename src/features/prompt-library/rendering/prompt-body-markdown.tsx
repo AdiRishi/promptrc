@@ -8,6 +8,10 @@ import {
   createPromptReferenceToken,
   shouldPreservePromptReferenceHref,
 } from '@/features/prompt-library/rendering/prompt-reference-tokens'
+import {
+  rehypeMarkdownCopySource,
+  useSelectedMarkdownCopy,
+} from '@/features/prompt-library/rendering/use-selected-markdown-copy'
 import { cn } from '@/lib/utils'
 
 type PromptBodyMarkdownProps = {
@@ -15,14 +19,18 @@ type PromptBodyMarkdownProps = {
 }
 
 const remarkPlugins = [remarkGfm, remarkBreaks]
+const rehypePlugins = [rehypeMarkdownCopySource]
 
 export const PromptBodyMarkdown = memo(function PromptBodyMarkdownComponent({
   body,
 }: PromptBodyMarkdownProps) {
+  const markdownRef = useSelectedMarkdownCopy<HTMLDivElement>(body)
+
   return (
-    <div className="prompt-markdown text-[14px] leading-[1.75] text-foreground">
+    <div ref={markdownRef} className="prompt-markdown text-[14px] leading-[1.75] text-foreground">
       <Markdown
         components={markdownComponents}
+        rehypePlugins={rehypePlugins}
         remarkPlugins={remarkPlugins}
         urlTransform={urlTransform}
       >
@@ -38,7 +46,7 @@ const markdownComponents = {
     const reference = href ? createPromptReferenceToken(rawLabel, href) : null
 
     if (reference) {
-      return <PromptReferenceLink token={reference} />
+      return <PromptReferenceLink token={reference} {...props} />
     }
 
     const isExternal = Boolean(href && /^https?:\/\//i.test(href))
