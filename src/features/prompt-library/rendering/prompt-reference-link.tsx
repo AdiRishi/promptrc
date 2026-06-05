@@ -9,6 +9,7 @@ import {
   Plug,
   Terminal,
 } from 'lucide-react'
+import { type CSSProperties } from 'react'
 import { FaGithub, FaReact } from 'react-icons/fa'
 import { SiJavascript, SiTypescript } from 'react-icons/si'
 
@@ -36,8 +37,11 @@ const shellFileExtensions = new Set(['bash', 'fish', 'ps1', 'sh', 'zsh'])
 
 export function PromptReferenceLink({ token }: { token: PromptReferenceToken }) {
   const isGitHub = token.label.toLowerCase() === 'github'
-  const Icon = referenceIconForToken(token, isGitHub)
+  const Icon = token.visual?.iconSrc ? null : referenceIconForToken(token, isGitHub)
   const label = referenceLabel(token)
+  const referenceStyle = token.visual?.textColor
+    ? ({ color: token.visual.textColor } satisfies CSSProperties)
+    : undefined
 
   return (
     <span
@@ -47,19 +51,36 @@ export function PromptReferenceLink({ token }: { token: PromptReferenceToken }) 
         (token.kind === 'plugin' || token.kind === 'app') &&
           !isGitHub &&
           'text-[#6f7890] hover:text-[#9fcbff]',
+        token.visual && 'text-current hover:brightness-125',
       )}
+      style={referenceStyle}
     >
-      <Icon
-        aria-hidden="true"
-        className={cn(
-          'size-[0.92em] shrink-0',
-          (token.kind === 'skill' || token.kind === 'file' || token.kind === 'directory') &&
-            'text-[#7eb6f2]',
-          (token.kind === 'plugin' || token.kind === 'app') && !isGitHub && 'text-current',
-          isGitHub && 'text-current',
-        )}
-        strokeWidth={token.kind === 'skill' ? 2.2 : 2}
-      />
+      {token.visual?.iconSrc ? (
+        <span
+          aria-hidden="true"
+          className="inline-grid size-[1.1em] shrink-0 place-items-center overflow-hidden rounded-[3px] bg-white shadow-[inset_0_0_0_1px_rgba(0,0,0,0.1)]"
+        >
+          <img
+            alt=""
+            className="size-[0.94em] object-contain"
+            decoding="async"
+            loading="lazy"
+            src={token.visual.iconSrc}
+          />
+        </span>
+      ) : Icon ? (
+        <Icon
+          aria-hidden="true"
+          className={cn(
+            'size-[0.92em] shrink-0',
+            (token.kind === 'skill' || token.kind === 'file' || token.kind === 'directory') &&
+              'text-[#7eb6f2]',
+            (token.kind === 'plugin' || token.kind === 'app') && !isGitHub && 'text-current',
+            isGitHub && 'text-current',
+          )}
+          strokeWidth={token.kind === 'skill' ? 2.2 : 2}
+        />
+      ) : null}
       <span className="min-w-0 truncate">{label}</span>
     </span>
   )

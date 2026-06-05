@@ -19,22 +19,84 @@ describe('prompt reference tokens', () => {
       rawLabel: '$to-prd',
       type: 'reference',
     })
-    expect(createPromptReferenceToken('@github', 'plugin://github@openai-curated')).toEqual({
+    expect(createPromptReferenceToken('@github', 'plugin://github@openai-curated')).toMatchObject({
       href: 'plugin://github@openai-curated',
       kind: 'plugin',
       label: 'GitHub',
       rawLabel: '@github',
       type: 'reference',
+      visual: {
+        brandColor: '#24292F',
+        iconSrc: '/codex-plugin-icons/github.svg',
+      },
+    })
+  })
+
+  it('uses OpenAI plugin metadata for Codex plugin references', () => {
+    expect(createPromptReferenceToken('@posthog', 'plugin://posthog@openai-curated')).toMatchObject(
+      {
+        href: 'plugin://posthog@openai-curated',
+        kind: 'plugin',
+        label: 'PostHog',
+        rawLabel: '@posthog',
+        type: 'reference',
+        visual: {
+          brandColor: '#1D4AFF',
+          iconSrc: '/codex-plugin-icons/posthog.svg',
+          textColor: '#1D4AFF',
+        },
+      },
+    )
+    expect(
+      createPromptReferenceToken('@cloudflare', 'plugin://cloudflare@openai-curated'),
+    ).toMatchObject({
+      label: 'Cloudflare',
+      visual: {
+        brandColor: '#F48120',
+        iconSrc: '/codex-plugin-icons/cloudflare.svg',
+      },
+    })
+    expect(createPromptReferenceToken('@expo', 'plugin://expo@openai-curated')).toMatchObject({
+      label: 'Expo',
+      visual: {
+        brandColor: '#000020',
+        iconSrc: '/codex-plugin-icons/expo.svg',
+      },
+    })
+    expect(createPromptReferenceToken('@Browser', 'plugin://browser@openai-bundled')).toMatchObject(
+      {
+        href: 'plugin://browser@openai-bundled',
+        kind: 'plugin',
+        label: 'Browser',
+        rawLabel: '@Browser',
+        type: 'reference',
+        visual: {
+          brandColor: '#013B7B',
+          iconSrc: '/codex-plugin-icons/browser.svg',
+          textColor: '#446E9D',
+        },
+      },
+    )
+    expect(createPromptReferenceToken('@unknown', 'plugin://unknown@local')).toEqual({
+      href: 'plugin://unknown@local',
+      kind: 'plugin',
+      label: 'Unknown',
+      rawLabel: '@unknown',
+      type: 'reference',
     })
   })
 
   it('classifies app, file, and directory references', () => {
-    expect(createPromptReferenceToken('GitHub', 'app://github')).toEqual({
+    expect(createPromptReferenceToken('GitHub', 'app://github')).toMatchObject({
       href: 'app://github',
       kind: 'app',
       label: 'GitHub',
       rawLabel: 'GitHub',
       type: 'reference',
+      visual: {
+        brandColor: '#24292F',
+        iconSrc: '/codex-plugin-icons/github.svg',
+      },
     })
     expect(
       createPromptReferenceToken(
@@ -66,19 +128,25 @@ describe('prompt reference tokens', () => {
   it('uses sensible defaults for URI labels, file URLs, columns, and trailing directories', () => {
     expect(
       createPromptReferenceToken('@browser-use', 'plugin://browser-use@openai-bundled'),
-    ).toEqual({
+    ).toMatchObject({
       href: 'plugin://browser-use@openai-bundled',
       kind: 'plugin',
       label: 'Browser',
       rawLabel: '@browser-use',
       type: 'reference',
+      visual: {
+        iconSrc: '/codex-plugin-icons/browser.svg',
+      },
     })
-    expect(createPromptReferenceToken('@computer-use', 'app://computer-use')).toEqual({
+    expect(createPromptReferenceToken('@computer-use', 'app://computer-use')).toMatchObject({
       href: 'app://computer-use',
       kind: 'app',
-      label: 'Computer',
+      label: 'Computer Use',
       rawLabel: '@computer-use',
       type: 'reference',
+      visual: {
+        iconSrc: '/codex-plugin-icons/computer-use.svg',
+      },
     })
     expect(
       createPromptReferenceToken(

@@ -69,10 +69,42 @@ const ok = true
     )
 
     expect(document.querySelector('[aria-label="plugin: Browser"]')).toBeTruthy()
-    expect(document.querySelector('[aria-label="app: Computer"]')).toBeTruthy()
+    expect(document.querySelector('[aria-label="app: Computer Use"]')).toBeTruthy()
     expect(document.querySelector('[aria-label="file: settings.json"]')).toBeTruthy()
     expect(document.querySelector('[aria-label="directory: src"]')).toBeTruthy()
     expect(screen.getByText('settings.json (line 12, column 4)')).toBeTruthy()
+  })
+
+  it('renders Codex plugin references with generated product SVG icons', () => {
+    render(
+      <PromptBodyMarkdown
+        body={
+          'Use [@posthog](plugin://posthog@openai-curated), [@cloudflare](plugin://cloudflare@openai-curated), [@expo](plugin://expo@openai-curated), and [@Browser](plugin://browser@openai-bundled).'
+        }
+      />,
+    )
+
+    const posthogReference = document.querySelector('[aria-label="plugin: PostHog"]')
+    const cloudflareReference = document.querySelector('[aria-label="plugin: Cloudflare"]')
+    const expoReference = document.querySelector('[aria-label="plugin: Expo"]')
+    const browserReference = document.querySelector('[aria-label="plugin: Browser"]')
+
+    expect(posthogReference?.querySelector('img')?.getAttribute('src')).toBe(
+      '/codex-plugin-icons/posthog.svg',
+    )
+    expect(cloudflareReference?.querySelector('img')?.getAttribute('src')).toBe(
+      '/codex-plugin-icons/cloudflare.svg',
+    )
+    expect(expoReference?.querySelector('img')?.getAttribute('src')).toBe(
+      '/codex-plugin-icons/expo.svg',
+    )
+    expect(browserReference?.querySelector('img')?.getAttribute('src')).toBe(
+      '/codex-plugin-icons/browser.svg',
+    )
+    expect(screen.getByText('PostHog')).toBeTruthy()
+    expect(screen.getByText('Cloudflare')).toBeTruthy()
+    expect(screen.getByText('Expo')).toBeTruthy()
+    expect(screen.getByText('Browser')).toBeTruthy()
   })
 
   it('keeps Windows drive-letter reference hrefs renderable', () => {
