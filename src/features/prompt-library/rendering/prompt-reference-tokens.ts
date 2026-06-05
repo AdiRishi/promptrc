@@ -1,4 +1,11 @@
+import {
+  type CodexPluginVisual,
+  getCodexPluginVisual,
+} from '@/features/prompt-library/rendering/codex-plugin-registry'
+
 export type PromptReferenceKind = 'app' | 'directory' | 'file' | 'plugin' | 'skill'
+
+export type PromptReferenceVisual = Omit<CodexPluginVisual, 'displayName'>
 
 export type PromptReferenceToken = {
   columnNumber?: number
@@ -8,6 +15,7 @@ export type PromptReferenceToken = {
   lineNumber?: number
   rawLabel: string
   type: 'reference'
+  visual?: PromptReferenceVisual
 }
 
 const WINDOWS_DRIVE_PATH_PATTERN = /^[A-Za-z]:[\\/]/
@@ -29,6 +37,11 @@ const preferredReferenceNames = {
   sharepoint: 'SharePoint',
   slack: 'Slack',
   teams: 'Teams',
+} as const
+
+const visualReferenceAliases = {
+  'browser-use': 'browser',
+  computer: 'computer-use',
 } as const
 
 export const createPromptReferenceToken = (
@@ -72,11 +85,14 @@ const createPluginReferenceToken = (trimmedLabel: string, rawLabel: string, href
     return null
   }
 
+  const referenceMetadata = codexPluginMetadataForReference(trimmedLabel, href)
+
   return referenceToken({
     href,
     kind: 'plugin',
-    label: humanizeReferenceLabel(trimmedLabel.slice(1), href),
+    label: referenceMetadata?.displayName ?? humanizeReferenceLabel(trimmedLabel.slice(1), href),
     rawLabel,
+    visual: referenceMetadata?.visual,
   })
 }
 
@@ -85,11 +101,16 @@ const createAppReferenceToken = (trimmedLabel: string, rawLabel: string, href: s
     return null
   }
 
+  const referenceMetadata = codexPluginMetadataForReference(trimmedLabel, href)
+
   return referenceToken({
     href,
     kind: 'app',
-    label: humanizeReferenceLabel(trimmedLabel.replace(/^@/, ''), href),
+    label:
+      referenceMetadata?.displayName ??
+      humanizeReferenceLabel(trimmedLabel.replace(/^@/, ''), href),
     rawLabel,
+    visual: referenceMetadata?.visual,
   })
 }
 
@@ -117,6 +138,7 @@ const referenceToken = ({
   label,
   lineNumber,
   rawLabel,
+  visual,
 }: Omit<PromptReferenceToken, 'type'>): PromptReferenceToken => {
   return {
     href,
@@ -126,7 +148,53 @@ const referenceToken = ({
     type: 'reference',
     ...(lineNumber ? { lineNumber } : {}),
     ...(columnNumber ? { columnNumber } : {}),
+    ...(visual ? { visual } : {}),
   }
+}
+
+const codexPluginMetadataForReference = (trimmedLabel: string, href: string) => {
+  const hrefName = referenceNameFromHref(href)
+  const visual =
+    (hrefName ? codexPluginVisualForReferenceName(hrefName) : undefined) ??
+    codexPluginVisualForReferenceName(trimmedLabel.replace(/^@/, ''))
+
+  if (!visual) {
+    return undefined
+  }
+
+  const referenceVisual: PromptReferenceVisual = {
+    ...(visual.brandColor ? { brandColor: visual.brandColor } : {}),
+    ...(visual.iconSrc ? { iconSrc: visual.iconSrc } : {}),
+    ...(visual.textColor ? { textColor: visual.textColor } : {}),
+  }
+
+  return {
+    displayName: visual.displayName,
+    visual: referenceVisual,
+  }
+}
+
+const codexPluginVisualForReferenceName = (value: string) => {
+  const directVisual = getCodexPluginVisual(value)
+
+  if (directVisual) {
+    return directVisual
+  }
+
+  const alias =
+    visualReferenceAliases[
+      normalizeReferenceLookupName(value) as keyof typeof visualReferenceAliases
+    ]
+
+  return alias ? getCodexPluginVisual(alias) : undefined
+}
+
+const normalizeReferenceLookupName = (value: string) => {
+  return value
+    .trim()
+    .replace(/^@/, '')
+    .replace(/[_\s]+/g, '-')
+    .toLowerCase()
 }
 
 const isSkillReference = (href: string) => {
