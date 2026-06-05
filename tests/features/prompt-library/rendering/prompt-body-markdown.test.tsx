@@ -79,7 +79,7 @@ const ok = true
     render(
       <PromptBodyMarkdown
         body={
-          'Use [@posthog](plugin://posthog@openai-curated), [@cloudflare](plugin://cloudflare@openai-curated), [@expo](plugin://expo@openai-curated), and [@Browser](plugin://browser@openai-bundled).'
+          'Use [@posthog](plugin://posthog@openai-curated), [@cloudflare](plugin://cloudflare@openai-curated), [@expo](plugin://expo@openai-curated), [@alpaca](plugin://alpaca@openai-curated), and [@Browser](plugin://browser@openai-bundled).'
         }
       />,
     )
@@ -87,6 +87,7 @@ const ok = true
     const posthogReference = document.querySelector('[aria-label="plugin: PostHog"]')
     const cloudflareReference = document.querySelector('[aria-label="plugin: Cloudflare"]')
     const expoReference = document.querySelector('[aria-label="plugin: Expo"]')
+    const alpacaReference = document.querySelector('[aria-label="plugin: Alpaca"]')
     const browserReference = document.querySelector('[aria-label="plugin: Browser"]')
 
     expect(posthogReference?.querySelector('img')?.getAttribute('src')).toBe(
@@ -98,12 +99,18 @@ const ok = true
     expect(expoReference?.querySelector('img')?.getAttribute('src')).toBe(
       '/codex-plugin-icons/expo.svg',
     )
+    expect(alpacaReference?.querySelector('img')?.getAttribute('src')).toBe(
+      '/codex-plugin-icons/alpaca.svg',
+    )
+    expect(alpacaReference?.className).toContain('text-[#6f7890]')
+    expect(alpacaReference?.className).not.toContain('text-current')
     expect(browserReference?.querySelector('img')?.getAttribute('src')).toBe(
       '/codex-plugin-icons/browser.svg',
     )
     expect(screen.getByText('PostHog')).toBeTruthy()
     expect(screen.getByText('Cloudflare')).toBeTruthy()
     expect(screen.getByText('Expo')).toBeTruthy()
+    expect(screen.getByText('Alpaca')).toBeTruthy()
     expect(screen.getByText('Browser')).toBeTruthy()
   })
 

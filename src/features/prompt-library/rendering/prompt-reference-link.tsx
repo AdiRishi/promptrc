@@ -51,7 +51,7 @@ export function PromptReferenceLink({ token }: { token: PromptReferenceToken }) 
         (token.kind === 'plugin' || token.kind === 'app') &&
           !isGitHub &&
           'text-[#6f7890] hover:text-[#9fcbff]',
-        token.visual && 'text-current hover:brightness-125',
+        token.visual?.textColor && 'text-current hover:brightness-125',
       )}
       style={referenceStyle}
     >
