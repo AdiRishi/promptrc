@@ -2,12 +2,6 @@
 import { tanstackConfig } from '@tanstack/eslint-config'
 import eslintConfigPrettier from 'eslint-config-prettier'
 
-const tanstackImportPlugin = tanstackConfig.find((config) => config.plugins?.import)?.plugins
-  ?.import
-const tanstackTypeScriptPlugin = tanstackConfig.find(
-  (config) => config.plugins?.['@typescript-eslint'],
-)?.plugins?.['@typescript-eslint']
-
 export default [
   ...tanstackConfig,
   {
@@ -31,10 +25,6 @@ export default [
         project: './tsconfig.eslint.json',
         tsconfigRootDir: import.meta.dirname,
       },
-    },
-    plugins: {
-      '@typescript-eslint': tanstackTypeScriptPlugin,
-      import: tanstackImportPlugin,
     },
     rules: {
       '@typescript-eslint/array-type': ['error', { default: 'array-simple' }],
