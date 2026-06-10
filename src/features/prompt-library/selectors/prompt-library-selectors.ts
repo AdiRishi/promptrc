@@ -100,8 +100,8 @@ const orderPromptsForTree = (prompts: PromptRecord[]) => {
   return [...prompts].sort(
     (left, right) =>
       comparePromptLibraryText(left.category, right.category) ||
+      comparePromptLibraryText(right.createdAt, left.createdAt) ||
       comparePromptLibraryText(left.title, right.title) ||
-      comparePromptLibraryText(left.createdAt, right.createdAt) ||
       comparePromptLibraryText(left.id, right.id),
   )
 }
