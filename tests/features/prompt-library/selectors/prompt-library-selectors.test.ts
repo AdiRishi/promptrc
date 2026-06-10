@@ -111,6 +111,47 @@ describe('prompt library selectors', () => {
     expect(visibleState.getPreviousPromptId()).toBe('prompt-workflow-alpha')
   })
 
+  it('sorts Prompts inside each folder by newest creation time', () => {
+    const prompts = [
+      createPrompt({
+        id: 'prompt-research-alpha',
+        title: 'Alpha',
+        category: 'Research',
+        createdAt: '2026-04-24T00:01:00.000Z',
+      }),
+      createPrompt({
+        id: 'prompt-research-zebra',
+        title: 'Zebra',
+        category: 'Research',
+        createdAt: '2026-04-24T00:03:00.000Z',
+      }),
+      createPrompt({
+        id: 'prompt-research-beta',
+        title: 'Beta',
+        category: 'Research',
+        createdAt: '2026-04-24T00:02:00.000Z',
+      }),
+    ]
+
+    const visibleState = selectPromptLibraryVisibleState({
+      prompts,
+      query: '',
+      selectedPromptId: 'prompt-research-alpha',
+    })
+
+    expect(visibleState.groupedPrompts.Research?.map((prompt) => prompt.id)).toEqual([
+      'prompt-research-zebra',
+      'prompt-research-beta',
+      'prompt-research-alpha',
+    ])
+    expect(visibleState.orderedPromptIds).toEqual([
+      'prompt-research-zebra',
+      'prompt-research-beta',
+      'prompt-research-alpha',
+    ])
+    expect(visibleState.getPreviousPromptId()).toBe('prompt-research-beta')
+  })
+
   it('keeps composer Category suggestions stable while preserving default Categories first', () => {
     const prompts = [
       createPrompt({ id: 'prompt-workflow', category: 'Workflow' }),
