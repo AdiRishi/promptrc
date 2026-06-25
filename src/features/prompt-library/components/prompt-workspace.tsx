@@ -20,6 +20,7 @@ type PromptWorkspaceProps = {
   composer: ComposerState
   emptyReason: 'no-prompts' | 'no-query-matches' | null
   filteredCount: number
+  hasActivePromptShare: boolean
   totalCount: number
   query: string
   confirmDeleteId: string | null
@@ -48,6 +49,7 @@ export function PromptWorkspace({
   composer,
   emptyReason,
   filteredCount,
+  hasActivePromptShare,
   totalCount,
   query,
   confirmDeleteId,
@@ -90,6 +92,7 @@ export function PromptWorkspace({
         <PromptViewer
           confirmDeleteId={confirmDeleteId}
           canSharePrompts={canSharePrompts}
+          hasActivePromptShare={hasActivePromptShare}
           prompt={activePrompt}
           onCopyPrompt={onCopyPrompt}
           onDeletePrompt={onDeletePrompt}

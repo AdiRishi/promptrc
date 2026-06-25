@@ -7,6 +7,7 @@ import { type PromptRecord } from '@/features/prompt-library/types'
 type PromptViewerProps = {
   prompt: PromptRecord
   canSharePrompts: boolean
+  hasActivePromptShare: boolean
   confirmDeleteId: string | null
   onCopyPrompt: () => void | Promise<void>
   onStartEdit: () => void
@@ -19,6 +20,7 @@ type PromptViewerProps = {
 export function PromptViewer({
   prompt,
   canSharePrompts,
+  hasActivePromptShare,
   confirmDeleteId,
   onCopyPrompt,
   onStartEdit,
@@ -42,15 +44,15 @@ export function PromptViewer({
             d - Duplicate
           </Button>
           {canSharePrompts ? (
-            <>
-              <Button onClick={onSharePrompt} size="sm" type="button" variant="outline">
-                <Share2 aria-hidden="true" className="size-3.5" />s - Share Link
-              </Button>
-              <Button onClick={onRevokePromptShare} size="sm" type="button" variant="outline">
-                <Link2Off aria-hidden="true" className="size-3.5" />
-                Revoke Link
-              </Button>
-            </>
+            <Button onClick={onSharePrompt} size="sm" type="button" variant="outline">
+              <Share2 aria-hidden="true" className="size-3.5" />s - Share Link
+            </Button>
+          ) : null}
+          {canSharePrompts && hasActivePromptShare ? (
+            <Button onClick={onRevokePromptShare} size="sm" type="button" variant="outline">
+              <Link2Off aria-hidden="true" className="size-3.5" />
+              Revoke Link
+            </Button>
           ) : null}
           <Button
             className="md:ml-auto"

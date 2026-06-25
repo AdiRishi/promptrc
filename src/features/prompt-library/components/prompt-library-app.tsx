@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useDeferredValue, useEffect, useMemo, useState } from 'react'
+import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react'
 
 import { runPromptLibraryCommand } from '@/features/prompt-library/commands/prompt-library-command-router'
 import {
@@ -28,6 +28,7 @@ import { PromptWorkspace } from '@/features/prompt-library/components/prompt-wor
 import { usePromptLibraryCommands } from '@/features/prompt-library/hooks/use-prompt-library-commands'
 import { usePromptLibraryHotkeys } from '@/features/prompt-library/hooks/use-prompt-library-hotkeys'
 import { selectPromptLibraryVisibleState } from '@/features/prompt-library/selectors/prompt-library-selectors'
+import { type PromptShareRecord } from '@/features/prompt-library/types'
 
 export function PromptLibraryApp() {
   return (
@@ -50,6 +51,9 @@ function PromptLibraryScreen() {
   const library = usePromptLibraryClient()
   const { searchInputRef, titleInputRef } = usePromptLibraryMeta()
   const [isHelpOpen, setIsHelpOpen] = useState(false)
+  const [activePromptShare, setActivePromptShare] = useState<PromptShareRecord | null>(null)
+  const activePromptIdRef = useRef<string | null>(null)
+  const shareLookupVersionRef = useRef(0)
   const toggleHelp = useCallback(() => setIsHelpOpen((open) => !open), [])
   const closeHelp = useCallback(() => setIsHelpOpen(false), [])
 
@@ -63,6 +67,8 @@ function PromptLibraryScreen() {
       }),
     [deferredQuery, prompts, selectedPromptId],
   )
+  const activePromptId = visibleState.activePrompt?.id ?? null
+  activePromptIdRef.current = activePromptId
 
   const {
     copyActivePrompt,
@@ -74,6 +80,24 @@ function PromptLibraryScreen() {
     shareActivePrompt,
     startEditActivePrompt,
   } = usePromptLibraryCommands()
+
+  const sharePrompt = useCallback(async () => {
+    const share = await shareActivePrompt()
+
+    if (share && share.promptId === activePromptIdRef.current) {
+      shareLookupVersionRef.current += 1
+      setActivePromptShare(share)
+    }
+  }, [shareActivePrompt])
+
+  const revokePromptShare = useCallback(async () => {
+    const result = await revokeActivePromptShare()
+
+    if (result && result.promptId === activePromptIdRef.current) {
+      shareLookupVersionRef.current += 1
+      setActivePromptShare(null)
+    }
+  }, [revokeActivePromptShare])
 
   const commandState = useMemo<PromptLibraryCommandState>(
     () => ({
@@ -97,7 +121,7 @@ function PromptLibraryScreen() {
         },
         selectNextPrompt: () => actions.selectPrompt(visibleState.getNextPromptId()),
         selectPreviousPrompt: () => actions.selectPrompt(visibleState.getPreviousPromptId()),
-        shareActivePrompt,
+        shareActivePrompt: sharePrompt,
         startEditActivePrompt,
         startNewPrompt: actions.startNew,
       })
@@ -108,7 +132,7 @@ function PromptLibraryScreen() {
       copyActivePrompt,
       deletePrompt,
       duplicatePrompt,
-      shareActivePrompt,
+      sharePrompt,
       visibleState,
       searchInputRef,
       startEditActivePrompt,
@@ -156,6 +180,31 @@ function PromptLibraryScreen() {
       window.clearTimeout(timeout)
     }
   }, [actions, confirmDeleteId])
+
+  useEffect(() => {
+    let ignore = false
+    const lookupVersion = shareLookupVersionRef.current + 1
+    shareLookupVersionRef.current = lookupVersion
+
+    if (!library.canSharePrompts || !activePromptId) {
+      setActivePromptShare(null)
+      return
+    }
+
+    setActivePromptShare(null)
+
+    void library.getPromptShare(activePromptId).then((result) => {
+      if (ignore || shareLookupVersionRef.current !== lookupVersion) {
+        return
+      }
+
+      setActivePromptShare(result.status === 'synced' ? result.value : null)
+    })
+
+    return () => {
+      ignore = true
+    }
+  }, [activePromptId, library])
 
   const shortcuts = useMemo<PromptShortcutDefinition[]>(
     () =>
@@ -208,15 +257,16 @@ function PromptLibraryScreen() {
           confirmDeleteId={confirmDeleteId}
           emptyReason={visibleState.emptyReason}
           filteredCount={visibleState.orderedPromptIds.length}
+          hasActivePromptShare={activePromptShare?.promptId === activePromptId}
           onCancelComposer={actions.cancelComposer}
           onCopyPrompt={copyActivePrompt}
           onDeletePrompt={deletePrompt}
           onDraftChange={actions.updateDraft}
           onDuplicatePrompt={duplicatePrompt}
-          onRevokePromptShare={revokeActivePromptShare}
+          onRevokePromptShare={revokePromptShare}
           onQueryChange={actions.setQuery}
           onSaveComposer={saveComposer}
-          onSharePrompt={shareActivePrompt}
+          onSharePrompt={sharePrompt}
           onStartEdit={startEditActivePrompt}
           onStartNew={actions.startNew}
           query={query}

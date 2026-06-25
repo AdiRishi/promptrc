@@ -2,7 +2,11 @@ import { filenameOf } from '@/features/prompt-library/rendering/prompt-library-f
 import { selectPromptLibraryVisibleState } from '@/features/prompt-library/selectors/prompt-library-selectors'
 import { type PromptLibraryStoreApi } from '@/features/prompt-library/store/prompt-library-store'
 import { type PromptLibraryClient } from '@/features/prompt-library/sync/prompt-library-client'
-import { type PromptRecord } from '@/features/prompt-library/types'
+import {
+  type PromptRecord,
+  type PromptShareRecord,
+  type PromptShareRevokeResult,
+} from '@/features/prompt-library/types'
 
 type PromptLibraryClipboard = {
   writeText: (value: string) => Promise<void>
@@ -88,23 +92,23 @@ export const createPromptLibraryCommandExecutor = ({
     notify(`copied -> ${activePrompt.title}`)
   }
 
-  const shareActivePrompt = async () => {
+  const shareActivePrompt = async (): Promise<PromptShareRecord | null> => {
     const activePrompt = getVisibleState().activePrompt
 
     if (!activePrompt) {
-      return
+      return null
     }
 
     if (!library.canSharePrompts) {
       notify('sign in to share prompts')
-      return
+      return null
     }
 
     const result = await library.createPromptShare(activePrompt.id)
 
     if (result.status === 'failed') {
       notifySyncFailure(result.message)
-      return
+      return null
     }
 
     const shareUrl = getShareUrl(result.value.id)
@@ -113,34 +117,38 @@ export const createPromptLibraryCommandExecutor = ({
       await clipboard.writeText(shareUrl)
     } catch {
       notify(`share link ready -> ${shareUrl}`)
-      return
+      return result.value
     }
 
     notify(`share link copied -> ${activePrompt.title}`)
+
+    return result.value
   }
 
-  const revokeActivePromptShare = async () => {
+  const revokeActivePromptShare = async (): Promise<PromptShareRevokeResult | null> => {
     const activePrompt = getVisibleState().activePrompt
 
     if (!activePrompt) {
-      return
+      return null
     }
 
     if (!library.canSharePrompts) {
       notify('sign in to share prompts')
-      return
+      return null
     }
 
     const result = await library.revokePromptShare(activePrompt.id)
 
     if (result.status === 'failed') {
       notifySyncFailure(result.message)
-      return
+      return null
     }
 
     notify(
       result.value.revoked ? `share link revoked -> ${activePrompt.title}` : 'no active share link',
     )
+
+    return result.value
   }
 
   const saveComposer = () => {

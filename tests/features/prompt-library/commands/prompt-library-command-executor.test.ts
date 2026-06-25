@@ -29,6 +29,7 @@ const createLibrary = (overrides: Partial<PromptLibraryClient> = {}): PromptLibr
     }),
   deletePrompt: () => Promise.resolve({ status: 'synced', value: undefined }),
   declineFirstSignInCopy: () => Promise.resolve(),
+  getPromptShare: () => Promise.resolve({ status: 'synced', value: null }),
   recordPromptUse: () => Promise.resolve({ status: 'synced', value: null }),
   reportError: (error) => (error instanceof Error ? error.message : 'sync failed'),
   revokePromptShare: () =>
@@ -122,8 +123,14 @@ describe('prompt library command executor', () => {
       store,
     })
 
-    await commands.shareActivePrompt()
-    await commands.revokeActivePromptShare()
+    await expect(commands.shareActivePrompt()).resolves.toMatchObject({
+      id: 'share-alpha',
+      promptId: prompt.id,
+    })
+    await expect(commands.revokeActivePromptShare()).resolves.toEqual({
+      promptId: prompt.id,
+      revoked: true,
+    })
 
     expect(createPromptShare).toHaveBeenCalledWith(prompt.id)
     expect(clipboard.writeText).toHaveBeenCalledWith('https://promptrc.app/share/share-alpha')

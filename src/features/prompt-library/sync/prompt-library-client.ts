@@ -30,6 +30,9 @@ export type PromptLibraryClient = {
   createPromptShare: (promptId: string) => Promise<PromptLibraryMutationResult<PromptShareRecord>>
   deletePrompt: (promptId: string) => Promise<PromptLibraryMutationResult<void>>
   declineFirstSignInCopy: () => Promise<void>
+  getPromptShare: (
+    promptId: string,
+  ) => Promise<PromptLibraryMutationResult<PromptShareRecord | null>>
   reportError: (error: unknown) => string
   revokePromptShare: (
     promptId: string,
@@ -106,6 +109,7 @@ export const createPromptLibraryClient = (
       createPromptShare: localShareUnavailable,
       deletePrompt: () => syncMutation(() => Promise.resolve()),
       declineFirstSignInCopy: noopFirstSignInCopyDecision,
+      getPromptShare: () => syncMutation(() => Promise.resolve(null)),
       reportError: storage.reportError,
       revokePromptShare: localShareUnavailable,
       savePrompt: (prompt) => syncMutation(() => Promise.resolve(prompt)),
@@ -121,6 +125,7 @@ export const createPromptLibraryClient = (
     createPromptShare: (promptId) => syncMutation(() => storage.createPromptShare(promptId)),
     deletePrompt: (promptId) => syncMutation(() => storage.deletePrompt(promptId)),
     declineFirstSignInCopy: () => declineFreshPromptLibraryFirstSignInCopy(storage, store),
+    getPromptShare: (promptId) => syncMutation(() => storage.getPromptShare(promptId)),
     reportError: storage.reportError,
     revokePromptShare: (promptId) => syncMutation(() => storage.revokePromptShare(promptId)),
     savePrompt: (prompt) => syncMutation(() => storage.savePrompt(prompt)),

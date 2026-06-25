@@ -12,7 +12,7 @@ export type PromptLibraryCommandRouter = {
   focusSearch: () => void
   selectNextPrompt: () => void
   selectPreviousPrompt: () => void
-  shareActivePrompt: () => void | Promise<void>
+  shareActivePrompt: () => void | Promise<unknown>
   startEditActivePrompt: () => void
   startNewPrompt: () => void
 }

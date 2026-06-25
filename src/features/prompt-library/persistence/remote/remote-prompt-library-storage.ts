@@ -13,6 +13,7 @@ import {
   declineRemoteFirstSignInCopy,
   deleteRemotePrompt,
   getRemotePromptLibrary,
+  getRemotePromptShare,
   incrementRemotePromptUses,
   revokeRemotePromptShare,
   upsertRemotePrompt,
@@ -29,6 +30,7 @@ export function useRemotePromptLibraryStorage(userId: string | null): RemoteProm
   const incrementPromptUses = useServerFn(incrementRemotePromptUses)
   const createPromptShare = useServerFn(createRemotePromptShare)
   const revokePromptShare = useServerFn(revokeRemotePromptShare)
+  const getPromptShare = useServerFn(getRemotePromptShare)
   const addStarterPrompts = useServerFn(addRemoteStarterPrompts)
   const acceptFirstSignInCopy = useServerFn(acceptRemoteFirstSignInCopy)
   const declineFirstSignInCopy = useServerFn(declineRemoteFirstSignInCopy)
@@ -67,6 +69,7 @@ export function useRemotePromptLibraryStorage(userId: string | null): RemoteProm
 
         return result
       },
+      getPromptShare: (promptId) => getPromptShare({ data: promptId }),
       hydrate: async () => ({
         source: 'remote',
         snapshot: await queryClient.fetchQuery({
@@ -97,6 +100,7 @@ export function useRemotePromptLibraryStorage(userId: string | null): RemoteProm
       createPromptShare,
       declineFirstSignInCopy,
       getPromptLibrary,
+      getPromptShare,
       incrementPromptUses,
       invalidatePrompts,
       queryClient,

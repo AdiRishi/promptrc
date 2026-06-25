@@ -82,6 +82,13 @@ const createRemoteStorage = (
       isFresh: false,
     }),
   deletePrompt: () => Promise.resolve(),
+  getPromptShare: (promptId) =>
+    Promise.resolve({
+      id: 'share-alpha',
+      promptId,
+      createdAt: '2026-04-24T00:01:00.000Z',
+      revokedAt: null,
+    }),
   hydrate: () =>
     Promise.resolve({
       source: 'remote',
@@ -217,8 +224,17 @@ describe('prompt library client', () => {
         revoked: true,
       }),
     )
+    const getPromptShare = vi.fn((promptId: string) =>
+      Promise.resolve({
+        id: 'share-alpha',
+        promptId,
+        createdAt: '2026-04-24T00:01:00.000Z',
+        revokedAt: null,
+      }),
+    )
     const storage = createRemoteStorage({
       createPromptShare,
+      getPromptShare,
       revokePromptShare,
     })
     const client = createPromptLibraryClient(storage, store)
@@ -239,7 +255,17 @@ describe('prompt library client', () => {
         revoked: true,
       },
     })
+    await expect(client.getPromptShare(prompt.id)).resolves.toEqual({
+      status: 'synced',
+      value: {
+        id: 'share-alpha',
+        promptId: prompt.id,
+        createdAt: '2026-04-24T00:01:00.000Z',
+        revokedAt: null,
+      },
+    })
     expect(createPromptShare).toHaveBeenCalledWith(prompt.id)
+    expect(getPromptShare).toHaveBeenCalledWith(prompt.id)
     expect(revokePromptShare).toHaveBeenCalledWith(prompt.id)
   })
 

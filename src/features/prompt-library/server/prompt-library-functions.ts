@@ -143,6 +143,15 @@ export const revokeRemotePromptShare = createServerFn({ method: 'POST' })
     return revokePromptShareForUser(db, extUserId, promptId)
   })
 
+export const getRemotePromptShare = createServerFn({ method: 'GET' })
+  .inputValidator(assertPromptId)
+  .handler(async ({ data: promptId }) => {
+    const extUserId = await requireUserId()
+    const db = await getDatabase()
+
+    return getActivePromptShareForUser(db, extUserId, promptId)
+  })
+
 export const getPublicRemotePromptShare = createServerFn({ method: 'GET' })
   .inputValidator(assertPromptShareId)
   .handler(async ({ data: shareId }) => {
