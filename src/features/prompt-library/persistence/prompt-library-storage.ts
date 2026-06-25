@@ -2,6 +2,8 @@ import {
   type PromptLibraryPersistedSnapshot,
   type PromptLibraryRemoteSnapshot,
   type PromptRecord,
+  type PromptShareRecord,
+  type PromptShareRevokeResult,
   type PromptSyncMode,
 } from '@/features/prompt-library/types'
 
@@ -29,10 +31,12 @@ export type RemotePromptLibraryStorage = PromptLibraryStorageBase & {
   mode: Extract<PromptSyncMode, 'remote'>
   acceptFirstSignInCopy: (prompts: PromptRecord[]) => Promise<PromptRecord[]>
   addStarterPrompts: (prompts: PromptRecord[]) => Promise<PromptRecord[]>
+  createPromptShare: (promptId: string) => Promise<PromptShareRecord>
   declineFirstSignInCopy: () => Promise<PromptLibraryRemoteSnapshot>
   deletePrompt: (promptId: string) => Promise<void>
   hydrate: () => Promise<Extract<PromptLibraryHydrationResult, { source: 'remote' }>>
   recordPromptUse: (promptId: string) => Promise<PromptRecord>
+  revokePromptShare: (promptId: string) => Promise<PromptShareRevokeResult>
   savePrompt: (prompt: PromptRecord) => Promise<PromptRecord>
 }
 

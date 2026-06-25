@@ -9,6 +9,24 @@ export type PromptRecord = {
   uses: number
 }
 
+export type PromptShareRecord = {
+  id: string
+  promptId: string
+  createdAt: string
+  revokedAt: string | null
+}
+
+export type PromptShareRevokeResult = {
+  promptId: string
+  revoked: boolean
+}
+
+export type PublicPromptShare = {
+  shareId: string
+  createdAt: string
+  prompt: PromptRecord
+}
+
 export type PromptSaveInput = {
   title: string
   body: string
