@@ -23,20 +23,37 @@ describe('prompt library command surface', () => {
   it('blocks Prompt commands while composing or without a visible Prompt', () => {
     expect(
       canRunPromptLibraryCommand('delete-prompt', {
+        canSharePrompts: true,
         composerMode: 'edit',
         hasActivePrompt: true,
       }),
     ).toBe(false)
     expect(
       canRunPromptLibraryCommand('copy-prompt-body', {
+        canSharePrompts: true,
         composerMode: 'view',
         hasActivePrompt: false,
       }),
     ).toBe(false)
     expect(
       canRunPromptLibraryCommand('new-prompt', {
+        canSharePrompts: false,
         composerMode: 'view',
         hasActivePrompt: false,
+      }),
+    ).toBe(true)
+    expect(
+      canRunPromptLibraryCommand('share-prompt', {
+        canSharePrompts: false,
+        composerMode: 'view',
+        hasActivePrompt: true,
+      }),
+    ).toBe(false)
+    expect(
+      canRunPromptLibraryCommand('share-prompt', {
+        canSharePrompts: true,
+        composerMode: 'view',
+        hasActivePrompt: true,
       }),
     ).toBe(true)
   })

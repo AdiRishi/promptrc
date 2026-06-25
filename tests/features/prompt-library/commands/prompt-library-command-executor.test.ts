@@ -18,12 +18,27 @@ const createPrompt = (overrides: Partial<PromptRecord> = {}): PromptRecord => ({
 })
 
 const createLibrary = (overrides: Partial<PromptLibraryClient> = {}): PromptLibraryClient => ({
+  canSharePrompts: false,
   mode: 'local',
   acceptFirstSignInCopy: () => Promise.resolve(),
+  createPromptShare: () =>
+    Promise.resolve({
+      status: 'failed',
+      message: 'Sign in to share prompts',
+      error: new Error('Sign in to share prompts'),
+    }),
   deletePrompt: () => Promise.resolve({ status: 'synced', value: undefined }),
   declineFirstSignInCopy: () => Promise.resolve(),
   recordPromptUse: () => Promise.resolve({ status: 'synced', value: null }),
   reportError: (error) => (error instanceof Error ? error.message : 'sync failed'),
+  revokePromptShare: () =>
+    Promise.resolve({
+      status: 'synced',
+      value: {
+        promptId: 'prompt-alpha',
+        revoked: false,
+      },
+    }),
   savePrompt: (prompt) => Promise.resolve({ status: 'synced', value: prompt }),
   sync: () => Promise.resolve(),
   ...overrides,
@@ -63,6 +78,58 @@ describe('prompt library command executor', () => {
     expect(recordPromptUse).toHaveBeenCalledWith(prompt.id)
     expect(store.getState().prompts[0]?.uses).toBe(1)
     expect(notify).toHaveBeenCalledWith('copied -> Alpha')
+  })
+
+  it('creates, copies, and revokes public share links for the active Prompt', async () => {
+    const prompt = createPrompt()
+    const store = createPromptLibraryStore()
+    const clipboard = { writeText: vi.fn(() => Promise.resolve()) }
+    const notify = vi.fn()
+    const createPromptShare = vi.fn(() =>
+      Promise.resolve({
+        status: 'synced' as const,
+        value: {
+          id: 'share-alpha',
+          promptId: prompt.id,
+          createdAt: '2026-04-24T00:01:00.000Z',
+          revokedAt: null,
+        },
+      }),
+    )
+    const revokePromptShare = vi.fn(() =>
+      Promise.resolve({
+        status: 'synced' as const,
+        value: {
+          promptId: prompt.id,
+          revoked: true,
+        },
+      }),
+    )
+
+    store.getState().actions.replacePrompts([prompt], { isFresh: false })
+    store.getState().actions.selectPrompt(prompt.id)
+
+    const commands = createPromptLibraryCommandExecutor({
+      clipboard,
+      getShareUrl: (shareId) => `https://promptrc.app/share/${shareId}`,
+      library: createLibrary({
+        canSharePrompts: true,
+        mode: 'remote',
+        createPromptShare,
+        revokePromptShare,
+      }),
+      notify,
+      store,
+    })
+
+    await commands.shareActivePrompt()
+    await commands.revokeActivePromptShare()
+
+    expect(createPromptShare).toHaveBeenCalledWith(prompt.id)
+    expect(clipboard.writeText).toHaveBeenCalledWith('https://promptrc.app/share/share-alpha')
+    expect(notify).toHaveBeenCalledWith('share link copied -> Alpha')
+    expect(revokePromptShare).toHaveBeenCalledWith(prompt.id)
+    expect(notify).toHaveBeenCalledWith('share link revoked -> Alpha')
   })
 
   it('saves a new Prompt through the Prompt Library client', async () => {

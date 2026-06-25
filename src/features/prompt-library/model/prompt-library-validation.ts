@@ -109,6 +109,20 @@ export const assertPromptId = (value: unknown) => {
   return promptId
 }
 
+export const assertPromptShareId = (value: unknown) => {
+  const shareId = assertString(value, 'shareId').trim()
+
+  if (!shareId) {
+    throw new Error('shareId is required')
+  }
+
+  if (shareId.length > 80) {
+    throw new Error('shareId is too long')
+  }
+
+  return shareId
+}
+
 const parsePersistedDraft = (value: unknown): PromptDraft => {
   if (!value || typeof value !== 'object') {
     return { ...EMPTY_PERSISTED_DRAFT }

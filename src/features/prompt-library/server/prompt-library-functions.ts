@@ -5,7 +5,14 @@ import {
   assertPromptId,
   assertPromptRecord,
   assertPromptRecords,
+  assertPromptShareId,
 } from '@/features/prompt-library/model/prompt-library-validation'
+import {
+  createPromptShareForUser,
+  getActivePromptShareForUser,
+  getPublicPromptShare,
+  revokePromptShareForUser,
+} from '@/features/prompt-library/persistence/remote/prompt-share-persistence'
 import { createRemotePromptLibraryPersistence } from '@/features/prompt-library/persistence/remote/remote-prompt-library-persistence'
 
 export {
@@ -23,6 +30,12 @@ export {
   seedPromptsForUser,
   upsertPromptForUser,
 } from '@/features/prompt-library/persistence/remote/remote-prompt-library-persistence'
+export {
+  createPromptShareForUser,
+  getActivePromptShareForUser,
+  getPublicPromptShare,
+  revokePromptShareForUser,
+}
 
 const getDatabase = async () => {
   const { env } = await import('cloudflare:workers')
@@ -110,4 +123,30 @@ export const incrementRemotePromptUses = createServerFn({ method: 'POST' })
     const promptLibrary = await getAuthenticatedPromptLibraryPersistence()
 
     return promptLibrary.recordPromptUse(promptId)
+  })
+
+export const createRemotePromptShare = createServerFn({ method: 'POST' })
+  .inputValidator(assertPromptId)
+  .handler(async ({ data: promptId }) => {
+    const extUserId = await requireUserId()
+    const db = await getDatabase()
+
+    return createPromptShareForUser(db, extUserId, promptId)
+  })
+
+export const revokeRemotePromptShare = createServerFn({ method: 'POST' })
+  .inputValidator(assertPromptId)
+  .handler(async ({ data: promptId }) => {
+    const extUserId = await requireUserId()
+    const db = await getDatabase()
+
+    return revokePromptShareForUser(db, extUserId, promptId)
+  })
+
+export const getPublicRemotePromptShare = createServerFn({ method: 'GET' })
+  .inputValidator(assertPromptShareId)
+  .handler(async ({ data: shareId }) => {
+    const db = await getDatabase()
+
+    return getPublicPromptShare(db, shareId)
   })

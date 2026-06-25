@@ -14,6 +14,7 @@ import { FirstSignInCopyDialog } from '@/features/prompt-library/components/firs
 import { PromptHelpOverlay } from '@/features/prompt-library/components/prompt-help-overlay'
 import {
   PromptLibraryProvider,
+  usePromptLibraryClient,
   usePromptLibraryMeta,
   usePromptLibraryStore,
 } from '@/features/prompt-library/components/prompt-library-provider'
@@ -46,6 +47,7 @@ function PromptLibraryScreen() {
   const syncMode = usePromptLibraryStore((state) => state.syncMode)
   const syncStatus = usePromptLibraryStore((state) => state.syncStatus)
   const actions = usePromptLibraryStore((state) => state.actions)
+  const library = usePromptLibraryClient()
   const { searchInputRef, titleInputRef } = usePromptLibraryMeta()
   const [isHelpOpen, setIsHelpOpen] = useState(false)
   const toggleHelp = useCallback(() => setIsHelpOpen((open) => !open), [])
@@ -66,17 +68,20 @@ function PromptLibraryScreen() {
     copyActivePrompt,
     deletePrompt,
     duplicatePrompt,
+    revokeActivePromptShare,
     saveComposer,
     selectPrompt,
+    shareActivePrompt,
     startEditActivePrompt,
   } = usePromptLibraryCommands()
 
   const commandState = useMemo<PromptLibraryCommandState>(
     () => ({
+      canSharePrompts: library.canSharePrompts,
       composerMode: composer.mode,
       hasActivePrompt: Boolean(visibleState.activePrompt),
     }),
-    [composer.mode, visibleState.activePrompt],
+    [composer.mode, library.canSharePrompts, visibleState.activePrompt],
   )
 
   const runCommand = useCallback(
@@ -92,6 +97,7 @@ function PromptLibraryScreen() {
         },
         selectNextPrompt: () => actions.selectPrompt(visibleState.getNextPromptId()),
         selectPreviousPrompt: () => actions.selectPrompt(visibleState.getPreviousPromptId()),
+        shareActivePrompt,
         startEditActivePrompt,
         startNewPrompt: actions.startNew,
       })
@@ -102,6 +108,7 @@ function PromptLibraryScreen() {
       copyActivePrompt,
       deletePrompt,
       duplicatePrompt,
+      shareActivePrompt,
       visibleState,
       searchInputRef,
       startEditActivePrompt,
@@ -195,6 +202,7 @@ function PromptLibraryScreen() {
 
         <PromptWorkspace
           activePrompt={visibleState.activePrompt}
+          canSharePrompts={library.canSharePrompts}
           categories={visibleState.categories}
           composer={composer}
           confirmDeleteId={confirmDeleteId}
@@ -205,8 +213,10 @@ function PromptLibraryScreen() {
           onDeletePrompt={deletePrompt}
           onDraftChange={actions.updateDraft}
           onDuplicatePrompt={duplicatePrompt}
+          onRevokePromptShare={revokeActivePromptShare}
           onQueryChange={actions.setQuery}
           onSaveComposer={saveComposer}
+          onSharePrompt={shareActivePrompt}
           onStartEdit={startEditActivePrompt}
           onStartNew={actions.startNew}
           query={query}

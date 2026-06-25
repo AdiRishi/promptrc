@@ -69,6 +69,13 @@ const createRemoteStorage = (
   mode: 'remote',
   acceptFirstSignInCopy: (prompts) => Promise.resolve(prompts),
   addStarterPrompts: (starterPrompts) => Promise.resolve(starterPrompts),
+  createPromptShare: (promptId) =>
+    Promise.resolve({
+      id: 'share-alpha',
+      promptId,
+      createdAt: '2026-04-24T00:01:00.000Z',
+      revokedAt: null,
+    }),
   declineFirstSignInCopy: () =>
     Promise.resolve({
       prompts: [],
@@ -90,6 +97,11 @@ const createRemoteStorage = (
       uses: prompt.uses + 1,
     }),
   reportError: (error) => (error instanceof Error ? error.message : 'sync failed'),
+  revokePromptShare: (promptId) =>
+    Promise.resolve({
+      promptId,
+      revoked: true,
+    }),
   savePrompt: (savedPrompt) => Promise.resolve(savedPrompt),
   ...overrides,
 })
@@ -116,6 +128,7 @@ describe('prompt library client', () => {
     }
     const client = createPromptLibraryClient(storage, store)
 
+    expect(client.canSharePrompts).toBe(false)
     await expect(client.savePrompt(prompt)).resolves.toEqual({
       status: 'synced',
       value: prompt,
@@ -168,6 +181,7 @@ describe('prompt library client', () => {
     })
     const client = createPromptLibraryClient(storage, store)
 
+    expect(client.canSharePrompts).toBe(true)
     await expect(client.savePrompt(prompt)).resolves.toEqual({
       status: 'synced',
       value: prompt,
@@ -185,6 +199,48 @@ describe('prompt library client', () => {
     expect(deletePrompt).toHaveBeenCalledWith(prompt.id)
     expect(recordPromptUse).toHaveBeenCalledWith(prompt.id)
     expect(store.getState().syncStatus).toBe('ready')
+  })
+
+  it('syncs Prompt share mutations through remote storage', async () => {
+    const store = createPromptLibraryStore()
+    const createPromptShare = vi.fn((promptId: string) =>
+      Promise.resolve({
+        id: 'share-alpha',
+        promptId,
+        createdAt: '2026-04-24T00:01:00.000Z',
+        revokedAt: null,
+      }),
+    )
+    const revokePromptShare = vi.fn((promptId: string) =>
+      Promise.resolve({
+        promptId,
+        revoked: true,
+      }),
+    )
+    const storage = createRemoteStorage({
+      createPromptShare,
+      revokePromptShare,
+    })
+    const client = createPromptLibraryClient(storage, store)
+
+    await expect(client.createPromptShare(prompt.id)).resolves.toEqual({
+      status: 'synced',
+      value: {
+        id: 'share-alpha',
+        promptId: prompt.id,
+        createdAt: '2026-04-24T00:01:00.000Z',
+        revokedAt: null,
+      },
+    })
+    await expect(client.revokePromptShare(prompt.id)).resolves.toEqual({
+      status: 'synced',
+      value: {
+        promptId: prompt.id,
+        revoked: true,
+      },
+    })
+    expect(createPromptShare).toHaveBeenCalledWith(prompt.id)
+    expect(revokePromptShare).toHaveBeenCalledWith(prompt.id)
   })
 
   it('keeps optimistic local changes and makes remote sync failures explicit', async () => {

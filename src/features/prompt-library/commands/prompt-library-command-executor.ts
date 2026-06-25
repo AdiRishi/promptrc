@@ -11,6 +11,7 @@ type PromptLibraryClipboard = {
 type PromptLibraryCommandExecutorOptions = {
   clipboard: PromptLibraryClipboard
   focusTitleInput?: () => void
+  getShareUrl?: (shareId: string) => string
   library: PromptLibraryClient
   notify: (message: string) => void
   store: PromptLibraryStoreApi
@@ -21,6 +22,7 @@ export type PromptLibraryCommandExecutor = ReturnType<typeof createPromptLibrary
 export const createPromptLibraryCommandExecutor = ({
   clipboard,
   focusTitleInput,
+  getShareUrl = (shareId) => `/share/${shareId}`,
   library,
   notify,
   store,
@@ -84,6 +86,61 @@ export const createPromptLibraryCommandExecutor = ({
     }
 
     notify(`copied -> ${activePrompt.title}`)
+  }
+
+  const shareActivePrompt = async () => {
+    const activePrompt = getVisibleState().activePrompt
+
+    if (!activePrompt) {
+      return
+    }
+
+    if (!library.canSharePrompts) {
+      notify('sign in to share prompts')
+      return
+    }
+
+    const result = await library.createPromptShare(activePrompt.id)
+
+    if (result.status === 'failed') {
+      notifySyncFailure(result.message)
+      return
+    }
+
+    const shareUrl = getShareUrl(result.value.id)
+
+    try {
+      await clipboard.writeText(shareUrl)
+    } catch {
+      notify(`share link ready -> ${shareUrl}`)
+      return
+    }
+
+    notify(`share link copied -> ${activePrompt.title}`)
+  }
+
+  const revokeActivePromptShare = async () => {
+    const activePrompt = getVisibleState().activePrompt
+
+    if (!activePrompt) {
+      return
+    }
+
+    if (!library.canSharePrompts) {
+      notify('sign in to share prompts')
+      return
+    }
+
+    const result = await library.revokePromptShare(activePrompt.id)
+
+    if (result.status === 'failed') {
+      notifySyncFailure(result.message)
+      return
+    }
+
+    notify(
+      result.value.revoked ? `share link revoked -> ${activePrompt.title}` : 'no active share link',
+    )
   }
 
   const saveComposer = () => {
@@ -163,8 +220,10 @@ export const createPromptLibraryCommandExecutor = ({
     copyActivePrompt,
     deletePrompt,
     duplicatePrompt,
+    revokeActivePromptShare,
     saveComposer,
     selectPrompt,
+    shareActivePrompt,
     startEditActivePrompt,
   }
 }

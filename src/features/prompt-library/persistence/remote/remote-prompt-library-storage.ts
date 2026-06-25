@@ -9,10 +9,12 @@ import {
 import {
   acceptRemoteFirstSignInCopy,
   addRemoteStarterPrompts,
+  createRemotePromptShare,
   declineRemoteFirstSignInCopy,
   deleteRemotePrompt,
   getRemotePromptLibrary,
   incrementRemotePromptUses,
+  revokeRemotePromptShare,
   upsertRemotePrompt,
 } from '@/features/prompt-library/server/prompt-library-functions'
 
@@ -25,6 +27,8 @@ export function useRemotePromptLibraryStorage(userId: string | null): RemoteProm
   const upsertPrompt = useServerFn(upsertRemotePrompt)
   const removePrompt = useServerFn(deleteRemotePrompt)
   const incrementPromptUses = useServerFn(incrementRemotePromptUses)
+  const createPromptShare = useServerFn(createRemotePromptShare)
+  const revokePromptShare = useServerFn(revokeRemotePromptShare)
   const addStarterPrompts = useServerFn(addRemoteStarterPrompts)
   const acceptFirstSignInCopy = useServerFn(acceptRemoteFirstSignInCopy)
   const declineFirstSignInCopy = useServerFn(declineRemoteFirstSignInCopy)
@@ -51,6 +55,7 @@ export function useRemotePromptLibraryStorage(userId: string | null): RemoteProm
 
         return savedPrompts
       },
+      createPromptShare: (promptId) => createPromptShare({ data: promptId }),
       deletePrompt: async (promptId) => {
         await removePrompt({ data: promptId })
         await invalidatePrompts()
@@ -77,6 +82,7 @@ export function useRemotePromptLibraryStorage(userId: string | null): RemoteProm
         return updatedPrompt
       },
       reportError: normalizeStorageError,
+      revokePromptShare: (promptId) => revokePromptShare({ data: promptId }),
       savePrompt: async (prompt) => {
         const savedPrompt = await upsertPrompt({ data: prompt })
 
@@ -88,6 +94,7 @@ export function useRemotePromptLibraryStorage(userId: string | null): RemoteProm
     [
       acceptFirstSignInCopy,
       addStarterPrompts,
+      createPromptShare,
       declineFirstSignInCopy,
       getPromptLibrary,
       incrementPromptUses,
@@ -95,6 +102,7 @@ export function useRemotePromptLibraryStorage(userId: string | null): RemoteProm
       queryClient,
       queryKey,
       removePrompt,
+      revokePromptShare,
       upsertPrompt,
     ],
   )

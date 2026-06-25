@@ -40,6 +40,7 @@ type HotkeyHarnessProps = {
 function HotkeyHarness({ onRunCommand }: HotkeyHarnessProps) {
   usePromptLibraryHotkeys({
     commandState: {
+      canSharePrompts: true,
       composerMode: 'view',
       hasActivePrompt: true,
     },
@@ -92,5 +93,21 @@ describe('usePromptLibraryHotkeys', () => {
 
     expect(event.defaultPrevented).toBe(true)
     expect(onRunCommand).toHaveBeenCalledWith('copy-prompt-body')
+  })
+
+  it('runs the share Prompt shortcut outside text inputs', () => {
+    const onRunCommand = vi.fn()
+    render(<HotkeyHarness onRunCommand={onRunCommand} />)
+
+    const event = new KeyboardEvent('keydown', {
+      bubbles: true,
+      cancelable: true,
+      key: 's',
+    })
+
+    window.dispatchEvent(event)
+
+    expect(event.defaultPrevented).toBe(true)
+    expect(onRunCommand).toHaveBeenCalledWith('share-prompt')
   })
 })

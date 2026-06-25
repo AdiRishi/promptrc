@@ -5,7 +5,12 @@ import {
 import { makePromptLibraryReady } from '@/features/prompt-library/lifecycle/prompt-library-hydration'
 import { type PromptLibraryStorage } from '@/features/prompt-library/persistence/prompt-library-storage'
 import { type PromptLibraryStoreApi } from '@/features/prompt-library/store/prompt-library-store'
-import { type PromptRecord, type PromptSyncMode } from '@/features/prompt-library/types'
+import {
+  type PromptRecord,
+  type PromptShareRecord,
+  type PromptShareRevokeResult,
+  type PromptSyncMode,
+} from '@/features/prompt-library/types'
 
 export type PromptLibraryMutationResult<TValue> =
   | {
@@ -19,11 +24,16 @@ export type PromptLibraryMutationResult<TValue> =
     }
 
 export type PromptLibraryClient = {
+  canSharePrompts: boolean
   mode: PromptSyncMode
   acceptFirstSignInCopy: () => Promise<void>
+  createPromptShare: (promptId: string) => Promise<PromptLibraryMutationResult<PromptShareRecord>>
   deletePrompt: (promptId: string) => Promise<PromptLibraryMutationResult<void>>
   declineFirstSignInCopy: () => Promise<void>
   reportError: (error: unknown) => string
+  revokePromptShare: (
+    promptId: string,
+  ) => Promise<PromptLibraryMutationResult<PromptShareRevokeResult>>
   savePrompt: (prompt: PromptRecord) => Promise<PromptLibraryMutationResult<PromptRecord>>
   sync: () => Promise<void>
   recordPromptUse: (promptId: string) => Promise<PromptLibraryMutationResult<PromptRecord | null>>
@@ -82,12 +92,22 @@ export const createPromptLibraryClient = (
   const noopFirstSignInCopyDecision = () => Promise.resolve()
 
   if (storage.mode === 'local') {
+    const localShareUnavailable = () =>
+      Promise.resolve({
+        status: 'failed',
+        message: 'Sign in to share prompts',
+        error: new Error('Sign in to share prompts'),
+      } satisfies PromptLibraryMutationResult<never>)
+
     return {
+      canSharePrompts: false,
       mode: storage.mode,
       acceptFirstSignInCopy: noopFirstSignInCopyDecision,
+      createPromptShare: localShareUnavailable,
       deletePrompt: () => syncMutation(() => Promise.resolve()),
       declineFirstSignInCopy: noopFirstSignInCopyDecision,
       reportError: storage.reportError,
+      revokePromptShare: localShareUnavailable,
       savePrompt: (prompt) => syncMutation(() => Promise.resolve(prompt)),
       sync,
       recordPromptUse: () => syncMutation(() => Promise.resolve(null)),
@@ -95,11 +115,14 @@ export const createPromptLibraryClient = (
   }
 
   return {
+    canSharePrompts: true,
     mode: storage.mode,
     acceptFirstSignInCopy: () => acceptFreshPromptLibraryFirstSignInCopy(storage, store),
+    createPromptShare: (promptId) => syncMutation(() => storage.createPromptShare(promptId)),
     deletePrompt: (promptId) => syncMutation(() => storage.deletePrompt(promptId)),
     declineFirstSignInCopy: () => declineFreshPromptLibraryFirstSignInCopy(storage, store),
     reportError: storage.reportError,
+    revokePromptShare: (promptId) => syncMutation(() => storage.revokePromptShare(promptId)),
     savePrompt: (prompt) => syncMutation(() => storage.savePrompt(prompt)),
     sync,
     recordPromptUse: (promptId) => syncMutation(() => storage.recordPromptUse(promptId)),

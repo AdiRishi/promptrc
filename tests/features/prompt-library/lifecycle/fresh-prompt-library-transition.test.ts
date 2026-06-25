@@ -51,6 +51,13 @@ const createRemoteStorage = (
   mode: 'remote',
   acceptFirstSignInCopy: (prompts) => Promise.resolve(prompts),
   addStarterPrompts: (starterPrompts) => Promise.resolve(starterPrompts),
+  createPromptShare: (promptId) =>
+    Promise.resolve({
+      id: 'share-alpha',
+      promptId,
+      createdAt: '2026-04-24T00:01:00.000Z',
+      revokedAt: null,
+    }),
   declineFirstSignInCopy: () =>
     Promise.resolve({
       prompts: [],
@@ -72,6 +79,11 @@ const createRemoteStorage = (
       uses: prompt.uses + 1,
     }),
   reportError: (error) => (error instanceof Error ? error.message : 'sync failed'),
+  revokePromptShare: (promptId) =>
+    Promise.resolve({
+      promptId,
+      revoked: true,
+    }),
   savePrompt: (savedPrompt) => Promise.resolve(savedPrompt),
   ...overrides,
 })

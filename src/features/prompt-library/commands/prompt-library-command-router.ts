@@ -12,6 +12,7 @@ export type PromptLibraryCommandRouter = {
   focusSearch: () => void
   selectNextPrompt: () => void
   selectPreviousPrompt: () => void
+  shareActivePrompt: () => void | Promise<void>
   startEditActivePrompt: () => void
   startNewPrompt: () => void
 }
@@ -42,6 +43,8 @@ export const getPromptLibraryKeyboardCommandId = ({
       return 'edit-prompt'
     case 'd':
       return 'duplicate-prompt'
+    case 's':
+      return 'share-prompt'
     case 'x':
       return 'delete-prompt'
     default:
@@ -81,6 +84,9 @@ export const runPromptLibraryCommand = (
       break
     case 'previous-prompt':
       router.selectPreviousPrompt()
+      break
+    case 'share-prompt':
+      void router.shareActivePrompt()
       break
     default:
       return false

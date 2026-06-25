@@ -20,6 +20,7 @@ export function usePromptLibraryCommands() {
           writeText: (value) => navigator.clipboard.writeText(value),
         },
         focusTitleInput: () => titleInputRef.current?.focus(),
+        getShareUrl: (shareId) => new URL(`/share/${shareId}`, window.location.origin).toString(),
         library,
         notify: toast,
         store,

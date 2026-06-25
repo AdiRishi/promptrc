@@ -4,7 +4,7 @@ import {
 } from '@/features/prompt-library/model/prompt-library-integrity'
 import { type PromptRecord } from '@/features/prompt-library/types'
 
-type PromptRow = {
+export type PromptRow = {
   id: string
   title: string
   body: string
@@ -19,7 +19,7 @@ type PromptLibraryStateRow = {
   is_fresh: number
 }
 
-const PROMPT_COLUMNS = 'id, title, body, category, tags_json, created_at, updated_at, uses'
+export const PROMPT_COLUMNS = 'id, title, body, category, tags_json, created_at, updated_at, uses'
 
 const UPSERT_PROMPT_SQL = `
   INSERT INTO prompts (
@@ -64,7 +64,7 @@ const decodePromptTags = (tagsJson: string) => {
   }
 }
 
-const rowToPrompt = (row: PromptRow): PromptRecord => ({
+export const rowToPrompt = (row: PromptRow): PromptRecord => ({
   id: row.id,
   title: row.title,
   body: row.body,

@@ -10,6 +10,7 @@ const createRouter = (overrides: Partial<PromptLibraryCommandRouter> = {}) => {
   const events: string[] = []
   const router: PromptLibraryCommandRouter = {
     commandState: {
+      canSharePrompts: true,
       composerMode: 'view',
       hasActivePrompt: true,
     },
@@ -31,6 +32,9 @@ const createRouter = (overrides: Partial<PromptLibraryCommandRouter> = {}) => {
     selectPreviousPrompt: () => {
       events.push('select-previous-prompt')
     },
+    shareActivePrompt: () => {
+      events.push('share-active-prompt')
+    },
     startEditActivePrompt: () => {
       events.push('start-edit-active-prompt')
     },
@@ -51,6 +55,7 @@ describe('prompt library command router', () => {
     ['k', false, 'previous-prompt'],
     ['e', false, 'edit-prompt'],
     ['d', false, 'duplicate-prompt'],
+    ['s', false, 'share-prompt'],
     ['x', false, 'delete-prompt'],
     ['c', true, 'copy-prompt-body'],
   ] as const)('maps keyboard intent %s to %s', (key, isCopyShortcut, commandId) => {
@@ -66,14 +71,21 @@ describe('prompt library command router', () => {
 
     expect(runPromptLibraryCommand('new-prompt', router)).toBe(true)
     expect(runPromptLibraryCommand('next-prompt', router)).toBe(true)
+    expect(runPromptLibraryCommand('share-prompt', router)).toBe(true)
     expect(runPromptLibraryCommand('copy-prompt-body', router)).toBe(true)
 
-    expect(events).toEqual(['start-new-prompt', 'select-next-prompt', 'copy-active-prompt'])
+    expect(events).toEqual([
+      'start-new-prompt',
+      'select-next-prompt',
+      'share-active-prompt',
+      'copy-active-prompt',
+    ])
   })
 
   it('does not run unavailable command ids', () => {
     const { events, router } = createRouter({
       commandState: {
+        canSharePrompts: true,
         composerMode: 'new',
         hasActivePrompt: true,
       },
@@ -86,6 +98,7 @@ describe('prompt library command router', () => {
   it('only runs prompt-independent commands without an active Prompt', () => {
     const { events, router } = createRouter({
       commandState: {
+        canSharePrompts: true,
         composerMode: 'view',
         hasActivePrompt: false,
       },
@@ -95,7 +108,21 @@ describe('prompt library command router', () => {
     expect(runPromptLibraryCommand('new-prompt', router)).toBe(true)
     expect(runPromptLibraryCommand('copy-prompt-body', router)).toBe(false)
     expect(runPromptLibraryCommand('next-prompt', router)).toBe(false)
+    expect(runPromptLibraryCommand('share-prompt', router)).toBe(false)
 
     expect(events).toEqual(['focus-search', 'start-new-prompt'])
+  })
+
+  it('does not run cloud-only commands without share support', () => {
+    const { events, router } = createRouter({
+      commandState: {
+        canSharePrompts: false,
+        composerMode: 'view',
+        hasActivePrompt: true,
+      },
+    })
+
+    expect(runPromptLibraryCommand('share-prompt', router)).toBe(false)
+    expect(events).toEqual([])
   })
 })

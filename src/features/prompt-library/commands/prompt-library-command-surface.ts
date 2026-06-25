@@ -9,16 +9,19 @@ export type PromptLibraryCommandId =
   | 'new-prompt'
   | 'next-prompt'
   | 'previous-prompt'
+  | 'share-prompt'
 
 type PromptLibraryCommand = {
   disabledWhileComposing?: boolean
   group: 'edit' | 'navigate'
   keys: string[]
   label: string
+  requiresCloud?: boolean
   requiresPrompt?: boolean
 }
 
 export type PromptLibraryCommandState = {
+  canSharePrompts: boolean
   composerMode: ComposerMode
   hasActivePrompt: boolean
 }
@@ -64,6 +67,14 @@ export const PROMPT_LIBRARY_COMMANDS: Record<PromptLibraryCommandId, PromptLibra
     keys: ['n'],
     label: 'new Prompt',
   },
+  'share-prompt': {
+    disabledWhileComposing: true,
+    group: 'edit',
+    keys: ['s'],
+    label: 'copy share link',
+    requiresCloud: true,
+    requiresPrompt: true,
+  },
   'next-prompt': {
     disabledWhileComposing: true,
     group: 'navigate',
@@ -88,6 +99,7 @@ export const PROMPT_LIBRARY_SHORTCUT_COMMAND_IDS = [
   'edit-prompt',
   'duplicate-prompt',
   'copy-prompt-body',
+  'share-prompt',
   'delete-prompt',
 ] satisfies PromptLibraryCommandId[]
 
@@ -103,6 +115,7 @@ export const PROMPT_LIBRARY_HELP_GROUPS = [
       'edit-prompt',
       'duplicate-prompt',
       'copy-prompt-body',
+      'share-prompt',
       'delete-prompt',
     ],
   },
@@ -126,6 +139,10 @@ export const canRunPromptLibraryCommand = (
   }
 
   if (command.requiresPrompt && !state.hasActivePrompt) {
+    return false
+  }
+
+  if (command.requiresCloud && !state.canSharePrompts) {
     return false
   }
 

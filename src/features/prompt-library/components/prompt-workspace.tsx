@@ -15,6 +15,7 @@ import { SITE_APP_HEADING } from '@/lib/site-config'
 
 type PromptWorkspaceProps = {
   activePrompt: PromptRecord | null
+  canSharePrompts: boolean
   categories: string[]
   composer: ComposerState
   emptyReason: 'no-prompts' | 'no-query-matches' | null
@@ -28,6 +29,8 @@ type PromptWorkspaceProps = {
   onCopyPrompt: () => void | Promise<void>
   onStartEdit: () => void
   onDuplicatePrompt: () => void
+  onSharePrompt: () => void | Promise<void>
+  onRevokePromptShare: () => void | Promise<void>
   onDeletePrompt: () => void
   onStartNew: () => void
   onCancelComposer: () => void
@@ -40,6 +43,7 @@ type PromptWorkspaceProps = {
 
 export function PromptWorkspace({
   activePrompt,
+  canSharePrompts,
   categories,
   composer,
   emptyReason,
@@ -53,6 +57,8 @@ export function PromptWorkspace({
   onCopyPrompt,
   onStartEdit,
   onDuplicatePrompt,
+  onSharePrompt,
+  onRevokePromptShare,
   onDeletePrompt,
   onStartNew,
   onCancelComposer,
@@ -83,10 +89,13 @@ export function PromptWorkspace({
       {composer.mode === 'view' && activePrompt ? (
         <PromptViewer
           confirmDeleteId={confirmDeleteId}
+          canSharePrompts={canSharePrompts}
           prompt={activePrompt}
           onCopyPrompt={onCopyPrompt}
           onDeletePrompt={onDeletePrompt}
           onDuplicatePrompt={onDuplicatePrompt}
+          onRevokePromptShare={onRevokePromptShare}
+          onSharePrompt={onSharePrompt}
           onStartEdit={onStartEdit}
         />
       ) : null}
