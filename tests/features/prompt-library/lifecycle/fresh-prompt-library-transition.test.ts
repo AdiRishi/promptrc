@@ -21,6 +21,7 @@ const prompt: PromptRecord = {
   body: 'Write a concise test plan.',
   category: 'Engineering',
   tags: ['testing'],
+  images: [],
   createdAt: '2026-04-24T00:00:00.000Z',
   updatedAt: '2026-04-24T00:00:00.000Z',
   uses: 0,
@@ -39,6 +40,7 @@ const createPersistedSnapshot = (
       title: '',
       category: '',
       body: '',
+      images: [],
       tagsInput: '',
     },
   },
@@ -92,6 +94,14 @@ const createRemoteStorage = (
       revoked: true,
     }),
   savePrompt: (savedPrompt) => Promise.resolve(savedPrompt),
+  uploadPromptImage: (upload) =>
+    Promise.resolve({
+      id: 'image-alpha',
+      fileName: upload.fileName,
+      contentType: upload.contentType,
+      size: 128,
+      createdAt: '2026-04-24T00:02:00.000Z',
+    }),
   ...overrides,
 })
 

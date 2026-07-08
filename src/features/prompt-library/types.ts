@@ -4,9 +4,24 @@ export type PromptRecord = {
   body: string
   category: string
   tags: string[]
+  images: PromptImage[]
   createdAt: string
   updatedAt: string
   uses: number
+}
+
+export type PromptImage = {
+  id: string
+  fileName: string
+  contentType: string
+  size: number
+  createdAt: string
+}
+
+export type PromptImageUploadInput = {
+  fileName: string
+  contentType: string
+  dataBase64: string
 }
 
 export type PromptShareRecord = {
@@ -32,12 +47,14 @@ export type PromptSaveInput = {
   body: string
   category: string
   tags: string[]
+  images: PromptImage[]
 }
 
 export type PromptDraft = {
   title: string
   category: string
   body: string
+  images: PromptImage[]
   tagsInput: string
 }
 

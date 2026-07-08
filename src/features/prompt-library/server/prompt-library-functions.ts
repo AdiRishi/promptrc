@@ -3,10 +3,17 @@ import { createServerFn } from '@tanstack/react-start'
 
 import {
   assertPromptId,
+  assertPromptImageUploadInput,
   assertPromptRecord,
   assertPromptRecords,
   assertPromptShareId,
 } from '@/features/prompt-library/model/prompt-library-validation'
+import {
+  getPromptImageObjectForUser,
+  getPublicPromptShareImageObject,
+  promptImageObjectToResponse,
+  uploadPromptImageForUser,
+} from '@/features/prompt-library/persistence/remote/prompt-image-persistence'
 import {
   createPromptShareForUser,
   getActivePromptShareForUser,
@@ -45,6 +52,17 @@ const getDatabase = async () => {
   }
 
   return env.DB
+}
+
+const getPromptImageBucket = async () => {
+  const { env } = await import('cloudflare:workers')
+  const bucket = (env as { PROMPT_IMAGES?: R2Bucket }).PROMPT_IMAGES
+
+  if (!bucket) {
+    throw new Error('R2 binding PROMPT_IMAGES is not configured')
+  }
+
+  return bucket
 }
 
 const requireUserId = async () => {
@@ -159,3 +177,28 @@ export const getPublicRemotePromptShare = createServerFn({ method: 'GET' })
 
     return getPublicPromptShare(db, shareId)
   })
+
+export const uploadRemotePromptImage = createServerFn({ method: 'POST' })
+  .inputValidator(assertPromptImageUploadInput)
+  .handler(async ({ data: upload }) => {
+    const extUserId = await requireUserId()
+    const bucket = await getPromptImageBucket()
+
+    return uploadPromptImageForUser(bucket, extUserId, upload)
+  })
+
+export const getAuthenticatedPromptImageResponse = async (imageId: string) => {
+  const extUserId = await requireUserId()
+  const bucket = await getPromptImageBucket()
+  const object = await getPromptImageObjectForUser(bucket, extUserId, imageId)
+
+  return promptImageObjectToResponse(object)
+}
+
+export const getPublicPromptShareImageResponse = async (shareId: string, imageId: string) => {
+  const db = await getDatabase()
+  const bucket = await getPromptImageBucket()
+  const object = await getPublicPromptShareImageObject(db, bucket, shareId, imageId)
+
+  return promptImageObjectToResponse(object)
+}

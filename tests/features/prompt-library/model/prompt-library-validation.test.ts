@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import {
   assertBoolean,
   assertPromptId,
+  assertPromptImageUploadInput,
   assertPromptRecord,
   assertPromptRecords,
   parsePromptLibraryPersistedSnapshot,
@@ -15,6 +16,7 @@ const prompt: PromptRecord = {
   body: 'Write a concise test plan.',
   category: 'Engineering',
   tags: ['testing'],
+  images: [],
   createdAt: '2026-04-24T00:00:00.000Z',
   updatedAt: '2026-04-24T00:00:00.000Z',
   uses: 0,
@@ -47,6 +49,13 @@ describe('prompt library validation', () => {
     expect(() => assertBoolean('true', 'isFresh')).toThrow('isFresh must be a boolean')
     expect(() => assertPromptRecords({ prompts: [prompt] })).toThrow('prompts must be an array')
     expect(() => assertPromptRecord({ ...prompt, title: '' })).toThrow('title is required')
+    expect(() =>
+      assertPromptImageUploadInput({
+        fileName: 'notes.txt',
+        contentType: 'text/plain',
+        dataBase64: 'abc',
+      }),
+    ).toThrow('image type is unsupported')
   })
 
   it('parses a valid persisted snapshot', () => {
@@ -61,6 +70,7 @@ describe('prompt library validation', () => {
           title: 'Alpha',
           category: 'Engineering',
           body: 'Draft body',
+          images: [],
           tagsInput: '#testing',
         },
       },
@@ -100,6 +110,7 @@ describe('prompt library validation', () => {
           title: 'Recovered title',
           category: '',
           body: '',
+          images: [],
           tagsInput: '',
         },
       },
@@ -115,6 +126,7 @@ describe('prompt library validation', () => {
         title: '',
         category: '',
         body: '',
+        images: [],
         tagsInput: '',
       },
     })

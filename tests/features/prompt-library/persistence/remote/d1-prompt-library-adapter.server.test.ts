@@ -1,9 +1,18 @@
 import { env } from 'cloudflare:workers'
 import { describe, expect, it } from 'vitest'
 
+import { createPromptImageMarkdown } from '@/features/prompt-library/model/prompt-images'
 import { DEFAULT_PROMPT_CATEGORY } from '@/features/prompt-library/model/prompt-library-integrity'
 import { createD1PromptLibraryAdapter } from '@/features/prompt-library/persistence/remote/d1-prompt-library-adapter'
-import { type PromptRecord } from '@/features/prompt-library/types'
+import { type PromptImage, type PromptRecord } from '@/features/prompt-library/types'
+
+const image = {
+  id: 'image-alpha',
+  fileName: 'diagram.png',
+  contentType: 'image/png',
+  size: 2048,
+  createdAt: '2026-04-24T00:01:00.000Z',
+} satisfies PromptImage
 
 const createPrompt = (overrides: Partial<PromptRecord> = {}): PromptRecord => ({
   id: 'prompt-alpha',
@@ -11,6 +20,7 @@ const createPrompt = (overrides: Partial<PromptRecord> = {}): PromptRecord => ({
   body: 'Write a concise test plan.',
   category: 'Engineering',
   tags: ['testing', 'd1'],
+  images: [],
   createdAt: '2026-04-24T00:00:00.000Z',
   updatedAt: '2026-04-24T00:00:00.000Z',
   uses: 0,
@@ -35,6 +45,7 @@ describe('D1 Prompt Library adapter', () => {
 
     expect(columns.find((column) => column.name === 'id')?.pk).toBe(1)
     expect(columns.find((column) => column.name === 'ext_user_id')?.pk).toBe(0)
+    expect(columns.find((column) => column.name === 'images_json')).toBeTruthy()
     expect(indexes.some((index) => index.name === 'idx_prompts_user_updated_at')).toBe(true)
     expect(stateColumns.find((column) => column.name === 'ext_user_id')?.pk).toBe(1)
     expect(stateColumns.find((column) => column.name === 'is_fresh')).toBeTruthy()
@@ -69,6 +80,24 @@ describe('D1 Prompt Library adapter', () => {
       {
         id: 'prompt-b',
         title: 'Beta',
+      },
+    ])
+  })
+
+  it('stores prompt image metadata with the Prompt row', async () => {
+    const userA = createD1PromptLibraryAdapter(env.DB, 'user_a')
+
+    await userA.addPrompts([
+      createPrompt({
+        body: createPromptImageMarkdown(image),
+        images: [image, { ...image, id: 'image-unused', fileName: 'unused.png' }],
+      }),
+    ])
+
+    await expect(userA.listPrompts()).resolves.toMatchObject([
+      {
+        id: 'prompt-alpha',
+        images: [image],
       },
     ])
   })

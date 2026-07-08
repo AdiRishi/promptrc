@@ -3,11 +3,14 @@
 import { useQuery } from '@tanstack/react-query'
 import { useServerFn } from '@tanstack/react-start'
 import { Copy } from 'lucide-react'
+import { useCallback } from 'react'
 import { toast } from 'sonner'
 
 import { TerminalChromeBar, TerminalTrafficLights } from '@/components/terminal-chrome'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { PromptNote } from '@/features/prompt-library/components/prompt-note'
+import { appendPromptImageCacheKey } from '@/features/prompt-library/model/prompt-images'
+import { type PromptImageUrlResolver } from '@/features/prompt-library/rendering/prompt-body-markdown'
 import { getPublicRemotePromptShare } from '@/features/prompt-library/server/prompt-library-functions'
 
 type SharedPromptPageProps = {
@@ -18,6 +21,14 @@ const getPromptShareQueryKey = (shareId: string) => ['prompt-share', shareId] as
 
 export function SharedPromptPage({ shareId }: SharedPromptPageProps) {
   const getSharedPrompt = useServerFn(getPublicRemotePromptShare)
+  const imageUrlFor = useCallback<PromptImageUrlResolver>(
+    (imageId, image) =>
+      appendPromptImageCacheKey(
+        `/api/shared-prompt-images/${encodeURIComponent(shareId)}/${encodeURIComponent(imageId)}`,
+        image,
+      ),
+    [shareId],
+  )
   const shareQuery = useQuery({
     queryKey: getPromptShareQueryKey(shareId),
     queryFn: () => getSharedPrompt({ data: shareId }),
@@ -77,6 +88,7 @@ export function SharedPromptPage({ shareId }: SharedPromptPageProps) {
 
         {shareQuery.data ? (
           <PromptNote
+            imageUrlFor={imageUrlFor}
             prompt={shareQuery.data.prompt}
             footer={
               <>

@@ -1,8 +1,9 @@
+import { normalizePromptImages } from '@/features/prompt-library/model/prompt-images'
 import {
   normalizePromptRecord,
   normalizePromptTags,
 } from '@/features/prompt-library/model/prompt-library-integrity'
-import { type PromptRecord } from '@/features/prompt-library/types'
+import { type PromptImage, type PromptRecord } from '@/features/prompt-library/types'
 
 export type PromptRow = {
   id: string
@@ -10,6 +11,7 @@ export type PromptRow = {
   body: string
   category: string
   tags_json: string
+  images_json: string
   created_at: string
   updated_at: string
   uses: number
@@ -19,7 +21,8 @@ type PromptLibraryStateRow = {
   is_fresh: number
 }
 
-export const PROMPT_COLUMNS = 'id, title, body, category, tags_json, created_at, updated_at, uses'
+export const PROMPT_COLUMNS =
+  'id, title, body, category, tags_json, images_json, created_at, updated_at, uses'
 
 const UPSERT_PROMPT_SQL = `
   INSERT INTO prompts (
@@ -29,16 +32,18 @@ const UPSERT_PROMPT_SQL = `
     body,
     category,
     tags_json,
+    images_json,
     created_at,
     updated_at,
     uses
   )
-  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   ON CONFLICT(id) DO UPDATE SET
     title = excluded.title,
     body = excluded.body,
     category = excluded.category,
     tags_json = excluded.tags_json,
+    images_json = excluded.images_json,
     updated_at = excluded.updated_at,
     uses = excluded.uses
   WHERE prompts.ext_user_id = excluded.ext_user_id
@@ -64,12 +69,23 @@ const decodePromptTags = (tagsJson: string) => {
   }
 }
 
+export const decodePromptImages = (imagesJson: string) => {
+  try {
+    const images = JSON.parse(imagesJson) as unknown
+
+    return Array.isArray(images) ? normalizePromptImages(images as PromptImage[]) : []
+  } catch {
+    return []
+  }
+}
+
 export const rowToPrompt = (row: PromptRow): PromptRecord => ({
   id: row.id,
   title: row.title,
   body: row.body,
   category: row.category,
   tags: decodePromptTags(row.tags_json),
+  images: decodePromptImages(row.images_json),
   createdAt: row.created_at,
   updatedAt: row.updated_at,
   uses: row.uses,
@@ -88,6 +104,7 @@ export const createD1PromptLibraryAdapter = (db: D1Database, extUserId: string) 
         normalizedPrompt.body,
         normalizedPrompt.category,
         JSON.stringify(normalizedPrompt.tags),
+        JSON.stringify(normalizedPrompt.images),
         normalizedPrompt.createdAt,
         normalizedPrompt.updatedAt,
         normalizedPrompt.uses,

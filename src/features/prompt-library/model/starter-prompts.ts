@@ -83,6 +83,7 @@ export const createStarterPrompts = (): PromptRecord[] => {
     return {
       ...prompt,
       id: generatePromptId(),
+      images: [],
       createdAt: timestamp,
       updatedAt: timestamp,
       uses: 0,

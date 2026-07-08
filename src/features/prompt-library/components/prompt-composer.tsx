@@ -1,3 +1,5 @@
+import { ImageIcon } from 'lucide-react'
+
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Kbd } from '@/components/ui/kbd'
@@ -17,6 +19,12 @@ import {
 import { filenameOf } from '@/features/prompt-library/rendering/prompt-library-formatting'
 import { type ComposerState, type PromptDraft } from '@/features/prompt-library/types'
 
+export type PromptImagePasteRequest = {
+  files: File[]
+  selectionEnd: number
+  selectionStart: number
+}
+
 type PromptComposerProps = {
   composer: ComposerState
   categories: string[]
@@ -27,6 +35,7 @@ type PromptComposerProps = {
     field: TFieldName,
     value: PromptDraft[TFieldName],
   ) => void
+  onPasteImages: (request: PromptImagePasteRequest) => void
 }
 
 export function PromptComposer({
@@ -36,12 +45,30 @@ export function PromptComposer({
   onCancelComposer,
   onSaveComposer,
   onDraftChange,
+  onPasteImages,
 }: PromptComposerProps) {
   const fileName =
     composer.mode === 'new'
       ? 'new.prompt.md'
       : `${filenameOf(composer.draft.title || 'untitled')}.md`
   const category = composer.draft.category.trim() || 'personal'
+  const imageCount = composer.draft.images.length
+
+  const handleBodyPaste = (event: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    const imageFiles = getClipboardImageFiles(event.clipboardData)
+
+    if (imageFiles.length === 0) {
+      return
+    }
+
+    event.preventDefault()
+
+    onPasteImages({
+      files: imageFiles,
+      selectionEnd: event.currentTarget.selectionEnd,
+      selectionStart: event.currentTarget.selectionStart,
+    })
+  }
 
   return (
     <PromptNoteShell>
@@ -107,6 +134,11 @@ export function PromptComposer({
           <span>
             state: <span className="text-primary">draft</span>
           </span>
+          {imageCount > 0 ? (
+            <span>
+              images: <span className="text-accent-foreground">{imageCount}</span>
+            </span>
+          ) : null}
         </PromptNoteMetadata>
 
         <PromptNoteBody>
@@ -115,9 +147,29 @@ export function PromptComposer({
             className="field-sizing-content min-h-[22rem] w-full resize-y bg-transparent p-0 text-[14px] leading-[1.75] text-foreground outline-none placeholder:text-muted-foreground/65 focus-visible:outline-1 focus-visible:outline-primary"
             id="prompt-body"
             onChange={(event) => onDraftChange('body', event.target.value)}
+            onPaste={handleBodyPaste}
             placeholder="Write the prompt body here..."
             value={composer.draft.body}
           />
+          {imageCount > 0 ? (
+            <div
+              aria-label="Draft images"
+              className="mt-5 grid gap-2 border-t border-dashed border-border pt-4 sm:grid-cols-2"
+            >
+              {composer.draft.images.map((image) => (
+                <div
+                  className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-2 border border-border bg-card/60 px-3 py-2 text-[11px]"
+                  key={image.id}
+                >
+                  <ImageIcon aria-hidden="true" className="size-3.5 text-accent-foreground" />
+                  <span className="min-w-0 truncate text-muted-foreground">
+                    <span className="text-foreground">{image.fileName}</span> ·{' '}
+                    {formatImageSize(image.size)}
+                  </span>
+                </div>
+              ))}
+            </div>
+          ) : null}
         </PromptNoteBody>
       </PromptNoteContent>
 
@@ -134,4 +186,25 @@ export function PromptComposer({
       </PromptNoteFooter>
     </PromptNoteShell>
   )
+}
+
+function getClipboardImageFiles(data: DataTransfer) {
+  const itemFiles = Array.from(data.items)
+    .filter((item) => item.kind === 'file' && item.type.startsWith('image/'))
+    .map((item) => item.getAsFile())
+    .filter((file): file is File => Boolean(file))
+
+  if (itemFiles.length > 0) {
+    return itemFiles
+  }
+
+  return Array.from(data.files).filter((file) => file.type.startsWith('image/'))
+}
+
+function formatImageSize(size: number) {
+  if (size < 1024 * 1024) {
+    return `${Math.max(1, Math.round(size / 1024))} KB`
+  }
+
+  return `${(size / (1024 * 1024)).toFixed(1)} MB`
 }

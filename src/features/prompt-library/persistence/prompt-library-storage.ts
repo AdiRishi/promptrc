@@ -1,4 +1,6 @@
 import {
+  type PromptImage,
+  type PromptImageUploadInput,
   type PromptLibraryPersistedSnapshot,
   type PromptLibraryRemoteSnapshot,
   type PromptRecord,
@@ -39,6 +41,7 @@ export type RemotePromptLibraryStorage = PromptLibraryStorageBase & {
   recordPromptUse: (promptId: string) => Promise<PromptRecord>
   revokePromptShare: (promptId: string) => Promise<PromptShareRevokeResult>
   savePrompt: (prompt: PromptRecord) => Promise<PromptRecord>
+  uploadPromptImage: (upload: PromptImageUploadInput) => Promise<PromptImage>
 }
 
 export type PromptLibraryStorage = LocalPromptLibraryStorage | RemotePromptLibraryStorage

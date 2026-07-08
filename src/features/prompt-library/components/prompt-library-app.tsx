@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react'
+import { toast } from 'sonner'
 
 import { runPromptLibraryCommand } from '@/features/prompt-library/commands/prompt-library-command-router'
 import {
@@ -11,6 +12,7 @@ import {
   getPromptLibraryCommand,
 } from '@/features/prompt-library/commands/prompt-library-command-surface'
 import { FirstSignInCopyDialog } from '@/features/prompt-library/components/first-sign-in-copy-dialog'
+import { type PromptImagePasteRequest } from '@/features/prompt-library/components/prompt-composer'
 import { PromptHelpOverlay } from '@/features/prompt-library/components/prompt-help-overlay'
 import {
   PromptLibraryProvider,
@@ -27,6 +29,13 @@ import { PromptTreePanel } from '@/features/prompt-library/components/prompt-tre
 import { PromptWorkspace } from '@/features/prompt-library/components/prompt-workspace'
 import { usePromptLibraryCommands } from '@/features/prompt-library/hooks/use-prompt-library-commands'
 import { usePromptLibraryHotkeys } from '@/features/prompt-library/hooks/use-prompt-library-hotkeys'
+import {
+  MAX_PROMPT_IMAGE_BYTES,
+  createPendingPromptImageMarkdown,
+  createPromptImageMarkdown,
+  isSupportedPromptImageContentType,
+  sanitizePromptImageFileName,
+} from '@/features/prompt-library/model/prompt-images'
 import { selectPromptLibraryVisibleState } from '@/features/prompt-library/selectors/prompt-library-selectors'
 import { type PromptShareRecord } from '@/features/prompt-library/types'
 
@@ -53,6 +62,7 @@ function PromptLibraryScreen() {
   const [isHelpOpen, setIsHelpOpen] = useState(false)
   const [activePromptShare, setActivePromptShare] = useState<PromptShareRecord | null>(null)
   const activePromptIdRef = useRef<string | null>(null)
+  const composerRef = useRef(composer)
   const shareLookupVersionRef = useRef(0)
   const toggleHelp = useCallback(() => setIsHelpOpen((open) => !open), [])
   const closeHelp = useCallback(() => setIsHelpOpen(false), [])
@@ -69,6 +79,7 @@ function PromptLibraryScreen() {
   )
   const activePromptId = visibleState.activePrompt?.id ?? null
   activePromptIdRef.current = activePromptId
+  composerRef.current = composer
 
   const {
     copyActivePrompt,
@@ -98,6 +109,87 @@ function PromptLibraryScreen() {
       setActivePromptShare(null)
     }
   }, [revokeActivePromptShare])
+
+  const pasteImages = useCallback(
+    (request: PromptImagePasteRequest) => {
+      if (!library.canUploadPromptImages) {
+        toast('sign in to add images')
+        return
+      }
+
+      const pendingUploads = request.files.flatMap((file) => {
+        const contentType = file.type.toLowerCase()
+
+        if (!isSupportedPromptImageContentType(contentType)) {
+          toast(`unsupported image type -> ${file.type || 'unknown'}`)
+          return []
+        }
+
+        if (file.size > MAX_PROMPT_IMAGE_BYTES) {
+          toast(`image too large -> ${sanitizePromptImageFileName(file.name)}`)
+          return []
+        }
+
+        const pendingId = crypto.randomUUID()
+        const fileName = sanitizePromptImageFileName(file.name)
+
+        return [
+          {
+            file,
+            fileName,
+            pendingMarkdown: createPendingPromptImageMarkdown(fileName, pendingId),
+          },
+        ]
+      })
+
+      if (pendingUploads.length === 0) {
+        return
+      }
+
+      const pendingMarkdown = pendingUploads.map((upload) => upload.pendingMarkdown).join('\n\n')
+      const draftBody = composerRef.current.draft.body
+
+      actions.updateDraft(
+        'body',
+        insertDraftBodyText(
+          draftBody,
+          pendingMarkdown,
+          request.selectionStart,
+          request.selectionEnd,
+        ),
+      )
+
+      toast(
+        pendingUploads.length === 1
+          ? `uploading image -> ${pendingUploads[0]?.fileName}`
+          : `uploading ${pendingUploads.length} images`,
+      )
+
+      for (const pendingUpload of pendingUploads) {
+        void uploadPastedImage(pendingUpload.file)
+          .then((upload) => library.uploadPromptImage(upload))
+          .then((result) => {
+            if (result.status === 'failed') {
+              actions.replaceDraftBodyText(pendingUpload.pendingMarkdown, '')
+              toast(`image upload failed - ${result.message}`)
+              return
+            }
+
+            actions.addDraftImage(result.value)
+            actions.replaceDraftBodyText(
+              pendingUpload.pendingMarkdown,
+              createPromptImageMarkdown(result.value),
+            )
+            toast(`image added -> ${result.value.fileName}`)
+          })
+          .catch((error: unknown) => {
+            actions.replaceDraftBodyText(pendingUpload.pendingMarkdown, '')
+            toast(`image upload failed - ${error instanceof Error ? error.message : 'try again'}`)
+          })
+      }
+    },
+    [actions, library],
+  )
 
   const commandState = useMemo<PromptLibraryCommandState>(
     () => ({
@@ -266,6 +358,7 @@ function PromptLibraryScreen() {
           onRevokePromptShare={revokePromptShare}
           onQueryChange={actions.setQuery}
           onSaveComposer={saveComposer}
+          onPasteImages={pasteImages}
           onSharePrompt={sharePrompt}
           onStartEdit={startEditActivePrompt}
           onStartNew={actions.startNew}
@@ -282,4 +375,42 @@ function PromptLibraryScreen() {
       <PromptHelpOverlay isOpen={isHelpOpen} onClose={closeHelp} />
     </div>
   )
+}
+
+function insertDraftBodyText(
+  body: string,
+  text: string,
+  selectionStart: number,
+  selectionEnd: number,
+) {
+  const beforeSelection = body.slice(0, selectionStart)
+  const afterSelection = body.slice(selectionEnd)
+  const leadingBreak = beforeSelection && !beforeSelection.endsWith('\n') ? '\n\n' : ''
+  const trailingBreak = afterSelection && !afterSelection.startsWith('\n') ? '\n\n' : ''
+
+  return `${beforeSelection}${leadingBreak}${text}${trailingBreak}${afterSelection}`
+}
+
+async function uploadPastedImage(file: File) {
+  const dataBase64 = await fileToBase64(file)
+
+  return {
+    fileName: sanitizePromptImageFileName(file.name),
+    contentType: file.type.toLowerCase(),
+    dataBase64,
+  }
+}
+
+async function fileToBase64(file: File) {
+  const dataUrl = await new Promise<string>((resolve, reject) => {
+    const reader = new FileReader()
+
+    reader.addEventListener('load', () => resolve(String(reader.result ?? '')))
+    reader.addEventListener('error', () =>
+      reject(reader.error ?? new Error('Unable to read image')),
+    )
+    reader.readAsDataURL(file)
+  })
+
+  return dataUrl.split(',')[1] ?? ''
 }

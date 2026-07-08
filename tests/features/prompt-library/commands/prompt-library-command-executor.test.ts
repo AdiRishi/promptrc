@@ -11,6 +11,7 @@ const createPrompt = (overrides: Partial<PromptRecord> = {}): PromptRecord => ({
   body: 'Write a concise test plan.',
   category: 'Engineering',
   tags: ['testing'],
+  images: [],
   createdAt: '2026-04-24T00:00:00.000Z',
   updatedAt: '2026-04-24T00:00:00.000Z',
   uses: 0,
@@ -19,6 +20,7 @@ const createPrompt = (overrides: Partial<PromptRecord> = {}): PromptRecord => ({
 
 const createLibrary = (overrides: Partial<PromptLibraryClient> = {}): PromptLibraryClient => ({
   canSharePrompts: false,
+  canUploadPromptImages: false,
   mode: 'local',
   acceptFirstSignInCopy: () => Promise.resolve(),
   createPromptShare: () =>
@@ -42,6 +44,12 @@ const createLibrary = (overrides: Partial<PromptLibraryClient> = {}): PromptLibr
     }),
   savePrompt: (prompt) => Promise.resolve({ status: 'synced', value: prompt }),
   sync: () => Promise.resolve(),
+  uploadPromptImage: () =>
+    Promise.resolve({
+      status: 'failed',
+      message: 'Sign in to add images',
+      error: new Error('Sign in to add images'),
+    }),
   ...overrides,
 })
 

@@ -1,10 +1,18 @@
 import {
+  MAX_PROMPT_IMAGE_BYTES,
+  isPromptImageId,
+  isSupportedPromptImageContentType,
+  normalizePromptImage,
+} from '@/features/prompt-library/model/prompt-images'
+import {
   normalizePromptCategory,
   normalizePromptTags,
 } from '@/features/prompt-library/model/prompt-library-integrity'
 import {
   type ComposerState,
   type PromptDraft,
+  type PromptImage,
+  type PromptImageUploadInput,
   type PromptLibraryPersistedSnapshot,
   type PromptRecord,
 } from '@/features/prompt-library/types'
@@ -13,6 +21,7 @@ const EMPTY_PERSISTED_DRAFT: PromptDraft = {
   title: '',
   category: '',
   body: '',
+  images: [],
   tagsInput: '',
 }
 
@@ -48,6 +57,50 @@ const assertStringArray = (value: unknown, fieldName: string) => {
   return value
 }
 
+const assertPromptImage = (value: unknown): PromptImage => {
+  const image = assertObject(value, 'image')
+  const id = assertString(image.id, 'image.id').trim()
+  const fileName = assertString(image.fileName, 'image.fileName')
+  const contentType = assertString(image.contentType, 'image.contentType').trim().toLowerCase()
+  const size = image.size
+
+  if (!isPromptImageId(id)) {
+    throw new Error('image.id is invalid')
+  }
+
+  if (!isSupportedPromptImageContentType(contentType)) {
+    throw new Error('image.contentType is unsupported')
+  }
+
+  if (typeof size !== 'number' || !Number.isInteger(size) || size <= 0) {
+    throw new Error('image.size must be a positive integer')
+  }
+
+  if (size > MAX_PROMPT_IMAGE_BYTES) {
+    throw new Error('image.size is too large')
+  }
+
+  return normalizePromptImage({
+    id,
+    fileName,
+    contentType,
+    size,
+    createdAt: assertString(image.createdAt, 'image.createdAt'),
+  })
+}
+
+const assertPromptImages = (value: unknown) => {
+  if (value === undefined) {
+    return []
+  }
+
+  if (!Array.isArray(value)) {
+    throw new Error('images must be an array')
+  }
+
+  return value.map(assertPromptImage)
+}
+
 export const assertPromptRecord = (value: unknown): PromptRecord => {
   const prompt = assertObject(value, 'prompt')
   const uses = prompt.uses
@@ -77,6 +130,7 @@ export const assertPromptRecord = (value: unknown): PromptRecord => {
     body,
     category: normalizePromptCategory(assertString(prompt.category, 'category')),
     tags: normalizePromptTags(assertStringArray(prompt.tags, 'tags')),
+    images: assertPromptImages(prompt.images),
     createdAt: assertString(prompt.createdAt, 'createdAt'),
     updatedAt: assertString(prompt.updatedAt, 'updatedAt'),
     uses,
@@ -123,6 +177,27 @@ export const assertPromptShareId = (value: unknown) => {
   return shareId
 }
 
+export const assertPromptImageUploadInput = (value: unknown): PromptImageUploadInput => {
+  const upload = assertObject(value, 'upload')
+  const fileName = assertString(upload.fileName, 'fileName')
+  const contentType = assertString(upload.contentType, 'contentType').trim().toLowerCase()
+  const dataBase64 = assertString(upload.dataBase64, 'dataBase64')
+
+  if (!isSupportedPromptImageContentType(contentType)) {
+    throw new Error('image type is unsupported')
+  }
+
+  if (!dataBase64) {
+    throw new Error('image data is required')
+  }
+
+  return {
+    fileName,
+    contentType,
+    dataBase64,
+  }
+}
+
 const parsePersistedDraft = (value: unknown): PromptDraft => {
   if (!value || typeof value !== 'object') {
     return { ...EMPTY_PERSISTED_DRAFT }
@@ -134,6 +209,15 @@ const parsePersistedDraft = (value: unknown): PromptDraft => {
     title: typeof draft.title === 'string' ? draft.title : '',
     category: typeof draft.category === 'string' ? draft.category : '',
     body: typeof draft.body === 'string' ? draft.body : '',
+    images: Array.isArray(draft.images)
+      ? draft.images.flatMap((image) => {
+          try {
+            return [assertPromptImage(image)]
+          } catch {
+            return []
+          }
+        })
+      : [],
     tagsInput: typeof draft.tagsInput === 'string' ? draft.tagsInput : '',
   }
 }

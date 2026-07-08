@@ -17,6 +17,7 @@ import { getStartHerePrompt } from '@/features/prompt-library/model/starter-prom
 import {
   type ComposerState,
   type PromptDraft,
+  type PromptImage,
   type PromptLibraryPersistedSnapshot,
   type PromptRecord,
   type PromptSyncMode,
@@ -104,6 +105,8 @@ export type PromptLibraryActions = {
     field: TFieldName,
     value: PromptDraft[TFieldName],
   ) => void
+  addDraftImage: (image: PromptImage) => void
+  replaceDraftBodyText: (search: string, replacement: string) => void
   cancelComposer: () => void
   saveComposer: () => SaveComposerResult
   duplicatePrompt: (promptId: string) => PromptRecord | null
@@ -276,6 +279,46 @@ export const createPromptLibraryStore = () => {
             },
           },
         }))
+      },
+      addDraftImage: (image) => {
+        set((state) => {
+          if (state.composer.mode === 'view') {
+            return state
+          }
+
+          const images = state.composer.draft.images.some(
+            (draftImage) => draftImage.id === image.id,
+          )
+            ? state.composer.draft.images
+            : [...state.composer.draft.images, image]
+
+          return {
+            composer: {
+              ...state.composer,
+              draft: {
+                ...state.composer.draft,
+                images,
+              },
+            },
+          }
+        })
+      },
+      replaceDraftBodyText: (search, replacement) => {
+        set((state) => {
+          if (state.composer.mode === 'view' || !state.composer.draft.body.includes(search)) {
+            return state
+          }
+
+          return {
+            composer: {
+              ...state.composer,
+              draft: {
+                ...state.composer.draft,
+                body: state.composer.draft.body.replace(search, replacement),
+              },
+            },
+          }
+        })
       },
       cancelComposer: () => {
         set({

@@ -1,7 +1,20 @@
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 
-import { PromptBodyMarkdown } from '@/features/prompt-library/rendering/prompt-body-markdown'
+import { createPromptImageMarkdown } from '@/features/prompt-library/model/prompt-images'
+import {
+  PromptBodyMarkdown,
+  PromptImageAttachments,
+} from '@/features/prompt-library/rendering/prompt-body-markdown'
+import { type PromptImage } from '@/features/prompt-library/types'
+
+const image = {
+  id: 'image-alpha',
+  fileName: 'diagram.png',
+  contentType: 'image/png',
+  size: 2048,
+  createdAt: '2026-04-24T00:00:00.000Z',
+} satisfies PromptImage
 
 describe('PromptBodyMarkdown', () => {
   it('renders CommonMark and GFM markdown elements with React components', () => {
@@ -126,5 +139,50 @@ const ok = true
     expect(screen.queryByRole('link')).toBeNull()
     expect(document.querySelector('[aria-label="file: prompt-body-markdown.tsx"]')).toBeTruthy()
     expect(screen.getByText('prompt-body-markdown.tsx (line 42)')).toBeTruthy()
+  })
+
+  it('renders prompt image tokens with private image URLs', () => {
+    render(
+      <PromptBodyMarkdown
+        body={`Paragraph one.\n\n${createPromptImageMarkdown(image)}\n\nParagraph two.`}
+        imageUrlFor={(imageId) => `/images/${imageId}`}
+        images={[image]}
+      />,
+    )
+
+    const inlineImage = screen.getByRole('img', { name: 'diagram.png' })
+
+    expect(inlineImage.getAttribute('src')).toBe('/images/image-alpha')
+    expect(inlineImage.getAttribute('loading')).toBe('eager')
+    expect(screen.getByText('Paragraph one.')).toBeTruthy()
+    expect(screen.getByText('Paragraph two.')).toBeTruthy()
+  })
+
+  it('versions default prompt image URLs from image metadata', () => {
+    render(<PromptBodyMarkdown body={createPromptImageMarkdown(image)} images={[image]} />)
+
+    const inlineImage = screen.getByRole('img', { name: 'diagram.png' })
+    const expectedImageUrl = '/api/prompt-images/image-alpha?v=2026-04-24T00%3A00%3A00.000Z-2048'
+
+    expect(inlineImage.getAttribute('src')).toBe(expectedImageUrl)
+    expect(inlineImage.getAttribute('loading')).toBe('eager')
+  })
+
+  it('renders missing prompt image tokens as inline placeholders', () => {
+    render(<PromptBodyMarkdown body="![missing](prompt-image://image-missing)" images={[]} />)
+
+    expect(screen.getByText('image unavailable')).toBeTruthy()
+  })
+
+  it('renders the attached image list at the end of a prompt', () => {
+    const { container } = render(
+      <PromptImageAttachments imageUrlFor={(imageId) => `/images/${imageId}`} images={[image]} />,
+    )
+
+    expect(screen.getByLabelText('Prompt images')).toBeTruthy()
+    expect(screen.getByText('diagram.png')).toBeTruthy()
+    expect(screen.getByText('2 KB')).toBeTruthy()
+    expect(screen.getByRole('link').getAttribute('href')).toBe('/images/image-alpha')
+    expect(container.querySelector('img')?.getAttribute('src')).toBe('/images/image-alpha')
   })
 })
