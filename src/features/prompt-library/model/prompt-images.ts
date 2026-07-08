@@ -11,7 +11,8 @@ export const SUPPORTED_PROMPT_IMAGE_CONTENT_TYPES = [
 ]
 
 const PROMPT_IMAGE_ID_PATTERN = /^[A-Za-z0-9_-]{1,96}$/
-const IMAGE_MARKDOWN_SRC_PATTERN = /!\[[^\]]*]\((prompt-image:\/\/([A-Za-z0-9_-]{1,96}))\)/g
+const IMAGE_MARKDOWN_SRC_PATTERN =
+  /!\[[^\]]*]\(\s*prompt-image:\/\/([A-Za-z0-9_-]{1,96})(?:\s+(?:"[^"]*"|'[^']*'|\([^)]*\)))?\s*\)/g
 
 export const sanitizePromptImageFileName = (fileName: string) => {
   const normalizedName = fileName
@@ -89,7 +90,7 @@ export const getPromptImageIdsFromBody = (body: string) => {
   const imageIds = new Set<string>()
 
   for (const match of body.matchAll(IMAGE_MARKDOWN_SRC_PATTERN)) {
-    const imageId = match[2]
+    const imageId = match[1]
 
     if (imageId) {
       imageIds.add(imageId)

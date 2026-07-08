@@ -30,6 +30,18 @@ describe('prompt images', () => {
     )
   })
 
+  it('parses prompt image tokens with Markdown titles', () => {
+    expect(
+      getPromptImageIdsFromBody(
+        [
+          '![diagram](prompt-image://image-alpha "full size")',
+          "![diagram](prompt-image://image-beta 'expanded')",
+          '![diagram](prompt-image://image-gamma (annotated view))',
+        ].join('\n\n'),
+      ),
+    ).toEqual(new Set(['image-alpha', 'image-beta', 'image-gamma']))
+  })
+
   it('keeps only attached images that are still referenced by the body', () => {
     expect(
       getImagesReferencedByBody('![diagram.png](prompt-image://image-alpha)', [

@@ -127,4 +127,14 @@ describe('prompt library integrity', () => {
       }).images,
     ).toEqual([image])
   })
+
+  it('keeps image metadata when a referenced Prompt Body image has a Markdown title', () => {
+    expect(
+      normalizePromptRecord({
+        ...prompt,
+        body: 'Look here:\n\n![diagram](prompt-image://image-alpha "full size")',
+        images: [image],
+      }).images,
+    ).toEqual([image])
+  })
 })
