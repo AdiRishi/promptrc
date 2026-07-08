@@ -12,6 +12,7 @@ import {
   createRemotePromptShare,
   declineRemoteFirstSignInCopy,
   deleteRemotePrompt,
+  deleteRemotePromptImage,
   getRemotePromptLibrary,
   getRemotePromptShare,
   incrementRemotePromptUses,
@@ -28,6 +29,7 @@ export function useRemotePromptLibraryStorage(userId: string | null): RemoteProm
   const getPromptLibrary = useServerFn(getRemotePromptLibrary)
   const upsertPrompt = useServerFn(upsertRemotePrompt)
   const removePrompt = useServerFn(deleteRemotePrompt)
+  const removePromptImage = useServerFn(deleteRemotePromptImage)
   const incrementPromptUses = useServerFn(incrementRemotePromptUses)
   const createPromptShare = useServerFn(createRemotePromptShare)
   const revokePromptShare = useServerFn(revokeRemotePromptShare)
@@ -60,6 +62,9 @@ export function useRemotePromptLibraryStorage(userId: string | null): RemoteProm
         return savedPrompts
       },
       createPromptShare: (promptId) => createPromptShare({ data: promptId }),
+      deletePromptImage: async (imageId) => {
+        await removePromptImage({ data: imageId })
+      },
       deletePrompt: async (promptId) => {
         await removePrompt({ data: promptId })
         await invalidatePrompts()
@@ -109,6 +114,7 @@ export function useRemotePromptLibraryStorage(userId: string | null): RemoteProm
       queryClient,
       queryKey,
       removePrompt,
+      removePromptImage,
       revokePromptShare,
       uploadPromptImage,
       upsertPrompt,

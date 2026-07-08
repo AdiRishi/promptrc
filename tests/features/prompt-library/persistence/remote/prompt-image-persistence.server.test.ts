@@ -9,7 +9,11 @@ import {
   uploadPromptImageForUser,
 } from '@/features/prompt-library/persistence/remote/prompt-image-persistence'
 import { createPromptShareForUser } from '@/features/prompt-library/persistence/remote/prompt-share-persistence'
-import { upsertPromptForUser } from '@/features/prompt-library/persistence/remote/remote-prompt-library-persistence'
+import {
+  deletePromptAndPruneImagesForUser,
+  savePromptAndPruneImagesForUser,
+  upsertPromptForUser,
+} from '@/features/prompt-library/persistence/remote/remote-prompt-library-persistence'
 import { type PromptRecord } from '@/features/prompt-library/types'
 
 const createPrompt = (overrides: Partial<PromptRecord> = {}): PromptRecord => ({
@@ -24,6 +28,21 @@ const createPrompt = (overrides: Partial<PromptRecord> = {}): PromptRecord => ({
   uses: 0,
   ...overrides,
 })
+
+const uploadImage = (extUserId: string, imageId: string, data: string) =>
+  uploadPromptImageForUser(
+    env.PROMPT_IMAGES,
+    extUserId,
+    {
+      fileName: `${imageId}.png`,
+      contentType: 'image/png',
+      dataBase64: btoa(data),
+    },
+    {
+      generateId: () => imageId,
+      now: () => new Date('2026-04-24T00:01:00.000Z'),
+    },
+  )
 
 describe('prompt image persistence', () => {
   it('uploads pasted images into the user-scoped R2 prefix', async () => {
@@ -95,6 +114,104 @@ describe('prompt image persistence', () => {
     await expect(
       getPublicPromptShareImageObject(env.DB, env.PROMPT_IMAGES, 'share-alpha', 'image-missing'),
     ).resolves.toBe(null)
+  })
+
+  it('deletes R2 objects when a saved Prompt stops referencing an image', async () => {
+    const extUserId = 'user_cleanup_edit'
+    const keptImage = await uploadImage(extUserId, 'image-cleanup-kept', 'kept image bytes')
+    const removedImage = await uploadImage(
+      extUserId,
+      'image-cleanup-removed',
+      'removed image bytes',
+    )
+
+    await savePromptAndPruneImagesForUser(
+      env.DB,
+      env.PROMPT_IMAGES,
+      extUserId,
+      createPrompt({
+        body: [createPromptImageMarkdown(keptImage), createPromptImageMarkdown(removedImage)].join(
+          '\n\n',
+        ),
+        images: [keptImage, removedImage],
+      }),
+    )
+    await savePromptAndPruneImagesForUser(
+      env.DB,
+      env.PROMPT_IMAGES,
+      extUserId,
+      createPrompt({
+        body: createPromptImageMarkdown(keptImage),
+        images: [keptImage, removedImage],
+        updatedAt: '2026-04-24T00:02:00.000Z',
+      }),
+    )
+
+    await expect(
+      getPromptImageObjectForUser(env.PROMPT_IMAGES, extUserId, keptImage.id),
+    ).resolves.not.toBeNull()
+    await expect(
+      getPromptImageObjectForUser(env.PROMPT_IMAGES, extUserId, removedImage.id),
+    ).resolves.toBe(null)
+  })
+
+  it('deletes R2 objects when deleting the last Prompt reference', async () => {
+    const extUserId = 'user_cleanup_delete'
+    const image = await uploadImage(extUserId, 'image-cleanup-delete', 'delete image bytes')
+
+    await savePromptAndPruneImagesForUser(
+      env.DB,
+      env.PROMPT_IMAGES,
+      extUserId,
+      createPrompt({
+        body: createPromptImageMarkdown(image),
+        images: [image],
+      }),
+    )
+    await deletePromptAndPruneImagesForUser(env.DB, env.PROMPT_IMAGES, extUserId, 'prompt-alpha')
+
+    await expect(getPromptImageObjectForUser(env.PROMPT_IMAGES, extUserId, image.id)).resolves.toBe(
+      null,
+    )
+  })
+
+  it('keeps R2 objects while another Prompt still references the image', async () => {
+    const extUserId = 'user_cleanup_shared'
+    const image = await uploadImage(extUserId, 'image-cleanup-shared', 'shared image bytes')
+    const imageBody = createPromptImageMarkdown(image)
+
+    await savePromptAndPruneImagesForUser(
+      env.DB,
+      env.PROMPT_IMAGES,
+      extUserId,
+      createPrompt({
+        id: 'prompt-a',
+        body: imageBody,
+        images: [image],
+      }),
+    )
+    await savePromptAndPruneImagesForUser(
+      env.DB,
+      env.PROMPT_IMAGES,
+      extUserId,
+      createPrompt({
+        id: 'prompt-b',
+        body: imageBody,
+        images: [image],
+      }),
+    )
+
+    await deletePromptAndPruneImagesForUser(env.DB, env.PROMPT_IMAGES, extUserId, 'prompt-a')
+
+    await expect(
+      getPromptImageObjectForUser(env.PROMPT_IMAGES, extUserId, image.id),
+    ).resolves.not.toBeNull()
+
+    await deletePromptAndPruneImagesForUser(env.DB, env.PROMPT_IMAGES, extUserId, 'prompt-b')
+
+    await expect(getPromptImageObjectForUser(env.PROMPT_IMAGES, extUserId, image.id)).resolves.toBe(
+      null,
+    )
   })
 
   it('creates image responses from R2 object metadata without proxy serialization', async () => {

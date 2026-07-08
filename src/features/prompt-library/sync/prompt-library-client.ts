@@ -31,6 +31,7 @@ export type PromptLibraryClient = {
   mode: PromptSyncMode
   acceptFirstSignInCopy: () => Promise<void>
   createPromptShare: (promptId: string) => Promise<PromptLibraryMutationResult<PromptShareRecord>>
+  deletePromptImage: (imageId: string) => Promise<PromptLibraryMutationResult<void>>
   deletePrompt: (promptId: string) => Promise<PromptLibraryMutationResult<void>>
   declineFirstSignInCopy: () => Promise<void>
   getPromptShare: (
@@ -120,6 +121,7 @@ export const createPromptLibraryClient = (
       mode: storage.mode,
       acceptFirstSignInCopy: noopFirstSignInCopyDecision,
       createPromptShare: localShareUnavailable,
+      deletePromptImage: () => syncMutation(() => Promise.resolve()),
       deletePrompt: () => syncMutation(() => Promise.resolve()),
       declineFirstSignInCopy: noopFirstSignInCopyDecision,
       getPromptShare: () => syncMutation(() => Promise.resolve(null)),
@@ -138,6 +140,7 @@ export const createPromptLibraryClient = (
     mode: storage.mode,
     acceptFirstSignInCopy: () => acceptFreshPromptLibraryFirstSignInCopy(storage, store),
     createPromptShare: (promptId) => syncMutation(() => storage.createPromptShare(promptId)),
+    deletePromptImage: (imageId) => syncMutation(() => storage.deletePromptImage(imageId)),
     deletePrompt: (promptId) => syncMutation(() => storage.deletePrompt(promptId)),
     declineFirstSignInCopy: () => declineFreshPromptLibraryFirstSignInCopy(storage, store),
     getPromptShare: (promptId) => syncMutation(() => storage.getPromptShare(promptId)),

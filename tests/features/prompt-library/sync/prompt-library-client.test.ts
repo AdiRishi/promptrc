@@ -84,6 +84,7 @@ const createRemoteStorage = (
       prompts: [],
       isFresh: false,
     }),
+  deletePromptImage: () => Promise.resolve(),
   deletePrompt: () => Promise.resolve(),
   getPromptShare: (promptId) =>
     Promise.resolve({
@@ -196,6 +197,7 @@ describe('prompt library client', () => {
     const store = createPromptLibraryStore()
     const savePrompt = vi.fn((savedPrompt: PromptRecord) => Promise.resolve(savedPrompt))
     const deletePrompt = vi.fn(() => Promise.resolve())
+    const deletePromptImage = vi.fn(() => Promise.resolve())
     const uploadPromptImage = vi.fn((upload: PromptImageUploadInput) =>
       Promise.resolve({
         id: 'image-alpha',
@@ -215,6 +217,7 @@ describe('prompt library client', () => {
     const storage = createRemoteStorage({
       savePrompt,
       deletePrompt,
+      deletePromptImage,
       uploadPromptImage,
       recordPromptUse,
     })
@@ -227,6 +230,10 @@ describe('prompt library client', () => {
       value: prompt,
     })
     await expect(client.deletePrompt(prompt.id)).resolves.toEqual({
+      status: 'synced',
+      value: undefined,
+    })
+    await expect(client.deletePromptImage('image-alpha')).resolves.toEqual({
       status: 'synced',
       value: undefined,
     })
@@ -250,6 +257,7 @@ describe('prompt library client', () => {
 
     expect(savePrompt).toHaveBeenCalledWith(prompt)
     expect(deletePrompt).toHaveBeenCalledWith(prompt.id)
+    expect(deletePromptImage).toHaveBeenCalledWith('image-alpha')
     expect(uploadPromptImage).toHaveBeenCalledWith({
       fileName: 'diagram.png',
       contentType: 'image/png',

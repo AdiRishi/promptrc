@@ -34,6 +34,7 @@ export type RemotePromptLibraryStorage = PromptLibraryStorageBase & {
   acceptFirstSignInCopy: (prompts: PromptRecord[]) => Promise<PromptRecord[]>
   addStarterPrompts: (prompts: PromptRecord[]) => Promise<PromptRecord[]>
   createPromptShare: (promptId: string) => Promise<PromptShareRecord>
+  deletePromptImage: (imageId: string) => Promise<void>
   declineFirstSignInCopy: () => Promise<PromptLibraryRemoteSnapshot>
   deletePrompt: (promptId: string) => Promise<void>
   getPromptShare: (promptId: string) => Promise<PromptShareRecord | null>

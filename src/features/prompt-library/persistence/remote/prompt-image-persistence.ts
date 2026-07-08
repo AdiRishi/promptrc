@@ -4,7 +4,11 @@ import {
   sanitizePromptImageFileName,
 } from '@/features/prompt-library/model/prompt-images'
 import { decodePromptImages } from '@/features/prompt-library/persistence/remote/d1-prompt-library-adapter'
-import { type PromptImage, type PromptImageUploadInput } from '@/features/prompt-library/types'
+import {
+  type PromptImage,
+  type PromptImageUploadInput,
+  type PromptRecord,
+} from '@/features/prompt-library/types'
 
 type PromptImageFactoryOptions = {
   generateId?: () => string
@@ -37,6 +41,61 @@ const decodeBase64 = (value: string) => {
 
 export const getPromptImageObjectKey = (extUserId: string, imageId: string) => {
   return `prompt-images/${extUserId}/${imageId}`
+}
+
+const uniquePromptImageIds = (imageIds: Iterable<string>) => {
+  return Array.from(new Set(Array.from(imageIds).filter(isPromptImageId)))
+}
+
+export const getRemovedPromptImageIds = (
+  previousPrompt: Pick<PromptRecord, 'images'>,
+  nextPrompt: Pick<PromptRecord, 'images'> | null,
+) => {
+  const nextImageIds = new Set(nextPrompt?.images.map((image) => image.id) ?? [])
+
+  return uniquePromptImageIds(
+    previousPrompt.images.flatMap((image) => (nextImageIds.has(image.id) ? [] : [image.id])),
+  )
+}
+
+export const getUnreferencedPromptImageIds = (
+  candidateImageIds: Iterable<string>,
+  prompts: ReadonlyArray<Pick<PromptRecord, 'images'>>,
+) => {
+  const referencedImageIds = new Set(
+    prompts.flatMap((prompt) => prompt.images.map((image) => image.id)),
+  )
+
+  return uniquePromptImageIds(
+    Array.from(candidateImageIds).filter((imageId) => !referencedImageIds.has(imageId)),
+  )
+}
+
+export const deletePromptImageObjectsForUser = async (
+  bucket: R2Bucket,
+  extUserId: string,
+  imageIds: Iterable<string>,
+) => {
+  const objectKeys = uniquePromptImageIds(imageIds).map((imageId) =>
+    getPromptImageObjectKey(extUserId, imageId),
+  )
+
+  await Promise.all(objectKeys.map((objectKey) => bucket.delete(objectKey)))
+
+  return objectKeys
+}
+
+export const deleteUnreferencedPromptImageObjectsForUser = async (
+  bucket: R2Bucket,
+  extUserId: string,
+  candidateImageIds: Iterable<string>,
+  prompts: ReadonlyArray<Pick<PromptRecord, 'images'>>,
+) => {
+  const imageIds = getUnreferencedPromptImageIds(candidateImageIds, prompts)
+
+  await deletePromptImageObjectsForUser(bucket, extUserId, imageIds)
+
+  return imageIds
 }
 
 export const uploadPromptImageForUser = async (

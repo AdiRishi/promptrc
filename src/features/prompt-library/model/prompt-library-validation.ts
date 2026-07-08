@@ -177,6 +177,16 @@ export const assertPromptShareId = (value: unknown) => {
   return shareId
 }
 
+export const assertPromptImageId = (value: unknown) => {
+  const imageId = assertString(value, 'imageId').trim()
+
+  if (!isPromptImageId(imageId)) {
+    throw new Error('imageId is invalid')
+  }
+
+  return imageId
+}
+
 export const assertPromptImageUploadInput = (value: unknown): PromptImageUploadInput => {
   const upload = assertObject(value, 'upload')
   const fileName = assertString(upload.fileName, 'fileName')

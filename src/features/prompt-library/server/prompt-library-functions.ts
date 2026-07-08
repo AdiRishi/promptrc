@@ -3,12 +3,14 @@ import { createServerFn } from '@tanstack/react-start'
 
 import {
   assertPromptId,
+  assertPromptImageId,
   assertPromptImageUploadInput,
   assertPromptRecord,
   assertPromptRecords,
   assertPromptShareId,
 } from '@/features/prompt-library/model/prompt-library-validation'
 import {
+  deleteUnreferencedPromptImageObjectsForUser,
   getPromptImageObjectForUser,
   getPublicPromptShareImageObject,
   promptImageObjectToResponse,
@@ -20,7 +22,11 @@ import {
   getPublicPromptShare,
   revokePromptShareForUser,
 } from '@/features/prompt-library/persistence/remote/prompt-share-persistence'
-import { createRemotePromptLibraryPersistence } from '@/features/prompt-library/persistence/remote/remote-prompt-library-persistence'
+import {
+  createRemotePromptLibraryPersistence,
+  deletePromptAndPruneImagesForUser,
+  savePromptAndPruneImagesForUser,
+} from '@/features/prompt-library/persistence/remote/remote-prompt-library-persistence'
 
 export {
   acceptFirstSignInCopyForUser,
@@ -122,17 +128,21 @@ export const copyRemotePromptsToPromptLibrary = acceptRemoteFirstSignInCopy
 export const upsertRemotePrompt = createServerFn({ method: 'POST' })
   .inputValidator(assertPromptRecord)
   .handler(async ({ data: prompt }) => {
-    const promptLibrary = await getAuthenticatedPromptLibraryPersistence()
+    const extUserId = await requireUserId()
+    const db = await getDatabase()
+    const bucket = await getPromptImageBucket()
 
-    return promptLibrary.savePrompt(prompt)
+    return savePromptAndPruneImagesForUser(db, bucket, extUserId, prompt)
   })
 
 export const deleteRemotePrompt = createServerFn({ method: 'POST' })
   .inputValidator(assertPromptId)
   .handler(async ({ data: promptId }) => {
-    const promptLibrary = await getAuthenticatedPromptLibraryPersistence()
+    const extUserId = await requireUserId()
+    const db = await getDatabase()
+    const bucket = await getPromptImageBucket()
 
-    return promptLibrary.deletePrompt(promptId)
+    return deletePromptAndPruneImagesForUser(db, bucket, extUserId, promptId)
   })
 
 export const incrementRemotePromptUses = createServerFn({ method: 'POST' })
@@ -185,6 +195,22 @@ export const uploadRemotePromptImage = createServerFn({ method: 'POST' })
     const bucket = await getPromptImageBucket()
 
     return uploadPromptImageForUser(bucket, extUserId, upload)
+  })
+
+export const deleteRemotePromptImage = createServerFn({ method: 'POST' })
+  .inputValidator(assertPromptImageId)
+  .handler(async ({ data: imageId }) => {
+    const extUserId = await requireUserId()
+    const db = await getDatabase()
+    const bucket = await getPromptImageBucket()
+    const promptLibrary = createRemotePromptLibraryPersistence(db, extUserId)
+
+    await deleteUnreferencedPromptImageObjectsForUser(
+      bucket,
+      extUserId,
+      [imageId],
+      await promptLibrary.listPrompts(),
+    )
   })
 
 export const getAuthenticatedPromptImageResponse = async (imageId: string) => {

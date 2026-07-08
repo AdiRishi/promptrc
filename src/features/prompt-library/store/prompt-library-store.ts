@@ -78,8 +78,14 @@ const createInitialState = (): PromptLibraryStateShape => ({
 })
 
 type SaveComposerResult =
-  | { status: 'created' | 'updated'; prompt: PromptRecord }
+  | { status: 'created' | 'updated'; discardedImages: PromptImage[]; prompt: PromptRecord }
   | { status: 'invalid' | 'idle' | 'pending-images' }
+
+const getDiscardedDraftImages = (draft: PromptDraft, savedPrompt: PromptRecord) => {
+  const savedImageIds = new Set(savedPrompt.images.map((image) => image.id))
+
+  return draft.images.filter((image) => !savedImageIds.has(image.id))
+}
 
 export type PromptLibraryState = PromptLibraryStateShape
 
@@ -339,7 +345,8 @@ export const createPromptLibraryStore = () => {
         }
 
         if (state.composer.mode === 'new') {
-          const createdPrompt = createPromptRecordFromDraft(state.composer.draft)
+          const draft = state.composer.draft
+          const createdPrompt = createPromptRecordFromDraft(draft)
 
           if (!createdPrompt) {
             return { status: 'invalid' }
@@ -353,7 +360,11 @@ export const createPromptLibraryStore = () => {
             confirmDeleteId: null,
           }))
 
-          return { status: 'created', prompt: createdPrompt }
+          return {
+            status: 'created',
+            discardedImages: getDiscardedDraftImages(draft, createdPrompt),
+            prompt: createdPrompt,
+          }
         }
 
         const promptToUpdate = state.prompts.find((prompt) => prompt.id === state.selectedPromptId)
@@ -362,7 +373,8 @@ export const createPromptLibraryStore = () => {
           return { status: 'invalid' }
         }
 
-        const updatedPrompt = updatePromptRecordFromDraft(promptToUpdate, state.composer.draft)
+        const draft = state.composer.draft
+        const updatedPrompt = updatePromptRecordFromDraft(promptToUpdate, draft)
 
         if (!updatedPrompt) {
           return { status: 'invalid' }
@@ -378,7 +390,11 @@ export const createPromptLibraryStore = () => {
           confirmDeleteId: null,
         }))
 
-        return { status: 'updated', prompt: updatedPrompt }
+        return {
+          status: 'updated',
+          discardedImages: getDiscardedDraftImages(draft, updatedPrompt),
+          prompt: updatedPrompt,
+        }
       },
       duplicatePrompt: (promptId) => {
         const sourcePrompt = get().prompts.find((prompt) => prompt.id === promptId)

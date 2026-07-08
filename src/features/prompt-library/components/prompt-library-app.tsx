@@ -37,7 +37,7 @@ import {
   sanitizePromptImageFileName,
 } from '@/features/prompt-library/model/prompt-images'
 import { selectPromptLibraryVisibleState } from '@/features/prompt-library/selectors/prompt-library-selectors'
-import { type PromptShareRecord } from '@/features/prompt-library/types'
+import { type PromptImage, type PromptShareRecord } from '@/features/prompt-library/types'
 
 export function PromptLibraryApp() {
   return (
@@ -109,6 +109,54 @@ function PromptLibraryScreen() {
       setActivePromptShare(null)
     }
   }, [revokeActivePromptShare])
+
+  const deleteDiscardedPromptImages = useCallback(
+    (images: PromptImage[]) => {
+      const imageIds = Array.from(new Set(images.map((image) => image.id)))
+
+      if (imageIds.length === 0) {
+        return
+      }
+
+      void Promise.all(imageIds.map((imageId) => library.deletePromptImage(imageId))).then(
+        (results) => {
+          const failedResult = results.find((result) => result.status === 'failed')
+
+          if (failedResult) {
+            toast(`image cleanup failed - ${failedResult.message}`)
+          }
+        },
+      )
+    },
+    [library],
+  )
+
+  const getImagesDiscardedByCancel = useCallback(() => {
+    const currentComposer = composerRef.current
+
+    if (currentComposer.mode === 'view') {
+      return []
+    }
+
+    if (currentComposer.mode === 'new') {
+      return currentComposer.draft.images
+    }
+
+    const activePromptImageIds = new Set(
+      prompts
+        .find((prompt) => prompt.id === activePromptIdRef.current)
+        ?.images.map((image) => image.id) ?? [],
+    )
+
+    return currentComposer.draft.images.filter((image) => !activePromptImageIds.has(image.id))
+  }, [prompts])
+
+  const cancelComposer = useCallback(() => {
+    const discardedImages = getImagesDiscardedByCancel()
+
+    actions.cancelComposer()
+    deleteDiscardedPromptImages(discardedImages)
+  }, [actions, deleteDiscardedPromptImages, getImagesDiscardedByCancel])
 
   const pasteImages = useCallback(
     (request: PromptImagePasteRequest) => {
@@ -317,7 +365,7 @@ function PromptLibraryScreen() {
     commandState,
     composerMode: composer.mode,
     isHelpOpen,
-    onCancelComposer: actions.cancelComposer,
+    onCancelComposer: cancelComposer,
     onRunCommand: runCommand,
     onSaveComposer: saveComposer,
     onToggleHelp: toggleHelp,
@@ -350,7 +398,7 @@ function PromptLibraryScreen() {
           emptyReason={visibleState.emptyReason}
           filteredCount={visibleState.orderedPromptIds.length}
           hasActivePromptShare={activePromptShare?.promptId === activePromptId}
-          onCancelComposer={actions.cancelComposer}
+          onCancelComposer={cancelComposer}
           onCopyPrompt={copyActivePrompt}
           onDeletePrompt={deletePrompt}
           onDraftChange={actions.updateDraft}

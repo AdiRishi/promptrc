@@ -65,6 +65,7 @@ const createRemoteStorage = (
       prompts: [],
       isFresh: false,
     }),
+  deletePromptImage: () => Promise.resolve(),
   deletePrompt: () => Promise.resolve(),
   getPromptShare: (promptId) =>
     Promise.resolve({

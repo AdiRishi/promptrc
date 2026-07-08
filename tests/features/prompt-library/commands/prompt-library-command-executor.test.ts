@@ -31,6 +31,7 @@ const createLibrary = (overrides: Partial<PromptLibraryClient> = {}): PromptLibr
       error: new Error('Sign in to share prompts'),
     }),
   deletePrompt: () => Promise.resolve({ status: 'synced', value: undefined }),
+  deletePromptImage: () => Promise.resolve({ status: 'synced', value: undefined }),
   declineFirstSignInCopy: () => Promise.resolve(),
   getPromptShare: () => Promise.resolve({ status: 'synced', value: null }),
   recordPromptUse: () => Promise.resolve({ status: 'synced', value: null }),
@@ -151,6 +152,9 @@ describe('prompt library command executor', () => {
   it('saves a new Prompt through the Prompt Library client', async () => {
     const store = createPromptLibraryStore()
     const notify = vi.fn()
+    const deletePromptImage = vi.fn(() =>
+      Promise.resolve({ status: 'synced' as const, value: undefined }),
+    )
     const savePrompt = vi.fn((savedPrompt: PromptRecord) =>
       Promise.resolve({ status: 'synced' as const, value: savedPrompt }),
     )
@@ -158,10 +162,19 @@ describe('prompt library command executor', () => {
     store.getState().actions.startNew()
     store.getState().actions.updateDraft('title', 'Owned Prompt')
     store.getState().actions.updateDraft('body', 'Keep this close.')
+    store.getState().actions.updateDraft('images', [
+      {
+        id: 'image-discarded',
+        fileName: 'discarded.png',
+        contentType: 'image/png',
+        size: 128,
+        createdAt: '2026-04-24T00:02:00.000Z',
+      },
+    ])
 
     const commands = createPromptLibraryCommandExecutor({
       clipboard: { writeText: () => Promise.resolve() },
-      library: createLibrary({ savePrompt }),
+      library: createLibrary({ deletePromptImage, savePrompt }),
       notify,
       store,
     })
@@ -175,6 +188,7 @@ describe('prompt library command executor', () => {
         body: 'Keep this close.',
       }),
     )
+    expect(deletePromptImage).toHaveBeenCalledWith('image-discarded')
     expect(store.getState().isFresh).toBe(false)
     expect(notify).toHaveBeenCalledWith('wrote owned_prompt.md')
   })
