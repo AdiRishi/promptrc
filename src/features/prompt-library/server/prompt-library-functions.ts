@@ -101,7 +101,7 @@ export const getRemotePromptLibrary = createServerFn({ method: 'GET' }).handler(
 })
 
 export const addRemoteStarterPrompts = createServerFn({ method: 'POST' })
-  .inputValidator(assertPromptRecords)
+  .validator(assertPromptRecords)
   .handler(async ({ data: prompts }) => {
     const promptLibrary = await getAuthenticatedPromptLibraryPersistence()
 
@@ -109,7 +109,7 @@ export const addRemoteStarterPrompts = createServerFn({ method: 'POST' })
   })
 
 export const acceptRemoteFirstSignInCopy = createServerFn({ method: 'POST' })
-  .inputValidator(assertPromptRecords)
+  .validator(assertPromptRecords)
   .handler(async ({ data: prompts }) => {
     const promptLibrary = await getAuthenticatedPromptLibraryPersistence()
 
@@ -126,7 +126,7 @@ export const seedRemoteStarterPrompts = addRemoteStarterPrompts
 export const copyRemotePromptsToPromptLibrary = acceptRemoteFirstSignInCopy
 
 export const upsertRemotePrompt = createServerFn({ method: 'POST' })
-  .inputValidator(assertPromptRecord)
+  .validator(assertPromptRecord)
   .handler(async ({ data: prompt }) => {
     const extUserId = await requireUserId()
     const db = await getDatabase()
@@ -136,7 +136,7 @@ export const upsertRemotePrompt = createServerFn({ method: 'POST' })
   })
 
 export const deleteRemotePrompt = createServerFn({ method: 'POST' })
-  .inputValidator(assertPromptId)
+  .validator(assertPromptId)
   .handler(async ({ data: promptId }) => {
     const extUserId = await requireUserId()
     const db = await getDatabase()
@@ -146,7 +146,7 @@ export const deleteRemotePrompt = createServerFn({ method: 'POST' })
   })
 
 export const incrementRemotePromptUses = createServerFn({ method: 'POST' })
-  .inputValidator(assertPromptId)
+  .validator(assertPromptId)
   .handler(async ({ data: promptId }) => {
     const promptLibrary = await getAuthenticatedPromptLibraryPersistence()
 
@@ -154,7 +154,7 @@ export const incrementRemotePromptUses = createServerFn({ method: 'POST' })
   })
 
 export const createRemotePromptShare = createServerFn({ method: 'POST' })
-  .inputValidator(assertPromptId)
+  .validator(assertPromptId)
   .handler(async ({ data: promptId }) => {
     const extUserId = await requireUserId()
     const db = await getDatabase()
@@ -163,7 +163,7 @@ export const createRemotePromptShare = createServerFn({ method: 'POST' })
   })
 
 export const revokeRemotePromptShare = createServerFn({ method: 'POST' })
-  .inputValidator(assertPromptId)
+  .validator(assertPromptId)
   .handler(async ({ data: promptId }) => {
     const extUserId = await requireUserId()
     const db = await getDatabase()
@@ -172,7 +172,7 @@ export const revokeRemotePromptShare = createServerFn({ method: 'POST' })
   })
 
 export const getRemotePromptShare = createServerFn({ method: 'GET' })
-  .inputValidator(assertPromptId)
+  .validator(assertPromptId)
   .handler(async ({ data: promptId }) => {
     const extUserId = await requireUserId()
     const db = await getDatabase()
@@ -181,7 +181,7 @@ export const getRemotePromptShare = createServerFn({ method: 'GET' })
   })
 
 export const getPublicRemotePromptShare = createServerFn({ method: 'GET' })
-  .inputValidator(assertPromptShareId)
+  .validator(assertPromptShareId)
   .handler(async ({ data: shareId }) => {
     const db = await getDatabase()
 
@@ -189,7 +189,7 @@ export const getPublicRemotePromptShare = createServerFn({ method: 'GET' })
   })
 
 export const uploadRemotePromptImage = createServerFn({ method: 'POST' })
-  .inputValidator(assertPromptImageUploadInput)
+  .validator(assertPromptImageUploadInput)
   .handler(async ({ data: upload }) => {
     const extUserId = await requireUserId()
     const bucket = await getPromptImageBucket()
@@ -198,7 +198,7 @@ export const uploadRemotePromptImage = createServerFn({ method: 'POST' })
   })
 
 export const deleteRemotePromptImage = createServerFn({ method: 'POST' })
-  .inputValidator(assertPromptImageId)
+  .validator(assertPromptImageId)
   .handler(async ({ data: imageId }) => {
     const extUserId = await requireUserId()
     const db = await getDatabase()
