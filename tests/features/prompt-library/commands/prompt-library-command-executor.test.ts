@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 
 import { createPromptLibraryCommandExecutor } from '@/features/prompt-library/commands/prompt-library-command-executor'
+import { createPendingPromptImageMarkdown } from '@/features/prompt-library/model/prompt-images'
 import { createPromptLibraryStore } from '@/features/prompt-library/store/prompt-library-store'
 import { type PromptLibraryClient } from '@/features/prompt-library/sync/prompt-library-client'
 import { type PromptRecord } from '@/features/prompt-library/types'
@@ -207,6 +208,33 @@ describe('prompt library command executor', () => {
     commands.saveComposer()
     expect(focusTitleInput).toHaveBeenCalledOnce()
     expect(notify).toHaveBeenCalledWith('title and body required')
+  })
+
+  it('blocks composer save while pasted images are still uploading', () => {
+    const store = createPromptLibraryStore()
+    const notify = vi.fn()
+    const savePrompt = vi.fn((savedPrompt: PromptRecord) =>
+      Promise.resolve({ status: 'synced' as const, value: savedPrompt }),
+    )
+
+    store.getState().actions.startNew()
+    store.getState().actions.updateDraft('title', 'Prompt with Image')
+    store
+      .getState()
+      .actions.updateDraft('body', createPendingPromptImageMarkdown('diagram.png', 'pending-one'))
+
+    const commands = createPromptLibraryCommandExecutor({
+      clipboard: { writeText: () => Promise.resolve() },
+      library: createLibrary({ savePrompt }),
+      notify,
+      store,
+    })
+
+    commands.saveComposer()
+
+    expect(savePrompt).not.toHaveBeenCalled()
+    expect(store.getState().composer.mode).toBe('new')
+    expect(notify).toHaveBeenCalledWith('wait for image uploads to finish')
   })
 
   it('edits and duplicates the active Prompt through the Prompt Library client', async () => {

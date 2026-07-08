@@ -160,6 +160,11 @@ export const createPromptLibraryCommandExecutor = ({
       return
     }
 
+    if (result.status === 'pending-images') {
+      notify('wait for image uploads to finish')
+      return
+    }
+
     if (result.status === 'created') {
       void commitPrompt(result.prompt)
       notify(`wrote ${filenameOf(result.prompt.title)}.md`)

@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  createPendingPromptImageMarkdown,
   createPromptImageMarkdown,
   getImagesReferencedByBody,
   getPromptImageIdsFromBody,
+  hasPendingPromptImageUploads,
   promptImageIdFromSrc,
   sanitizePromptImageFileName,
 } from '@/features/prompt-library/model/prompt-images'
@@ -35,6 +37,13 @@ describe('prompt images', () => {
         { ...image, id: 'image-beta', fileName: 'unused.png' },
       ]),
     ).toEqual([image])
+  })
+
+  it('detects pending image upload placeholders', () => {
+    expect(
+      hasPendingPromptImageUploads(createPendingPromptImageMarkdown('diagram.png', 'pending-1')),
+    ).toBe(true)
+    expect(hasPendingPromptImageUploads(createPromptImageMarkdown(image))).toBe(false)
   })
 
   it('sanitizes pasted file names', () => {

@@ -44,6 +44,10 @@ export const shouldPreservePromptImageSrc = (src: string) => {
   return src.startsWith(PROMPT_IMAGE_SRC_PREFIX) || src.startsWith(PENDING_PROMPT_IMAGE_SRC_PREFIX)
 }
 
+export const hasPendingPromptImageUploads = (body: string) => {
+  return body.includes(PENDING_PROMPT_IMAGE_SRC_PREFIX)
+}
+
 export const defaultPromptImageUrlFor = (imageId: string) => {
   return `/api/prompt-images/${encodeURIComponent(imageId)}`
 }

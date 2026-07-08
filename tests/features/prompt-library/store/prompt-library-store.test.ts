@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 
+import { createPendingPromptImageMarkdown } from '@/features/prompt-library/model/prompt-images'
 import { createStarterPrompts } from '@/features/prompt-library/model/starter-prompts'
 import { createPromptLibraryStore } from '@/features/prompt-library/store/prompt-library-store'
 
@@ -66,6 +67,23 @@ describe('prompt library store', () => {
 
     expect(result.status).toBe('updated')
     expect(store.getState().prompts[0]?.title).toBe('Updated Prompt')
+  })
+
+  it('blocks saving while image upload placeholders are still pending', () => {
+    const store = createPromptLibraryStore()
+    const { actions } = store.getState()
+
+    actions.startNew()
+    actions.updateDraft('title', 'Prompt with Image')
+    actions.updateDraft('body', createPendingPromptImageMarkdown('diagram.png', 'pending-image'))
+
+    const result = actions.saveComposer()
+
+    expect(result.status).toBe('pending-images')
+    expect(store.getState().prompts.some((prompt) => prompt.title === 'Prompt with Image')).toBe(
+      false,
+    )
+    expect(store.getState().composer.mode).toBe('new')
   })
 
   it('duplicates and deletes prompts while keeping selection valid', () => {

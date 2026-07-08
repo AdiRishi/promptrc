@@ -1,5 +1,6 @@
 import { createStore } from 'zustand/vanilla'
 
+import { hasPendingPromptImageUploads } from '@/features/prompt-library/model/prompt-images'
 import { INITIAL_PROMPTS } from '@/features/prompt-library/model/prompt-library-data'
 import {
   createInitialComposerState,
@@ -78,7 +79,7 @@ const createInitialState = (): PromptLibraryStateShape => ({
 
 type SaveComposerResult =
   | { status: 'created' | 'updated'; prompt: PromptRecord }
-  | { status: 'invalid' | 'idle' }
+  | { status: 'invalid' | 'idle' | 'pending-images' }
 
 export type PromptLibraryState = PromptLibraryStateShape
 
@@ -331,6 +332,10 @@ export const createPromptLibraryStore = () => {
 
         if (state.composer.mode === 'view') {
           return { status: 'idle' }
+        }
+
+        if (hasPendingPromptImageUploads(state.composer.draft.body)) {
+          return { status: 'pending-images' }
         }
 
         if (state.composer.mode === 'new') {
