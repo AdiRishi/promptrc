@@ -1,5 +1,6 @@
 import { createStore } from 'zustand/vanilla'
 
+import { hasPendingPromptImageUploads } from '@/features/prompt-library/model/prompt-images'
 import { INITIAL_PROMPTS } from '@/features/prompt-library/model/prompt-library-data'
 import {
   createInitialComposerState,
@@ -17,6 +18,7 @@ import { getStartHerePrompt } from '@/features/prompt-library/model/starter-prom
 import {
   type ComposerState,
   type PromptDraft,
+  type PromptImage,
   type PromptLibraryPersistedSnapshot,
   type PromptRecord,
   type PromptSyncMode,
@@ -76,8 +78,14 @@ const createInitialState = (): PromptLibraryStateShape => ({
 })
 
 type SaveComposerResult =
-  | { status: 'created' | 'updated'; prompt: PromptRecord }
-  | { status: 'invalid' | 'idle' }
+  | { status: 'created' | 'updated'; discardedImages: PromptImage[]; prompt: PromptRecord }
+  | { status: 'invalid' | 'idle' | 'pending-images' }
+
+const getDiscardedDraftImages = (draft: PromptDraft, savedPrompt: PromptRecord) => {
+  const savedImageIds = new Set(savedPrompt.images.map((image) => image.id))
+
+  return draft.images.filter((image) => !savedImageIds.has(image.id))
+}
 
 export type PromptLibraryState = PromptLibraryStateShape
 
@@ -104,6 +112,8 @@ export type PromptLibraryActions = {
     field: TFieldName,
     value: PromptDraft[TFieldName],
   ) => void
+  addDraftImage: (image: PromptImage) => void
+  replaceDraftBodyText: (search: string, replacement: string) => void
   cancelComposer: () => void
   saveComposer: () => SaveComposerResult
   duplicatePrompt: (promptId: string) => PromptRecord | null
@@ -277,6 +287,46 @@ export const createPromptLibraryStore = () => {
           },
         }))
       },
+      addDraftImage: (image) => {
+        set((state) => {
+          if (state.composer.mode === 'view') {
+            return state
+          }
+
+          const images = state.composer.draft.images.some(
+            (draftImage) => draftImage.id === image.id,
+          )
+            ? state.composer.draft.images
+            : [...state.composer.draft.images, image]
+
+          return {
+            composer: {
+              ...state.composer,
+              draft: {
+                ...state.composer.draft,
+                images,
+              },
+            },
+          }
+        })
+      },
+      replaceDraftBodyText: (search, replacement) => {
+        set((state) => {
+          if (state.composer.mode === 'view' || !state.composer.draft.body.includes(search)) {
+            return state
+          }
+
+          return {
+            composer: {
+              ...state.composer,
+              draft: {
+                ...state.composer.draft,
+                body: state.composer.draft.body.replace(search, replacement),
+              },
+            },
+          }
+        })
+      },
       cancelComposer: () => {
         set({
           composer: createInitialComposerState(),
@@ -290,8 +340,13 @@ export const createPromptLibraryStore = () => {
           return { status: 'idle' }
         }
 
+        if (hasPendingPromptImageUploads(state.composer.draft.body)) {
+          return { status: 'pending-images' }
+        }
+
         if (state.composer.mode === 'new') {
-          const createdPrompt = createPromptRecordFromDraft(state.composer.draft)
+          const draft = state.composer.draft
+          const createdPrompt = createPromptRecordFromDraft(draft)
 
           if (!createdPrompt) {
             return { status: 'invalid' }
@@ -305,7 +360,11 @@ export const createPromptLibraryStore = () => {
             confirmDeleteId: null,
           }))
 
-          return { status: 'created', prompt: createdPrompt }
+          return {
+            status: 'created',
+            discardedImages: getDiscardedDraftImages(draft, createdPrompt),
+            prompt: createdPrompt,
+          }
         }
 
         const promptToUpdate = state.prompts.find((prompt) => prompt.id === state.selectedPromptId)
@@ -314,7 +373,8 @@ export const createPromptLibraryStore = () => {
           return { status: 'invalid' }
         }
 
-        const updatedPrompt = updatePromptRecordFromDraft(promptToUpdate, state.composer.draft)
+        const draft = state.composer.draft
+        const updatedPrompt = updatePromptRecordFromDraft(promptToUpdate, draft)
 
         if (!updatedPrompt) {
           return { status: 'invalid' }
@@ -330,7 +390,11 @@ export const createPromptLibraryStore = () => {
           confirmDeleteId: null,
         }))
 
-        return { status: 'updated', prompt: updatedPrompt }
+        return {
+          status: 'updated',
+          discardedImages: getDiscardedDraftImages(draft, updatedPrompt),
+          prompt: updatedPrompt,
+        }
       },
       duplicatePrompt: (promptId) => {
         const sourcePrompt = get().prompts.find((prompt) => prompt.id === promptId)

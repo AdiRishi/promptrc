@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 
 import { createPromptLibraryCommandExecutor } from '@/features/prompt-library/commands/prompt-library-command-executor'
+import { createPendingPromptImageMarkdown } from '@/features/prompt-library/model/prompt-images'
 import { createPromptLibraryStore } from '@/features/prompt-library/store/prompt-library-store'
 import { type PromptLibraryClient } from '@/features/prompt-library/sync/prompt-library-client'
 import { type PromptRecord } from '@/features/prompt-library/types'
@@ -11,6 +12,7 @@ const createPrompt = (overrides: Partial<PromptRecord> = {}): PromptRecord => ({
   body: 'Write a concise test plan.',
   category: 'Engineering',
   tags: ['testing'],
+  images: [],
   createdAt: '2026-04-24T00:00:00.000Z',
   updatedAt: '2026-04-24T00:00:00.000Z',
   uses: 0,
@@ -19,6 +21,7 @@ const createPrompt = (overrides: Partial<PromptRecord> = {}): PromptRecord => ({
 
 const createLibrary = (overrides: Partial<PromptLibraryClient> = {}): PromptLibraryClient => ({
   canSharePrompts: false,
+  canUploadPromptImages: false,
   mode: 'local',
   acceptFirstSignInCopy: () => Promise.resolve(),
   createPromptShare: () =>
@@ -28,6 +31,7 @@ const createLibrary = (overrides: Partial<PromptLibraryClient> = {}): PromptLibr
       error: new Error('Sign in to share prompts'),
     }),
   deletePrompt: () => Promise.resolve({ status: 'synced', value: undefined }),
+  deletePromptImage: () => Promise.resolve({ status: 'synced', value: undefined }),
   declineFirstSignInCopy: () => Promise.resolve(),
   getPromptShare: () => Promise.resolve({ status: 'synced', value: null }),
   recordPromptUse: () => Promise.resolve({ status: 'synced', value: null }),
@@ -42,6 +46,12 @@ const createLibrary = (overrides: Partial<PromptLibraryClient> = {}): PromptLibr
     }),
   savePrompt: (prompt) => Promise.resolve({ status: 'synced', value: prompt }),
   sync: () => Promise.resolve(),
+  uploadPromptImage: () =>
+    Promise.resolve({
+      status: 'failed',
+      message: 'Sign in to add images',
+      error: new Error('Sign in to add images'),
+    }),
   ...overrides,
 })
 
@@ -142,6 +152,9 @@ describe('prompt library command executor', () => {
   it('saves a new Prompt through the Prompt Library client', async () => {
     const store = createPromptLibraryStore()
     const notify = vi.fn()
+    const deletePromptImage = vi.fn(() =>
+      Promise.resolve({ status: 'synced' as const, value: undefined }),
+    )
     const savePrompt = vi.fn((savedPrompt: PromptRecord) =>
       Promise.resolve({ status: 'synced' as const, value: savedPrompt }),
     )
@@ -149,10 +162,19 @@ describe('prompt library command executor', () => {
     store.getState().actions.startNew()
     store.getState().actions.updateDraft('title', 'Owned Prompt')
     store.getState().actions.updateDraft('body', 'Keep this close.')
+    store.getState().actions.updateDraft('images', [
+      {
+        id: 'image-discarded',
+        fileName: 'discarded.png',
+        contentType: 'image/png',
+        size: 128,
+        createdAt: '2026-04-24T00:02:00.000Z',
+      },
+    ])
 
     const commands = createPromptLibraryCommandExecutor({
       clipboard: { writeText: () => Promise.resolve() },
-      library: createLibrary({ savePrompt }),
+      library: createLibrary({ deletePromptImage, savePrompt }),
       notify,
       store,
     })
@@ -166,6 +188,7 @@ describe('prompt library command executor', () => {
         body: 'Keep this close.',
       }),
     )
+    expect(deletePromptImage).toHaveBeenCalledWith('image-discarded')
     expect(store.getState().isFresh).toBe(false)
     expect(notify).toHaveBeenCalledWith('wrote owned_prompt.md')
   })
@@ -199,6 +222,33 @@ describe('prompt library command executor', () => {
     commands.saveComposer()
     expect(focusTitleInput).toHaveBeenCalledOnce()
     expect(notify).toHaveBeenCalledWith('title and body required')
+  })
+
+  it('blocks composer save while pasted images are still uploading', () => {
+    const store = createPromptLibraryStore()
+    const notify = vi.fn()
+    const savePrompt = vi.fn((savedPrompt: PromptRecord) =>
+      Promise.resolve({ status: 'synced' as const, value: savedPrompt }),
+    )
+
+    store.getState().actions.startNew()
+    store.getState().actions.updateDraft('title', 'Prompt with Image')
+    store
+      .getState()
+      .actions.updateDraft('body', createPendingPromptImageMarkdown('diagram.png', 'pending-one'))
+
+    const commands = createPromptLibraryCommandExecutor({
+      clipboard: { writeText: () => Promise.resolve() },
+      library: createLibrary({ savePrompt }),
+      notify,
+      store,
+    })
+
+    commands.saveComposer()
+
+    expect(savePrompt).not.toHaveBeenCalled()
+    expect(store.getState().composer.mode).toBe('new')
+    expect(notify).toHaveBeenCalledWith('wait for image uploads to finish')
   })
 
   it('edits and duplicates the active Prompt through the Prompt Library client', async () => {

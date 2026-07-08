@@ -13,7 +13,11 @@ import {
   PromptNoteTitle,
   PromptNoteTitleRow,
 } from '@/features/prompt-library/components/prompt-note-shell'
-import { PromptBodyMarkdown } from '@/features/prompt-library/rendering/prompt-body-markdown'
+import {
+  PromptBodyMarkdown,
+  PromptImageAttachments,
+  type PromptImageUrlResolver,
+} from '@/features/prompt-library/rendering/prompt-body-markdown'
 import { relativeTime } from '@/features/prompt-library/rendering/prompt-library-formatting'
 import { type PromptRecord } from '@/features/prompt-library/types'
 import { cn } from '@/lib/utils'
@@ -22,9 +26,10 @@ type PromptNoteProps = {
   prompt: PromptRecord
   className?: string
   footer?: ReactNode
+  imageUrlFor?: PromptImageUrlResolver
 }
 
-export function PromptNote({ prompt, className, footer }: PromptNoteProps) {
+export function PromptNote({ prompt, className, footer, imageUrlFor }: PromptNoteProps) {
   return (
     <PromptNoteShell className={cn('gap-0', className)}>
       <PromptNoteHeader>
@@ -77,7 +82,8 @@ export function PromptNote({ prompt, className, footer }: PromptNoteProps) {
 
         <PromptNoteBody>
           <PromptNoteBodyMarker>// PROMPT</PromptNoteBodyMarker>
-          <PromptBodyMarkdown body={prompt.body} />
+          <PromptBodyMarkdown body={prompt.body} images={prompt.images} imageUrlFor={imageUrlFor} />
+          <PromptImageAttachments images={prompt.images} imageUrlFor={imageUrlFor} />
         </PromptNoteBody>
       </PromptNoteContent>
 

@@ -3,7 +3,10 @@
 import { useState } from 'react'
 
 import { PromptCommandBar } from '@/features/prompt-library/components/prompt-command-bar'
-import { PromptComposer } from '@/features/prompt-library/components/prompt-composer'
+import {
+  PromptComposer,
+  type PromptImagePasteRequest,
+} from '@/features/prompt-library/components/prompt-composer'
 import { PromptEmptyState } from '@/features/prompt-library/components/prompt-empty-state'
 import { PromptViewer } from '@/features/prompt-library/components/prompt-viewer'
 import {
@@ -40,6 +43,7 @@ type PromptWorkspaceProps = {
     field: TFieldName,
     value: PromptDraft[TFieldName],
   ) => void
+  onPasteImages: (request: PromptImagePasteRequest) => void
 }
 
 export function PromptWorkspace({
@@ -66,6 +70,7 @@ export function PromptWorkspace({
   onCancelComposer,
   onSaveComposer,
   onDraftChange,
+  onPasteImages,
 }: PromptWorkspaceProps) {
   const [searchFocused, setSearchFocused] = useState(false)
 
@@ -114,6 +119,7 @@ export function PromptWorkspace({
           titleInputRef={titleInputRef}
           onCancelComposer={onCancelComposer}
           onDraftChange={onDraftChange}
+          onPasteImages={onPasteImages}
           onSaveComposer={onSaveComposer}
         />
       ) : null}

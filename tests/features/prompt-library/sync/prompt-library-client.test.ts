@@ -12,6 +12,7 @@ import {
 import { createPromptLibraryStore } from '@/features/prompt-library/store/prompt-library-store'
 import { createPromptLibraryClient } from '@/features/prompt-library/sync/prompt-library-client'
 import {
+  type PromptImageUploadInput,
   type PromptLibraryPersistedSnapshot,
   type PromptRecord,
 } from '@/features/prompt-library/types'
@@ -22,6 +23,7 @@ const prompt: PromptRecord = {
   body: 'Write a concise test plan.',
   category: 'Engineering',
   tags: ['testing'],
+  images: [],
   createdAt: '2026-04-24T00:00:00.000Z',
   updatedAt: '2026-04-24T00:00:00.000Z',
   uses: 0,
@@ -40,6 +42,7 @@ const createPersistedSnapshot = (
       title: '',
       category: '',
       body: '',
+      images: [],
       tagsInput: '',
     },
   },
@@ -81,6 +84,7 @@ const createRemoteStorage = (
       prompts: [],
       isFresh: false,
     }),
+  deletePromptImage: () => Promise.resolve(),
   deletePrompt: () => Promise.resolve(),
   getPromptShare: (promptId) =>
     Promise.resolve({
@@ -110,6 +114,14 @@ const createRemoteStorage = (
       revoked: true,
     }),
   savePrompt: (savedPrompt) => Promise.resolve(savedPrompt),
+  uploadPromptImage: (upload) =>
+    Promise.resolve({
+      id: 'image-alpha',
+      fileName: upload.fileName,
+      contentType: upload.contentType,
+      size: 128,
+      createdAt: '2026-04-24T00:02:00.000Z',
+    }),
   ...overrides,
 })
 
@@ -136,6 +148,7 @@ describe('prompt library client', () => {
     const client = createPromptLibraryClient(storage, store)
 
     expect(client.canSharePrompts).toBe(false)
+    expect(client.canUploadPromptImages).toBe(false)
     await expect(client.savePrompt(prompt)).resolves.toEqual({
       status: 'synced',
       value: prompt,
@@ -143,6 +156,16 @@ describe('prompt library client', () => {
     await expect(client.deletePrompt(prompt.id)).resolves.toEqual({
       status: 'synced',
       value: undefined,
+    })
+    await expect(
+      client.uploadPromptImage({
+        fileName: 'diagram.png',
+        contentType: 'image/png',
+        dataBase64: 'abc',
+      }),
+    ).resolves.toMatchObject({
+      status: 'failed',
+      message: 'Sign in to add images',
     })
     expect(storage.persistSnapshot).not.toHaveBeenCalled()
   })
@@ -174,6 +197,16 @@ describe('prompt library client', () => {
     const store = createPromptLibraryStore()
     const savePrompt = vi.fn((savedPrompt: PromptRecord) => Promise.resolve(savedPrompt))
     const deletePrompt = vi.fn(() => Promise.resolve())
+    const deletePromptImage = vi.fn(() => Promise.resolve())
+    const uploadPromptImage = vi.fn((upload: PromptImageUploadInput) =>
+      Promise.resolve({
+        id: 'image-alpha',
+        fileName: upload.fileName,
+        contentType: upload.contentType,
+        size: 128,
+        createdAt: '2026-04-24T00:02:00.000Z',
+      }),
+    )
     const recordPromptUse = vi.fn((promptId: string) =>
       Promise.resolve({
         ...prompt,
@@ -184,11 +217,14 @@ describe('prompt library client', () => {
     const storage = createRemoteStorage({
       savePrompt,
       deletePrompt,
+      deletePromptImage,
+      uploadPromptImage,
       recordPromptUse,
     })
     const client = createPromptLibraryClient(storage, store)
 
     expect(client.canSharePrompts).toBe(true)
+    expect(client.canUploadPromptImages).toBe(true)
     await expect(client.savePrompt(prompt)).resolves.toEqual({
       status: 'synced',
       value: prompt,
@@ -197,13 +233,36 @@ describe('prompt library client', () => {
       status: 'synced',
       value: undefined,
     })
+    await expect(client.deletePromptImage('image-alpha')).resolves.toEqual({
+      status: 'synced',
+      value: undefined,
+    })
     await expect(client.recordPromptUse(prompt.id)).resolves.toMatchObject({
       status: 'synced',
       value: { uses: 1 },
     })
+    await expect(
+      client.uploadPromptImage({
+        fileName: 'diagram.png',
+        contentType: 'image/png',
+        dataBase64: 'abc',
+      }),
+    ).resolves.toMatchObject({
+      status: 'synced',
+      value: {
+        id: 'image-alpha',
+        fileName: 'diagram.png',
+      },
+    })
 
     expect(savePrompt).toHaveBeenCalledWith(prompt)
     expect(deletePrompt).toHaveBeenCalledWith(prompt.id)
+    expect(deletePromptImage).toHaveBeenCalledWith('image-alpha')
+    expect(uploadPromptImage).toHaveBeenCalledWith({
+      fileName: 'diagram.png',
+      contentType: 'image/png',
+      dataBase64: 'abc',
+    })
     expect(recordPromptUse).toHaveBeenCalledWith(prompt.id)
     expect(store.getState().syncStatus).toBe('ready')
   })

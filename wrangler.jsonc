@@ -11,6 +11,12 @@
       "migrations_dir": "./migrations",
     },
   ],
+  "r2_buckets": [
+    {
+      "binding": "PROMPT_IMAGES",
+      "bucket_name": "promptrc-prompt-images",
+    },
+  ],
   "observability": {
     "enabled": true,
     "head_sampling_rate": 1,

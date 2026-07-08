@@ -5,4 +5,16 @@ export default defineNitroConfig({
   cloudflare: {
     deployConfig: true,
   },
+  routes: {
+    '/api/prompt-images/:imageId': {
+      handler: './src/features/prompt-library/server/prompt-image-start-entry.ts',
+      method: 'GET',
+      format: 'web',
+    },
+    '/api/shared-prompt-images/:shareId/:imageId': {
+      handler: './src/features/prompt-library/server/prompt-image-start-entry.ts',
+      method: 'GET',
+      format: 'web',
+    },
+  },
 })

@@ -117,6 +117,7 @@ export const matchesPromptQuery = (prompt: PromptRecord, query: string) => {
     prompt.title,
     prompt.body,
     prompt.category,
+    prompt.images.map((image) => image.fileName).join(' '),
     prompt.tags.join(' '),
     prompt.tags.map((tag) => `#${tag}`).join(' '),
   ]

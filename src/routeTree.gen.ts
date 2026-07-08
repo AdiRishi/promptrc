@@ -13,6 +13,8 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as SignUpSplatRouteImport } from './routes/sign-up.$'
 import { Route as SignInSplatRouteImport } from './routes/sign-in.$'
 import { Route as ShareShareIdRouteImport } from './routes/share.$shareId'
+import { Route as ApiPromptImagesImageIdRouteImport } from './routes/api.prompt-images.$imageId'
+import { Route as ApiSharedPromptImagesShareIdImageIdRouteImport } from './routes/api.shared-prompt-images.$shareId.$imageId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -34,18 +36,33 @@ const ShareShareIdRoute = ShareShareIdRouteImport.update({
   path: '/share/$shareId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPromptImagesImageIdRoute = ApiPromptImagesImageIdRouteImport.update({
+  id: '/api/prompt-images/$imageId',
+  path: '/api/prompt-images/$imageId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiSharedPromptImagesShareIdImageIdRoute =
+  ApiSharedPromptImagesShareIdImageIdRouteImport.update({
+    id: '/api/shared-prompt-images/$shareId/$imageId',
+    path: '/api/shared-prompt-images/$shareId/$imageId',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/share/$shareId': typeof ShareShareIdRoute
   '/sign-in/$': typeof SignInSplatRoute
   '/sign-up/$': typeof SignUpSplatRoute
+  '/api/prompt-images/$imageId': typeof ApiPromptImagesImageIdRoute
+  '/api/shared-prompt-images/$shareId/$imageId': typeof ApiSharedPromptImagesShareIdImageIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/share/$shareId': typeof ShareShareIdRoute
   '/sign-in/$': typeof SignInSplatRoute
   '/sign-up/$': typeof SignUpSplatRoute
+  '/api/prompt-images/$imageId': typeof ApiPromptImagesImageIdRoute
+  '/api/shared-prompt-images/$shareId/$imageId': typeof ApiSharedPromptImagesShareIdImageIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -53,13 +70,34 @@ export interface FileRoutesById {
   '/share/$shareId': typeof ShareShareIdRoute
   '/sign-in/$': typeof SignInSplatRoute
   '/sign-up/$': typeof SignUpSplatRoute
+  '/api/prompt-images/$imageId': typeof ApiPromptImagesImageIdRoute
+  '/api/shared-prompt-images/$shareId/$imageId': typeof ApiSharedPromptImagesShareIdImageIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/share/$shareId' | '/sign-in/$' | '/sign-up/$'
+  fullPaths:
+    | '/'
+    | '/share/$shareId'
+    | '/sign-in/$'
+    | '/sign-up/$'
+    | '/api/prompt-images/$imageId'
+    | '/api/shared-prompt-images/$shareId/$imageId'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/share/$shareId' | '/sign-in/$' | '/sign-up/$'
-  id: '__root__' | '/' | '/share/$shareId' | '/sign-in/$' | '/sign-up/$'
+  to:
+    | '/'
+    | '/share/$shareId'
+    | '/sign-in/$'
+    | '/sign-up/$'
+    | '/api/prompt-images/$imageId'
+    | '/api/shared-prompt-images/$shareId/$imageId'
+  id:
+    | '__root__'
+    | '/'
+    | '/share/$shareId'
+    | '/sign-in/$'
+    | '/sign-up/$'
+    | '/api/prompt-images/$imageId'
+    | '/api/shared-prompt-images/$shareId/$imageId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -67,6 +105,8 @@ export interface RootRouteChildren {
   ShareShareIdRoute: typeof ShareShareIdRoute
   SignInSplatRoute: typeof SignInSplatRoute
   SignUpSplatRoute: typeof SignUpSplatRoute
+  ApiPromptImagesImageIdRoute: typeof ApiPromptImagesImageIdRoute
+  ApiSharedPromptImagesShareIdImageIdRoute: typeof ApiSharedPromptImagesShareIdImageIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -99,6 +139,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ShareShareIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/prompt-images/$imageId': {
+      id: '/api/prompt-images/$imageId'
+      path: '/api/prompt-images/$imageId'
+      fullPath: '/api/prompt-images/$imageId'
+      preLoaderRoute: typeof ApiPromptImagesImageIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/shared-prompt-images/$shareId/$imageId': {
+      id: '/api/shared-prompt-images/$shareId/$imageId'
+      path: '/api/shared-prompt-images/$shareId/$imageId'
+      fullPath: '/api/shared-prompt-images/$shareId/$imageId'
+      preLoaderRoute: typeof ApiSharedPromptImagesShareIdImageIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -107,6 +161,9 @@ const rootRouteChildren: RootRouteChildren = {
   ShareShareIdRoute: ShareShareIdRoute,
   SignInSplatRoute: SignInSplatRoute,
   SignUpSplatRoute: SignUpSplatRoute,
+  ApiPromptImagesImageIdRoute: ApiPromptImagesImageIdRoute,
+  ApiSharedPromptImagesShareIdImageIdRoute:
+    ApiSharedPromptImagesShareIdImageIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

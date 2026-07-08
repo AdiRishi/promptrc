@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
+import { createPromptImageMarkdown } from '@/features/prompt-library/model/prompt-images'
 import {
   copyPromptForRemoteLibrary,
   createPromptRecordFromDraft,
@@ -14,9 +15,18 @@ const prompt: PromptRecord = {
   body: 'Write a concise test plan.',
   category: 'Engineering',
   tags: ['Testing'],
+  images: [],
   createdAt: '2026-04-24T00:00:00.000Z',
   updatedAt: '2026-04-24T00:00:00.000Z',
   uses: 0,
+}
+
+const image = {
+  id: 'image-alpha',
+  fileName: 'diagram.png',
+  contentType: 'image/png',
+  size: 2048,
+  createdAt: '2026-04-24T00:01:00.000Z',
 }
 
 describe('prompt library integrity', () => {
@@ -35,6 +45,7 @@ describe('prompt library integrity', () => {
           title: '  Owned Prompt ',
           category: '',
           body: '  Keep this close. ',
+          images: [],
           tagsInput: '#Testing #testing',
         },
         {
@@ -48,6 +59,7 @@ describe('prompt library integrity', () => {
       body: 'Keep this close.',
       category: 'Personal',
       tags: ['testing'],
+      images: [],
       createdAt: '2026-04-24T00:00:00.000Z',
       updatedAt: '2026-04-24T00:00:00.000Z',
       uses: 0,
@@ -57,6 +69,7 @@ describe('prompt library integrity', () => {
         title: 'No body',
         category: 'Engineering',
         body: '',
+        images: [],
         tagsInput: '',
       }),
     ).toBeNull()
@@ -101,5 +114,27 @@ describe('prompt library integrity', () => {
       tags: ['testing'],
       uses: 3,
     })
+  })
+
+  it('keeps only images referenced in the Prompt Body', () => {
+    const body = `Look here:\n\n${createPromptImageMarkdown(image)}`
+
+    expect(
+      normalizePromptRecord({
+        ...prompt,
+        body,
+        images: [image, { ...image, id: 'image-unused', fileName: 'unused.png' }],
+      }).images,
+    ).toEqual([image])
+  })
+
+  it('keeps image metadata when a referenced Prompt Body image has a Markdown title', () => {
+    expect(
+      normalizePromptRecord({
+        ...prompt,
+        body: 'Look here:\n\n![diagram](prompt-image://image-alpha "full size")',
+        images: [image],
+      }).images,
+    ).toEqual([image])
   })
 })

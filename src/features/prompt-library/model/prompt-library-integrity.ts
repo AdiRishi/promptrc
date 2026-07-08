@@ -1,3 +1,4 @@
+import { getImagesReferencedByBody } from '@/features/prompt-library/model/prompt-images'
 import {
   type ComposerState,
   type PromptDraft,
@@ -11,6 +12,7 @@ export const EMPTY_PROMPT_DRAFT: PromptDraft = {
   title: '',
   category: '',
   body: '',
+  images: [],
   tagsInput: '',
 }
 
@@ -48,16 +50,20 @@ export const createPromptDraft = (prompt?: PromptRecord): PromptDraft => {
     title: prompt.title,
     category: prompt.category,
     body: prompt.body,
+    images: prompt.images,
     tagsInput: prompt.tags.map((tag) => `#${tag}`).join(' '),
   }
 }
 
 export const createPromptInput = (draft: PromptDraft): PromptSaveInput => {
+  const body = draft.body.trim()
+
   return {
     title: draft.title.trim(),
-    body: draft.body.trim(),
+    body,
     category: draft.category.trim(),
     tags: normalizePromptTags(draft.tagsInput),
+    images: getImagesReferencedByBody(body, draft.images),
   }
 }
 
@@ -93,6 +99,7 @@ export const createPromptRecordFromDraft = (
     body: promptInput.body,
     category: normalizePromptCategory(promptInput.category),
     tags: promptInput.tags,
+    images: promptInput.images,
     createdAt: now,
     updatedAt: now,
     uses: 0,
@@ -116,6 +123,7 @@ export const updatePromptRecordFromDraft = (
     body: promptInput.body,
     category: normalizePromptCategory(promptInput.category || prompt.category),
     tags: promptInput.tags,
+    images: promptInput.images,
     updatedAt: getTimestamp(options),
   } satisfies PromptRecord
 }
@@ -142,6 +150,7 @@ export const normalizePromptRecord = (prompt: PromptRecord): PromptRecord => ({
   body: prompt.body.trim(),
   category: normalizePromptCategory(prompt.category),
   tags: normalizePromptTags(prompt.tags),
+  images: getImagesReferencedByBody(prompt.body.trim(), prompt.images),
   createdAt: prompt.createdAt,
   updatedAt: prompt.updatedAt,
   uses: prompt.uses,

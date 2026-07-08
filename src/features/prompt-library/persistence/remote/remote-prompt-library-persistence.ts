@@ -4,6 +4,10 @@ import {
 } from '@/features/prompt-library/model/prompt-library-integrity'
 import { createD1PromptLibraryAdapter } from '@/features/prompt-library/persistence/remote/d1-prompt-library-adapter'
 import {
+  deleteUnreferencedPromptImageObjectsForUser,
+  getRemovedPromptImageIds,
+} from '@/features/prompt-library/persistence/remote/prompt-image-persistence'
+import {
   type PromptLibraryRemoteSnapshot,
   type PromptRecord,
 } from '@/features/prompt-library/types'
@@ -69,6 +73,14 @@ export const listPromptsForUser = async (
   extUserId: string,
 ): Promise<PromptRecord[]> => {
   return createD1PromptLibraryAdapter(db, extUserId).listPrompts()
+}
+
+export const findPromptForUser = async (
+  db: D1Database,
+  extUserId: string,
+  promptId: string,
+): Promise<PromptRecord | null> => {
+  return createD1PromptLibraryAdapter(db, extUserId).findPrompt(promptId)
 }
 
 export const getPromptLibraryForUser = async (
@@ -146,6 +158,54 @@ export const savePromptForUser = async (
 
 export const deletePromptForUser = async (db: D1Database, extUserId: string, promptId: string) => {
   return createRemotePromptLibraryPersistence(db, extUserId).deletePrompt(promptId)
+}
+
+export const savePromptAndPruneImagesForUser = async (
+  db: D1Database,
+  bucket: R2Bucket,
+  extUserId: string,
+  prompt: PromptRecord,
+) => {
+  const previousPrompt = await findPromptForUser(db, extUserId, prompt.id)
+  const savedPrompt = await savePromptForUser(db, extUserId, prompt)
+
+  if (!previousPrompt) {
+    return savedPrompt
+  }
+
+  const removedImageIds = getRemovedPromptImageIds(previousPrompt, savedPrompt)
+
+  if (removedImageIds.length > 0) {
+    await deleteUnreferencedPromptImageObjectsForUser(
+      bucket,
+      extUserId,
+      removedImageIds,
+      await listPromptsForUser(db, extUserId),
+    )
+  }
+
+  return savedPrompt
+}
+
+export const deletePromptAndPruneImagesForUser = async (
+  db: D1Database,
+  bucket: R2Bucket,
+  extUserId: string,
+  promptId: string,
+) => {
+  const previousPrompt = await findPromptForUser(db, extUserId, promptId)
+  const result = await deletePromptForUser(db, extUserId, promptId)
+
+  if (previousPrompt && previousPrompt.images.length > 0) {
+    await deleteUnreferencedPromptImageObjectsForUser(
+      bucket,
+      extUserId,
+      previousPrompt.images.map((image) => image.id),
+      await listPromptsForUser(db, extUserId),
+    )
+  }
+
+  return result
 }
 
 export const recordPromptUseForUser = async (

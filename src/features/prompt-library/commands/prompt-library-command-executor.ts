@@ -3,6 +3,7 @@ import { selectPromptLibraryVisibleState } from '@/features/prompt-library/selec
 import { type PromptLibraryStoreApi } from '@/features/prompt-library/store/prompt-library-store'
 import { type PromptLibraryClient } from '@/features/prompt-library/sync/prompt-library-client'
 import {
+  type PromptImage,
   type PromptRecord,
   type PromptShareRecord,
   type PromptShareRevokeResult,
@@ -45,7 +46,22 @@ export const createPromptLibraryCommandExecutor = ({
     notify(`sync failed - ${message}`)
   }
 
-  const commitPrompt = async (prompt: PromptRecord) => {
+  const deleteDiscardedPromptImages = async (images: PromptImage[]) => {
+    const imageIds = Array.from(new Set(images.map((image) => image.id)))
+
+    if (imageIds.length === 0) {
+      return
+    }
+
+    const results = await Promise.all(imageIds.map((imageId) => library.deletePromptImage(imageId)))
+    const failedResult = results.find((result) => result.status === 'failed')
+
+    if (failedResult) {
+      notifySyncFailure(failedResult.message)
+    }
+  }
+
+  const commitPrompt = async (prompt: PromptRecord, discardedImages: PromptImage[] = []) => {
     const result = await library.savePrompt(prompt)
 
     if (result.status === 'failed') {
@@ -54,6 +70,7 @@ export const createPromptLibraryCommandExecutor = ({
     }
 
     store.getState().actions.replacePrompt(result.value)
+    void deleteDiscardedPromptImages(discardedImages)
   }
 
   const selectPrompt = (promptId: string) => {
@@ -160,14 +177,19 @@ export const createPromptLibraryCommandExecutor = ({
       return
     }
 
+    if (result.status === 'pending-images') {
+      notify('wait for image uploads to finish')
+      return
+    }
+
     if (result.status === 'created') {
-      void commitPrompt(result.prompt)
+      void commitPrompt(result.prompt, result.discardedImages)
       notify(`wrote ${filenameOf(result.prompt.title)}.md`)
       return
     }
 
     if (result.status === 'updated') {
-      void commitPrompt(result.prompt)
+      void commitPrompt(result.prompt, result.discardedImages)
       notify(`saved ${filenameOf(result.prompt.title)}.md`)
     }
   }

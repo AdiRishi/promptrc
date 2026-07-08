@@ -1,0 +1,2 @@
+ALTER TABLE prompts
+ADD COLUMN images_json TEXT NOT NULL DEFAULT '[]';

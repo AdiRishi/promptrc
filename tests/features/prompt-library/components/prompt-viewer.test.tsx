@@ -10,6 +10,7 @@ const prompt: PromptRecord = {
   body: 'Write a concise test plan.',
   category: 'Engineering',
   tags: ['testing'],
+  images: [],
   createdAt: '2026-04-24T00:00:00.000Z',
   updatedAt: '2026-04-24T00:00:00.000Z',
   uses: 0,
