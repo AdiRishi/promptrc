@@ -1,6 +1,6 @@
 {
   "name": "promptrc",
-  "description": "A commonplace book for working with AI — capture the prompts, phrasings, sequences, and benchmarks worth keeping.",
+  "description": "A commonplace book for working with AI \u2014 capture the prompts, phrasings, sequences, and benchmarks worth keeping.",
   "private": true,
   "type": "module",
   "scripts": {
@@ -50,7 +50,7 @@
     "zustand": "^5.0.15"
   },
   "devDependencies": {
-    "@cloudflare/vitest-plugin": "1.3.6",
+    "@cloudflare/vitest-plugin": "1.3.5",
     "@testing-library/dom": "^10.4.2",
     "@testing-library/react": "^16.3.3",
     "@types/node": "^26.6.4",
@@ -69,5 +69,5 @@
     "vitest": "^5.0.3",
     "wrangler": "^4.146.0"
   },
-  "packageManager": "pnpm@11.10.0"
+  "packageManager": "pnpm@12.8.2"
 }
