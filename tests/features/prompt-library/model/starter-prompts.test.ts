@@ -7,16 +7,16 @@ import {
 } from '@/features/prompt-library/model/starter-prompts'
 
 describe('starter prompts', () => {
-  it('creates six ordinary prompts with Start Here as the default selection', () => {
+  it('creates six Prompts covering every kind, with Start Here as the default selection', () => {
     const starterPrompts = createStarterPrompts()
 
     expect(starterPrompts).toHaveLength(6)
     expect(starterPrompts.map((prompt) => prompt.title)).toEqual([
       'Start Here',
       'Bug Hunt',
-      'PRD Shaper',
-      'Executive Summary',
-      'Decision Partner',
+      'Preserve uncertainty',
+      'Plan, critique, build',
+      'Executive summary under pressure',
       'Difficult Reply',
     ])
     expect(starterPrompts.map((prompt) => prompt.title)).toEqual(STARTER_PROMPT_TITLES)
@@ -25,11 +25,18 @@ describe('starter prompts', () => {
     expect(starterPrompts.map((prompt) => prompt.category)).toEqual([
       'Onboarding',
       'Engineering',
-      'Product',
       'Writing',
-      'Thinking',
+      'Engineering',
+      'Writing',
       'Communication',
     ])
+    expect(new Set(starterPrompts.map((prompt) => prompt.kind))).toEqual(
+      new Set(['prompt', 'fragment', 'sequence', 'benchmark']),
+    )
+    expect(starterPrompts.filter((prompt) => prompt.pinned).map((prompt) => prompt.title)).toEqual([
+      'Start Here',
+    ])
+    expect(starterPrompts.every((prompt) => prompt.runs.length === 0)).toBe(true)
     expect(starterPrompts.every((prompt) => prompt.tags.length > 0)).toBe(true)
     expect(starterPrompts.every((prompt) => prompt.uses === 0)).toBe(true)
   })

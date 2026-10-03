@@ -6,6 +6,8 @@ import {
 
 export type PromptLibraryCommandRouter = {
   commandState: PromptLibraryCommandState
+  capture: () => void
+  togglePin: () => void
   copyActivePrompt: () => void | Promise<void>
   deletePrompt: () => void
   duplicatePrompt: () => void
@@ -31,6 +33,10 @@ export const getPromptLibraryKeyboardCommandId = ({
   }
 
   switch (key) {
+    case 'c':
+      return 'capture'
+    case 'p':
+      return 'toggle-pin'
     case 'n':
       return 'new-prompt'
     case '/':
@@ -61,6 +67,12 @@ export const runPromptLibraryCommand = (
   }
 
   switch (commandId) {
+    case 'capture':
+      router.capture()
+      break
+    case 'toggle-pin':
+      router.togglePin()
+      break
     case 'copy-prompt-body':
       void router.copyActivePrompt()
       break

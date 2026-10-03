@@ -14,6 +14,12 @@ const createRouter = (overrides: Partial<PromptLibraryCommandRouter> = {}) => {
       composerMode: 'view',
       hasActivePrompt: true,
     },
+    capture: () => {
+      events.push('capture')
+    },
+    togglePin: () => {
+      events.push('toggle-pin')
+    },
     copyActivePrompt: () => {
       events.push('copy-active-prompt')
     },

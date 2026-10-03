@@ -4,26 +4,33 @@ import {
   isSupportedPromptImageContentType,
   normalizePromptImage,
 } from '@/features/prompt-library/model/prompt-images'
+import { DEFAULT_PROMPT_KIND, isPromptKind } from '@/features/prompt-library/model/prompt-kinds'
 import {
+  EMPTY_PROMPT_DRAFT,
   normalizePromptCategory,
   normalizePromptTags,
 } from '@/features/prompt-library/model/prompt-library-integrity'
+import {
+  MAX_PROMPT_RUN_MODEL_LENGTH,
+  MAX_PROMPT_RUN_NOTE_LENGTH,
+  MAX_PROMPT_RUNS,
+  isPromptRunVerdict,
+  normalizePromptRuns,
+} from '@/features/prompt-library/model/prompt-runs'
 import {
   type ComposerState,
   type PromptDraft,
   type PromptImage,
   type PromptImageUploadInput,
+  type PromptKind,
+  type PromptLibraryFilter,
   type PromptLibraryPersistedSnapshot,
+  type PromptLibrarySort,
   type PromptRecord,
+  type PromptRun,
 } from '@/features/prompt-library/types'
 
-const EMPTY_PERSISTED_DRAFT: PromptDraft = {
-  title: '',
-  category: '',
-  body: '',
-  images: [],
-  tagsInput: '',
-}
+const EMPTY_PERSISTED_DRAFT: PromptDraft = { ...EMPTY_PROMPT_DRAFT }
 
 const assertObject = (value: unknown, fieldName: string): Record<string, unknown> => {
   if (!value || typeof value !== 'object') {
@@ -101,6 +108,73 @@ const assertPromptImages = (value: unknown) => {
   return value.map(assertPromptImage)
 }
 
+/** Fields added after launch are optional on input so older libraries still load. */
+const assertPromptKind = (value: unknown): PromptKind => {
+  if (value === undefined) {
+    return DEFAULT_PROMPT_KIND
+  }
+
+  if (!isPromptKind(value)) {
+    throw new Error('kind is invalid')
+  }
+
+  return value
+}
+
+const assertOptionalString = (value: unknown, fieldName: string) => {
+  return value === undefined ? '' : assertString(value, fieldName)
+}
+
+const assertOptionalBoolean = (value: unknown, fieldName: string) => {
+  return value === undefined ? false : assertBoolean(value, fieldName)
+}
+
+export const assertPromptRun = (value: unknown): PromptRun => {
+  const run = assertObject(value, 'run')
+  const id = assertString(run.id, 'run.id').trim()
+  const model = assertString(run.model, 'run.model').trim()
+  const note = assertOptionalString(run.note, 'run.note').trim()
+  const ranAt = assertString(run.ranAt, 'run.ranAt')
+
+  if (!id || id.length > 96) {
+    throw new Error('run.id is invalid')
+  }
+
+  if (!model || model.length > MAX_PROMPT_RUN_MODEL_LENGTH) {
+    throw new Error('run.model is invalid')
+  }
+
+  if (!isPromptRunVerdict(run.verdict)) {
+    throw new Error('run.verdict is invalid')
+  }
+
+  if (note.length > MAX_PROMPT_RUN_NOTE_LENGTH) {
+    throw new Error('run.note is too long')
+  }
+
+  if (Number.isNaN(Date.parse(ranAt))) {
+    throw new Error('run.ranAt must be a date')
+  }
+
+  return { id, model, verdict: run.verdict, note, ranAt }
+}
+
+const assertPromptRuns = (value: unknown) => {
+  if (value === undefined) {
+    return []
+  }
+
+  if (!Array.isArray(value)) {
+    throw new Error('runs must be an array')
+  }
+
+  if (value.length > MAX_PROMPT_RUNS) {
+    throw new Error('runs has too many entries')
+  }
+
+  return normalizePromptRuns(value.map(assertPromptRun))
+}
+
 export const assertPromptRecord = (value: unknown): PromptRecord => {
   const prompt = assertObject(value, 'prompt')
   const uses = prompt.uses
@@ -126,11 +200,15 @@ export const assertPromptRecord = (value: unknown): PromptRecord => {
 
   return {
     id,
+    kind: assertPromptKind(prompt.kind),
     title,
     body,
+    notes: assertOptionalString(prompt.notes, 'notes').trim(),
     category: normalizePromptCategory(assertString(prompt.category, 'category')),
     tags: normalizePromptTags(assertStringArray(prompt.tags, 'tags')),
     images: assertPromptImages(prompt.images),
+    runs: assertPromptRuns(prompt.runs),
+    pinned: assertOptionalBoolean(prompt.pinned, 'pinned'),
     createdAt: assertString(prompt.createdAt, 'createdAt'),
     updatedAt: assertString(prompt.updatedAt, 'updatedAt'),
     uses,
@@ -216,9 +294,11 @@ const parsePersistedDraft = (value: unknown): PromptDraft => {
   const draft = value as Record<string, unknown>
 
   return {
+    kind: isPromptKind(draft.kind) ? draft.kind : DEFAULT_PROMPT_KIND,
     title: typeof draft.title === 'string' ? draft.title : '',
     category: typeof draft.category === 'string' ? draft.category : '',
     body: typeof draft.body === 'string' ? draft.body : '',
+    notes: typeof draft.notes === 'string' ? draft.notes : '',
     images: Array.isArray(draft.images)
       ? draft.images.flatMap((image) => {
           try {
@@ -252,6 +332,35 @@ const parsePersistedComposer = (value: unknown): ComposerState => {
   }
 }
 
+const parsePersistedFilter = (value: unknown): PromptLibraryFilter => {
+  if (!value || typeof value !== 'object') {
+    return { type: 'all' }
+  }
+
+  const filter = value as Record<string, unknown>
+
+  switch (filter.type) {
+    case 'pinned':
+      return { type: 'pinned' }
+    case 'kind':
+      return isPromptKind(filter.kind) ? { type: 'kind', kind: filter.kind } : { type: 'all' }
+    case 'category':
+      return typeof filter.category === 'string' && filter.category
+        ? { type: 'category', category: filter.category }
+        : { type: 'all' }
+    case 'tag':
+      return typeof filter.tag === 'string' && filter.tag
+        ? { type: 'tag', tag: filter.tag }
+        : { type: 'all' }
+    default:
+      return { type: 'all' }
+  }
+}
+
+const parsePersistedSort = (value: unknown): PromptLibrarySort => {
+  return value === 'used' || value === 'title' ? value : 'created'
+}
+
 export const parsePromptLibraryPersistedSnapshot = (
   value: unknown,
 ): PromptLibraryPersistedSnapshot | null => {
@@ -271,6 +380,8 @@ export const parsePromptLibraryPersistedSnapshot = (
 
     return {
       prompts,
+      filter: parsePersistedFilter(snapshot.filter),
+      sort: parsePersistedSort(snapshot.sort),
       isFresh: typeof snapshot.isFresh === 'boolean' ? snapshot.isFresh : prompts.length === 0,
       query: typeof snapshot.query === 'string' ? snapshot.query : '',
       selectedPromptId: assertNullableString(snapshot.selectedPromptId ?? null, 'selectedPromptId'),

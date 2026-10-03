@@ -1,89 +1,130 @@
 import { generatePromptId } from '@/features/prompt-library/model/prompt-library-integrity'
-import { type PromptRecord } from '@/features/prompt-library/types'
+import { joinSequenceSteps } from '@/features/prompt-library/model/prompt-sequences'
+import { type PromptKind, type PromptRecord } from '@/features/prompt-library/types'
 
 type StarterPromptDefinition = {
+  kind: PromptKind
   title: string
   body: string
+  notes: string
   category: string
   tags: string[]
+  pinned?: boolean
 }
 
+/**
+ * Starter Prompts are real Prompts, added once to a Fresh Prompt Library. Between
+ * them they show every kind, template variables, and the capture workflow.
+ */
 const STARTER_PROMPT_DEFINITIONS = [
   {
+    kind: 'prompt',
     title: 'Start Here',
     category: 'Onboarding',
-    tags: ['onboarding', 'workflow', 'promptrc'],
-    body: `You are in promptrc, a terminal-inspired Prompt Library.
+    tags: ['onboarding', 'promptrc'],
+    pinned: true,
+    body: `promptrc is a commonplace book for working with AI — somewhere to keep the things that worked before they slip away.
 
-Use this space to keep Prompts you reuse often. Browse Categories in the tree, search by title, Prompt Body, Category, or Tag, then copy a Prompt Body when it is time to use it elsewhere.
+Four kinds of things are worth keeping:
 
-Try searching for "prd", "bug", or "#stakeholder". Press n to create your own Prompt when you are ready.`,
+- **Prompts** — reusable instructions. Write \`{{variables}}\` for the parts that change, like {{your_name | friend}}, and fill them in before copying.
+- **Fragments** — a turn of phrase that landed exactly right.
+- **Sequences** — an ordered chain of instructions, copied one step at a time.
+- **Benchmarks** — a reproducible test with an expected result and a log of runs.
+
+Press **c** anywhere to capture a thought in seconds, **⌘K** to search or run any command, and **?** to see every key.`,
+    notes:
+      'Pinned so it stays at the top. Unpin it with p, or delete it with x pressed twice — it is yours now.',
   },
   {
+    kind: 'prompt',
     title: 'Bug Hunt',
     category: 'Engineering',
-    tags: ['debugging', 'testing', 'root-cause'],
+    tags: ['debugging', 'root-cause'],
     body: `Act as a senior engineer debugging a tricky defect.
 
-Start by restating the observed behavior and expected behavior. List the highest-probability causes, then design the smallest reproduction that could distinguish between them. Ask for missing logs, inputs, or environment details only when they would change the next step.
+Observed: {{observed}}
+Expected: {{expected}}
 
-Finish with a concrete fix plan and the regression tests that should prove the issue stays fixed.`,
+Restate the gap in one sentence. List the highest-probability causes, then design the smallest reproduction that could tell them apart. Ask for logs or inputs only when they would change the next step.
+
+Finish with a concrete fix plan and the regression test that proves it stays fixed.`,
+    notes:
+      'Forcing "the smallest reproduction that could tell them apart" stops the model from guessing a fix before it understands the bug.',
   },
   {
-    title: 'PRD Shaper',
-    category: 'Product',
-    tags: ['prd', 'scope', 'requirements'],
-    body: `Turn the notes below into a sharp PRD.
-
-Clarify the problem, user stories, success criteria, constraints, and out-of-scope work. Preserve uncertainty as open questions instead of inventing false precision. Make the smallest useful first release obvious, then call out follow-up slices that can wait.`,
-  },
-  {
-    title: 'Executive Summary',
+    kind: 'fragment',
+    title: 'Preserve uncertainty',
     category: 'Writing',
-    tags: ['summary', 'stakeholder', 'brief'],
-    body: `Write an executive summary for the material below.
-
-Lead with the decision or most important takeaway. Keep the tone calm and direct. Use short paragraphs, name risks plainly, and separate confirmed facts from recommendations. Close with the next action and owner when they are known.`,
+    tags: ['precision', 'tone'],
+    body: 'Preserve uncertainty as open questions instead of inventing false precision.',
+    notes:
+      'Append to any summarising or planning prompt. It keeps confident-sounding filler out of PRDs and status updates.',
   },
   {
-    title: 'Decision Partner',
-    category: 'Thinking',
-    tags: ['decision', 'tradeoffs', 'strategy'],
-    body: `Help me make this decision.
+    kind: 'sequence',
+    title: 'Plan, critique, build',
+    category: 'Engineering',
+    tags: ['planning', 'review'],
+    body: joinSequenceSteps([
+      `Here is the task: {{task}}
 
-Frame the real choice, identify the constraints, and compare the strongest options. For each option, explain upside, downside, reversibility, and what evidence would change the call. End with a recommendation and a short "watch for" list.`,
+Don't write code yet. Propose a plan as a numbered list of small, verifiable steps, and name the riskiest assumption.`,
+      `Now argue against your own plan. What breaks first, what did you over-engineer, and what would a reviewer push back on? Revise the plan.`,
+      `Implement the revised plan one step at a time. After each step, say how you verified it before moving on.`,
+    ]),
+    notes:
+      'Separating planning from critique gets noticeably better plans than asking for both in one message.',
   },
   {
+    kind: 'benchmark',
+    title: 'Executive summary under pressure',
+    category: 'Writing',
+    tags: ['summary', 'stakeholder'],
+    body: `Write an executive summary of the incident notes below for a VP who has 30 seconds.
+
+Lead with the decision they need to make. Separate confirmed facts from guesses. Name the owner of the next action.
+
+{{incident_notes}}`,
+    notes: `Pass — the first sentence is the decision, facts and guesses are visibly separated, and an owner is named.
+Mixed — accurate, but the decision is buried or the owner is missing.
+Fail — restates the timeline, or presents guesses as facts.`,
+  },
+  {
+    kind: 'prompt',
     title: 'Difficult Reply',
     category: 'Communication',
-    tags: ['reply', 'conflict', 'stakeholder'],
-    body: `Draft a difficult reply that stays kind, clear, and firm.
+    tags: ['reply', 'stakeholder'],
+    body: `Draft a reply to {{person}} that stays kind, clear, and firm.
 
-Preserve the relationship without blurring the boundary. Acknowledge the other person's concern, state the decision or constraint plainly, and offer the most useful next step. Avoid over-apologizing or sounding defensive.`,
+The decision: {{decision}}
+
+Acknowledge their concern, state the decision plainly, and offer the single most useful next step. Don't over-apologise or sound defensive.`,
+    notes: 'Works best when you paste their original message underneath.',
   },
 ] satisfies StarterPromptDefinition[]
 
-export const STARTER_PROMPT_TITLES = STARTER_PROMPT_DEFINITIONS.map((prompt) => prompt.title) as [
-  string,
-  string,
-  string,
-  string,
-  string,
-  string,
-]
+export const STARTER_PROMPT_TITLES = STARTER_PROMPT_DEFINITIONS.map((prompt) => prompt.title)
 
-export const START_HERE_PROMPT_TITLE = STARTER_PROMPT_TITLES[0]
+export const START_HERE_PROMPT_TITLE = 'Start Here'
 
 export const createStarterPrompts = (): PromptRecord[] => {
   const newestTimestamp = Date.now()
 
-  return STARTER_PROMPT_DEFINITIONS.map((prompt, index) => {
+  return STARTER_PROMPT_DEFINITIONS.map((prompt: StarterPromptDefinition, index) => {
     const timestamp = new Date(newestTimestamp - index).toISOString()
 
     return {
-      ...prompt,
+      kind: prompt.kind,
+      title: prompt.title,
+      body: prompt.body,
+      notes: prompt.notes,
+      category: prompt.category,
+      tags: prompt.tags,
       id: generatePromptId(),
       images: [],
+      runs: [],
+      pinned: prompt.pinned ?? false,
       createdAt: timestamp,
       updatedAt: timestamp,
       uses: 0,

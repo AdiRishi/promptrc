@@ -1,10 +1,18 @@
-import { filenameOf } from '@/features/prompt-library/rendering/prompt-library-formatting'
+import { getPromptCopyText } from '@/features/prompt-library/model/prompt-copy'
+import {
+  createPromptRecordFromDraft,
+  createEmptyPromptDraft,
+  deriveTitleFromBody,
+} from '@/features/prompt-library/model/prompt-library-integrity'
+import { createPromptRun } from '@/features/prompt-library/model/prompt-runs'
 import { selectPromptLibraryVisibleState } from '@/features/prompt-library/selectors/prompt-library-selectors'
 import { type PromptLibraryStoreApi } from '@/features/prompt-library/store/prompt-library-store'
 import { type PromptLibraryClient } from '@/features/prompt-library/sync/prompt-library-client'
 import {
   type PromptImage,
+  type PromptKind,
   type PromptRecord,
+  type PromptRunVerdict,
   type PromptShareRecord,
   type PromptShareRevokeResult,
 } from '@/features/prompt-library/types'
@@ -24,6 +32,25 @@ type PromptLibraryCommandExecutorOptions = {
 
 export type PromptLibraryCommandExecutor = ReturnType<typeof createPromptLibraryCommandExecutor>
 
+export type PromptCopyRequest = {
+  values?: Readonly<Record<string, string>>
+  stepIndex?: number
+}
+
+export type PromptCaptureInput = {
+  kind: PromptKind
+  body: string
+  title?: string
+  category?: string
+  tagsInput?: string
+}
+
+export type PromptRunRequest = {
+  model: string
+  verdict: PromptRunVerdict
+  note?: string
+}
+
 export const createPromptLibraryCommandExecutor = ({
   clipboard,
   focusTitleInput,
@@ -39,11 +66,13 @@ export const createPromptLibraryCommandExecutor = ({
       prompts: state.prompts,
       query: state.query,
       selectedPromptId: state.selectedPromptId,
+      filter: state.filter,
+      sort: state.sort,
     })
   }
 
   const notifySyncFailure = (message: string) => {
-    notify(`sync failed - ${message}`)
+    notify(`Couldn’t sync — ${message}`)
   }
 
   const deleteDiscardedPromptImages = async (images: PromptImage[]) => {
@@ -75,14 +104,14 @@ export const createPromptLibraryCommandExecutor = ({
 
   const selectPrompt = (promptId: string) => {
     if (store.getState().composer.mode !== 'view') {
-      notify('press esc to finish editing first')
+      notify('Finish editing first — save or press Esc')
       return
     }
 
     store.getState().actions.selectPrompt(promptId)
   }
 
-  const copyActivePrompt = async () => {
+  const copyActivePrompt = async (request: PromptCopyRequest = {}) => {
     const activePrompt = getVisibleState().activePrompt
 
     if (!activePrompt) {
@@ -90,9 +119,9 @@ export const createPromptLibraryCommandExecutor = ({
     }
 
     try {
-      await clipboard.writeText(activePrompt.body)
+      await clipboard.writeText(getPromptCopyText(activePrompt, request))
     } catch {
-      notify('clipboard access is unavailable')
+      notify('Clipboard access is unavailable')
       return
     }
 
@@ -106,7 +135,11 @@ export const createPromptLibraryCommandExecutor = ({
       store.getState().actions.replacePrompt(result.value)
     }
 
-    notify(`copied -> ${activePrompt.title}`)
+    notify(
+      request.stepIndex === undefined
+        ? `Copied “${activePrompt.title}”`
+        : `Copied step ${request.stepIndex + 1} of “${activePrompt.title}”`,
+    )
   }
 
   const shareActivePrompt = async (): Promise<PromptShareRecord | null> => {
@@ -117,7 +150,7 @@ export const createPromptLibraryCommandExecutor = ({
     }
 
     if (!library.canSharePrompts) {
-      notify('sign in to share prompts')
+      notify('Sign in to share prompts')
       return null
     }
 
@@ -133,11 +166,11 @@ export const createPromptLibraryCommandExecutor = ({
     try {
       await clipboard.writeText(shareUrl)
     } catch {
-      notify(`share link ready -> ${shareUrl}`)
+      notify(`Share link ready — ${shareUrl}`)
       return result.value
     }
 
-    notify(`share link copied -> ${activePrompt.title}`)
+    notify(`Share link copied for “${activePrompt.title}”`)
 
     return result.value
   }
@@ -150,7 +183,7 @@ export const createPromptLibraryCommandExecutor = ({
     }
 
     if (!library.canSharePrompts) {
-      notify('sign in to share prompts')
+      notify('Sign in to share prompts')
       return null
     }
 
@@ -162,7 +195,9 @@ export const createPromptLibraryCommandExecutor = ({
     }
 
     notify(
-      result.value.revoked ? `share link revoked -> ${activePrompt.title}` : 'no active share link',
+      result.value.revoked
+        ? `Share link revoked for “${activePrompt.title}”`
+        : 'There was no active share link',
     )
 
     return result.value
@@ -172,25 +207,25 @@ export const createPromptLibraryCommandExecutor = ({
     const result = store.getState().actions.saveComposer()
 
     if (result.status === 'invalid') {
-      notify('title and body required')
+      notify('Give it a title and a body first')
       focusTitleInput?.()
       return
     }
 
     if (result.status === 'pending-images') {
-      notify('wait for image uploads to finish')
+      notify('Wait for image uploads to finish')
       return
     }
 
     if (result.status === 'created') {
       void commitPrompt(result.prompt, result.discardedImages)
-      notify(`wrote ${filenameOf(result.prompt.title)}.md`)
+      notify(`Saved “${result.prompt.title}”`)
       return
     }
 
     if (result.status === 'updated') {
       void commitPrompt(result.prompt, result.discardedImages)
-      notify(`saved ${filenameOf(result.prompt.title)}.md`)
+      notify(`Updated “${result.prompt.title}”`)
     }
   }
 
@@ -205,7 +240,7 @@ export const createPromptLibraryCommandExecutor = ({
 
     if (duplicatedPrompt) {
       void commitPrompt(duplicatedPrompt)
-      notify(`duplicated -> ${duplicatedPrompt.title}`)
+      notify(`Duplicated as “${duplicatedPrompt.title}”`)
     }
   }
 
@@ -221,7 +256,7 @@ export const createPromptLibraryCommandExecutor = ({
 
     if (store.getState().confirmDeleteId !== activePrompt.id) {
       actions.requestDeletePrompt(activePrompt.id)
-      notify('press delete again to confirm')
+      notify('Press delete again to confirm')
       return
     }
 
@@ -234,7 +269,7 @@ export const createPromptLibraryCommandExecutor = ({
           notifySyncFailure(result.message)
         }
       })
-      notify(`removed -> ${removedPrompt.title}`)
+      notify(`Deleted “${removedPrompt.title}”`)
     }
   }
 
@@ -246,8 +281,101 @@ export const createPromptLibraryCommandExecutor = ({
     }
   }
 
+  const togglePinActivePrompt = () => {
+    const activePrompt = getVisibleState().activePrompt
+
+    if (!activePrompt) {
+      return
+    }
+
+    const updatedPrompt = store.getState().actions.setPinned(activePrompt.id, !activePrompt.pinned)
+
+    if (updatedPrompt) {
+      void commitPrompt(updatedPrompt)
+      notify(
+        updatedPrompt.pinned
+          ? `Pinned “${updatedPrompt.title}”`
+          : `Unpinned “${updatedPrompt.title}”`,
+      )
+    }
+  }
+
+  const logRunForActivePrompt = (request: PromptRunRequest) => {
+    const activePrompt = getVisibleState().activePrompt
+
+    if (!activePrompt) {
+      return false
+    }
+
+    const run = createPromptRun(request)
+
+    if (!run) {
+      notify('Name the model you ran it against')
+      return false
+    }
+
+    const updatedPrompt = store.getState().actions.addRun(activePrompt.id, run)
+
+    if (!updatedPrompt) {
+      return false
+    }
+
+    void commitPrompt(updatedPrompt)
+    notify(`Logged a ${run.verdict} on ${run.model}`)
+
+    return true
+  }
+
+  const removeRunFromActivePrompt = (runId: string) => {
+    const activePrompt = getVisibleState().activePrompt
+
+    if (!activePrompt) {
+      return
+    }
+
+    const updatedPrompt = store.getState().actions.removeRun(activePrompt.id, runId)
+
+    if (updatedPrompt) {
+      void commitPrompt(updatedPrompt)
+      notify('Run removed')
+    }
+  }
+
+  /** Quick capture: saves immediately, deriving a title when none is given. */
+  const capturePrompt = (input: PromptCaptureInput) => {
+    const body = input.body.trim()
+
+    if (!body) {
+      notify('Nothing to capture yet')
+      return null
+    }
+
+    const prompt = createPromptRecordFromDraft({
+      ...createEmptyPromptDraft(input.kind),
+      body,
+      title: input.title?.trim() || deriveTitleFromBody(body) || 'Untitled',
+      category: input.category ?? '',
+      tagsInput: input.tagsInput ?? '',
+    })
+
+    if (!prompt) {
+      notify('Nothing to capture yet')
+      return null
+    }
+
+    store.getState().actions.insertPrompt(prompt)
+    void commitPrompt(prompt)
+    notify(`Captured “${prompt.title}”`)
+
+    return prompt
+  }
+
   return {
+    capturePrompt,
     copyActivePrompt,
+    logRunForActivePrompt,
+    removeRunFromActivePrompt,
+    togglePinActivePrompt,
     deletePrompt,
     duplicatePrompt,
     revokeActivePromptShare,

@@ -1,17 +1,24 @@
 import { normalizePromptImages } from '@/features/prompt-library/model/prompt-images'
+import { DEFAULT_PROMPT_KIND, isPromptKind } from '@/features/prompt-library/model/prompt-kinds'
 import {
   normalizePromptRecord,
   normalizePromptTags,
 } from '@/features/prompt-library/model/prompt-library-integrity'
+import { assertPromptRun } from '@/features/prompt-library/model/prompt-library-validation'
+import { normalizePromptRuns } from '@/features/prompt-library/model/prompt-runs'
 import { type PromptImage, type PromptRecord } from '@/features/prompt-library/types'
 
 export type PromptRow = {
   id: string
+  kind: string
   title: string
   body: string
+  notes: string
   category: string
   tags_json: string
   images_json: string
+  runs_json: string
+  pinned: number
   created_at: string
   updated_at: string
   uses: number
@@ -22,28 +29,36 @@ type PromptLibraryStateRow = {
 }
 
 export const PROMPT_COLUMNS =
-  'id, title, body, category, tags_json, images_json, created_at, updated_at, uses'
+  'id, kind, title, body, notes, category, tags_json, images_json, runs_json, pinned, created_at, updated_at, uses'
 
 const UPSERT_PROMPT_SQL = `
   INSERT INTO prompts (
     id,
     ext_user_id,
+    kind,
     title,
     body,
+    notes,
     category,
     tags_json,
     images_json,
+    runs_json,
+    pinned,
     created_at,
     updated_at,
     uses
   )
-  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   ON CONFLICT(id) DO UPDATE SET
+    kind = excluded.kind,
     title = excluded.title,
     body = excluded.body,
+    notes = excluded.notes,
     category = excluded.category,
     tags_json = excluded.tags_json,
     images_json = excluded.images_json,
+    runs_json = excluded.runs_json,
+    pinned = excluded.pinned,
     updated_at = excluded.updated_at,
     uses = excluded.uses
   WHERE prompts.ext_user_id = excluded.ext_user_id
@@ -79,13 +94,39 @@ export const decodePromptImages = (imagesJson: string) => {
   }
 }
 
+const decodePromptRuns = (runsJson: string) => {
+  try {
+    const runs = JSON.parse(runsJson) as unknown
+
+    if (!Array.isArray(runs)) {
+      return []
+    }
+
+    return normalizePromptRuns(
+      runs.flatMap((run) => {
+        try {
+          return [assertPromptRun(run)]
+        } catch {
+          return []
+        }
+      }),
+    )
+  } catch {
+    return []
+  }
+}
+
 export const rowToPrompt = (row: PromptRow): PromptRecord => ({
   id: row.id,
+  kind: isPromptKind(row.kind) ? row.kind : DEFAULT_PROMPT_KIND,
   title: row.title,
   body: row.body,
+  notes: row.notes,
   category: row.category,
   tags: decodePromptTags(row.tags_json),
   images: decodePromptImages(row.images_json),
+  runs: decodePromptRuns(row.runs_json),
+  pinned: row.pinned === 1,
   createdAt: row.created_at,
   updatedAt: row.updated_at,
   uses: row.uses,
@@ -100,11 +141,15 @@ export const createD1PromptLibraryAdapter = (db: D1Database, extUserId: string) 
       .bind(
         normalizedPrompt.id,
         extUserId,
+        normalizedPrompt.kind,
         normalizedPrompt.title,
         normalizedPrompt.body,
+        normalizedPrompt.notes,
         normalizedPrompt.category,
         JSON.stringify(normalizedPrompt.tags),
         JSON.stringify(normalizedPrompt.images),
+        JSON.stringify(normalizedPrompt.runs),
+        normalizedPrompt.pinned ? 1 : 0,
         normalizedPrompt.createdAt,
         normalizedPrompt.updatedAt,
         normalizedPrompt.uses,

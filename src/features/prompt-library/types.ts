@@ -1,10 +1,36 @@
+/**
+ * What a saved item *is*. Every kind is still a Prompt — the kind only changes how
+ * the Prompt Body is presented, copied, and evaluated.
+ *
+ * - `prompt`: a reusable instruction (may contain `{{variables}}`)
+ * - `fragment`: a piece of wording worth keeping
+ * - `sequence`: an ordered chain of steps, sent one after another
+ * - `benchmark`: a reproducible test with an expected result and a run log
+ */
+export type PromptKind = 'prompt' | 'fragment' | 'sequence' | 'benchmark'
+
+export type PromptRunVerdict = 'pass' | 'mixed' | 'fail'
+
+/** One recorded attempt of a benchmark Prompt against a model. */
+export type PromptRun = {
+  id: string
+  model: string
+  verdict: PromptRunVerdict
+  note: string
+  ranAt: string
+}
+
 export type PromptRecord = {
   id: string
+  kind: PromptKind
   title: string
   body: string
+  notes: string
   category: string
   tags: string[]
   images: PromptImage[]
+  runs: PromptRun[]
+  pinned: boolean
   createdAt: string
   updatedAt: string
   uses: number
@@ -43,17 +69,21 @@ export type PublicPromptShare = {
 }
 
 export type PromptSaveInput = {
+  kind: PromptKind
   title: string
   body: string
+  notes: string
   category: string
   tags: string[]
   images: PromptImage[]
 }
 
 export type PromptDraft = {
+  kind: PromptKind
   title: string
   category: string
   body: string
+  notes: string
   images: PromptImage[]
   tagsInput: string
 }
@@ -69,8 +99,20 @@ export type PromptSyncMode = 'local' | 'remote'
 
 export type PromptSyncStatus = 'idle' | 'loading' | 'ready' | 'error'
 
+/** Which slice of the Prompt Library the list is showing. */
+export type PromptLibraryFilter =
+  | { type: 'all' }
+  | { type: 'pinned' }
+  | { type: 'kind'; kind: PromptKind }
+  | { type: 'category'; category: string }
+  | { type: 'tag'; tag: string }
+
+export type PromptLibrarySort = 'created' | 'used' | 'title'
+
 export type PromptLibraryPersistedSnapshot = {
   prompts: PromptRecord[]
+  filter?: PromptLibraryFilter
+  sort?: PromptLibrarySort
   query: string
   selectedPromptId: string | null
   composer: ComposerState

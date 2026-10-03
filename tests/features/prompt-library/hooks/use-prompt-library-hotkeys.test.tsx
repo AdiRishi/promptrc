@@ -12,6 +12,10 @@ const prompt: PromptRecord = {
   body: 'Write a concise test plan.',
   category: 'Engineering',
   tags: ['testing'],
+  kind: 'prompt',
+  notes: '',
+  runs: [],
+  pinned: false,
   images: [],
   createdAt: '2026-04-24T00:00:00.000Z',
   updatedAt: '2026-04-24T00:00:00.000Z',
@@ -21,11 +25,14 @@ const prompt: PromptRecord = {
 const visibleState: PromptLibraryVisibleState = {
   activePrompt: prompt,
   categories: ['Engineering'],
-  categoryKeys: ['Engineering'],
   emptyReason: null,
   filteredPrompts: [prompt],
-  groupedPrompts: {
-    Engineering: [prompt],
+  facets: {
+    total: 1,
+    pinned: 0,
+    kinds: { prompt: 1, fragment: 0, sequence: 0, benchmark: 0 },
+    categories: [{ key: 'Engineering', label: 'Engineering', count: 1 }],
+    tags: [],
   },
   orderedPromptIds: [prompt.id],
   visiblePromptId: prompt.id,

@@ -21,6 +21,10 @@ const createPrompt = (overrides: Partial<PromptRecord> = {}): PromptRecord => ({
   body: 'Write a concise test plan.',
   category: 'Engineering',
   tags: ['testing', 'd1'],
+  kind: 'prompt',
+  notes: '',
+  runs: [],
+  pinned: false,
   images: [],
   createdAt: '2026-04-24T00:00:00.000Z',
   updatedAt: '2026-04-24T00:00:00.000Z',
@@ -57,9 +61,9 @@ describe('remote Prompt Library persistence', () => {
     expect(library.prompts.map((prompt) => prompt.title)).toEqual([
       'Start Here',
       'Bug Hunt',
-      'PRD Shaper',
-      'Executive Summary',
-      'Decision Partner',
+      'Preserve uncertainty',
+      'Plan, critique, build',
+      'Executive summary under pressure',
       'Difficult Reply',
     ])
     expect(library.isFresh).toBe(true)
