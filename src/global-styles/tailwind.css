@@ -1,183 +1,436 @@
 @import 'tailwindcss';
 @import '@clerk/ui/themes/shadcn.css';
 @import 'tw-animate-css';
-@import 'shadcn/tailwind.css';
-@import '@fontsource-variable/inter';
-@import '@fontsource-variable/jetbrains-mono';
+@import '@fontsource-variable/recursive/full.css';
 
-@custom-variant dark (&:is(.dark *));
-
-:root {
-    --background: #0b0c0e;
-    --foreground: #e8e6e3;
-    --card: #0e0f13;
-    --card-foreground: #e8e6e3;
-    --popover: #0e0f13;
-    --popover-foreground: #e8e6e3;
-    --primary: #ffb454;
-    --primary-foreground: #1a1305;
-    --primary-hover: #ffc878;
-    --secondary: #1d1e22;
-    --secondary-foreground: #c0a4ff;
-    --muted: #131418;
-    --muted-foreground: #8a8682;
-    --accent: #15171c;
-    --accent-foreground: #7acc8e;
-    --destructive: #ff6b6b;
-    --border: #24252a;
-    --input: #24252a;
-    --ring: #ffb454;
-    --chart-1: #ffb454;
-    --chart-2: #7acc8e;
-    --chart-3: #c0a4ff;
-    --chart-4: #ff6b6b;
-    --chart-5: #8a8682;
-    --radius: 0.125rem;
-    --sidebar: #0c0d10;
-    --sidebar-foreground: #e8e6e3;
-    --sidebar-primary: #ffb454;
-    --sidebar-primary-foreground: #1a1305;
-    --sidebar-accent: #15171c;
-    --sidebar-accent-foreground: #7acc8e;
-    --sidebar-border: #24252a;
-    --sidebar-ring: #ffb454;
+/*
+ * promptrc is a terminal application. Everything sits on a monospace grid,
+ * panes are framed like a TUI, and colour comes from a terminal colorscheme.
+ *
+ * Text is Recursive with its MONO axis at 1. Box-drawing, block, arrow and
+ * symbol glyphs come from a JetBrains Mono subset (same 0.6em advance), so
+ * borders, trees and sparklines line up with the text around them.
+ */
+@font-face {
+    font-family: 'Terminal Symbols';
+    font-style: normal;
+    font-display: block;
+    font-weight: 100 900;
+    src: url('./fonts/terminal-symbols.woff2') format('woff2-variations');
+    unicode-range:
+        U+2022, U+03BB, U+2190-21FF, U+2300-23FF, U+2500-257F, U+2580-259F, U+25A0-25FF, U+2700-27BF;
 }
 
-.dark {
-    --background: #0b0c0e;
-    --foreground: #e8e6e3;
-    --card: #0e0f13;
-    --card-foreground: #e8e6e3;
-    --popover: #0e0f13;
-    --popover-foreground: #e8e6e3;
-    --primary: #ffb454;
-    --primary-foreground: #1a1305;
-    --secondary: #1d1e22;
-    --secondary-foreground: #c0a4ff;
-    --muted: #131418;
-    --muted-foreground: #8a8682;
-    --accent: #15171c;
-    --accent-foreground: #7acc8e;
-    --destructive: #ff6b6b;
-    --border: #24252a;
-    --input: #24252a;
-    --ring: #ffb454;
-    --chart-1: #ffb454;
-    --chart-2: #7acc8e;
-    --chart-3: #c0a4ff;
-    --chart-4: #ff6b6b;
-    --chart-5: #8a8682;
-    --sidebar: #0c0d10;
-    --sidebar-foreground: #e8e6e3;
-    --sidebar-primary: #ffb454;
-    --sidebar-primary-foreground: #1a1305;
-    --sidebar-accent: #15171c;
-    --sidebar-accent-foreground: #7acc8e;
-    --sidebar-border: #24252a;
-    --sidebar-ring: #ffb454;
+@custom-variant dark (&:where(.dark, .dark *));
+@custom-variant crt (&:where([data-crt], [data-crt] *));
+
+/* ── colorschemes ──────────────────────────────────────────────────────────
+ * Each scheme sets the terminal palette; everything else derives from it.
+ * The default follows the system: `promptrc` when dark, `daylight` when light.
+ */
+:root,
+[data-scheme='promptrc'] {
+    color-scheme: dark;
+    --bg: #0b0c0e;
+    --bg-raised: #0f1013;
+    --bg-sunken: #07080a;
+    --bg-hover: #15161a;
+    --bg-sel: #221d14;
+    --fg: #e8e6e3;
+    --fg-dim: #a29d96;
+    --fg-faint: #67635d;
+    --line: #24262b;
+    --line-strong: #34363d;
+    --accent: #ffb454;
+    --accent-fg: #1a1305;
+    --red: #ff6b6b;
+    --green: #7acc8e;
+    --yellow: #ffb454;
+    --blue: #7eb6f2;
+    --magenta: #c0a4ff;
+    --cyan: #6cc4d9;
+    --scanline-opacity: 0.018;
+    --glow: 0;
+}
+
+[data-scheme='daylight'] {
+    color-scheme: light;
+    --bg: #f5f2ea;
+    --bg-raised: #fbf9f4;
+    --bg-sunken: #ebe6da;
+    --bg-hover: #ede7db;
+    --bg-sel: #f3dfbd;
+    --fg: #22201c;
+    --fg-dim: #5c564d;
+    --fg-faint: #958e82;
+    --line: #d9d1c2;
+    --line-strong: #c4baa7;
+    --accent: #b4520a;
+    --accent-fg: #fff8ef;
+    --red: #c0392b;
+    --green: #2e7a4d;
+    --yellow: #9a6500;
+    --blue: #2a62ad;
+    --magenta: #8b43b0;
+    --cyan: #1d7688;
+    --scanline-opacity: 0;
+    --glow: 0;
+}
+
+[data-scheme='phosphor'] {
+    color-scheme: dark;
+    --bg: #100902;
+    --bg-raised: #140b02;
+    --bg-sunken: #0b0601;
+    --bg-hover: #1e1304;
+    --bg-sel: #3b2507;
+    --fg: #ffb000;
+    --fg-dim: #c98a00;
+    --fg-faint: #7c5400;
+    --line: #3d2805;
+    --line-strong: #5c3c07;
+    --accent: #ffd04a;
+    --accent-fg: #100902;
+    --red: #ff8640;
+    --green: #ffcf3d;
+    --yellow: #ffd866;
+    --blue: #ffb000;
+    --magenta: #ffa033;
+    --cyan: #ffd75c;
+    --scanline-opacity: 0.09;
+    --glow: 1;
+}
+
+[data-scheme='green-screen'] {
+    color-scheme: dark;
+    --bg: #020e05;
+    --bg-raised: #031208;
+    --bg-sunken: #010903;
+    --bg-hover: #071c0d;
+    --bg-sel: #0b3416;
+    --fg: #3cff70;
+    --fg-dim: #25c250;
+    --fg-faint: #137833;
+    --line: #0c3d1a;
+    --line-strong: #135a27;
+    --accent: #8dffae;
+    --accent-fg: #020e05;
+    --red: #c4ff57;
+    --green: #3cff70;
+    --yellow: #d4ff6e;
+    --blue: #3dffd0;
+    --magenta: #6dffc2;
+    --cyan: #3dffd0;
+    --scanline-opacity: 0.09;
+    --glow: 1;
+}
+
+[data-scheme='tokyo-night'] {
+    color-scheme: dark;
+    --bg: #1a1b26;
+    --bg-raised: #1d1e2b;
+    --bg-sunken: #16161e;
+    --bg-hover: #222436;
+    --bg-sel: #283457;
+    --fg: #c0caf5;
+    --fg-dim: #a9b1d6;
+    --fg-faint: #565f89;
+    --line: #292e42;
+    --line-strong: #3b4261;
+    --accent: #7aa2f7;
+    --accent-fg: #16161e;
+    --red: #f7768e;
+    --green: #9ece6a;
+    --yellow: #e0af68;
+    --blue: #7aa2f7;
+    --magenta: #bb9af7;
+    --cyan: #7dcfff;
+    --scanline-opacity: 0;
+    --glow: 0;
+}
+
+[data-scheme='catppuccin'] {
+    color-scheme: dark;
+    --bg: #1e1e2e;
+    --bg-raised: #222234;
+    --bg-sunken: #181825;
+    --bg-hover: #29293d;
+    --bg-sel: #313244;
+    --fg: #cdd6f4;
+    --fg-dim: #a6adc8;
+    --fg-faint: #6c7086;
+    --line: #313244;
+    --line-strong: #45475a;
+    --accent: #cba6f7;
+    --accent-fg: #11111b;
+    --red: #f38ba8;
+    --green: #a6e3a1;
+    --yellow: #f9e2af;
+    --blue: #89b4fa;
+    --magenta: #f5c2e7;
+    --cyan: #94e2d5;
+    --scanline-opacity: 0;
+    --glow: 0;
+}
+
+[data-scheme='gruvbox'] {
+    color-scheme: dark;
+    --bg: #282828;
+    --bg-raised: #2c2c2b;
+    --bg-sunken: #1d2021;
+    --bg-hover: #32302f;
+    --bg-sel: #3c3836;
+    --fg: #ebdbb2;
+    --fg-dim: #bdae93;
+    --fg-faint: #7c6f64;
+    --line: #3c3836;
+    --line-strong: #504945;
+    --accent: #fe8019;
+    --accent-fg: #1d2021;
+    --red: #fb4934;
+    --green: #b8bb26;
+    --yellow: #fabd2f;
+    --blue: #83a598;
+    --magenta: #d3869b;
+    --cyan: #8ec07c;
+    --scanline-opacity: 0;
+    --glow: 0;
+}
+
+/* shadcn-compatible names: Base UI primitives and Clerk's shadcn theme read these. */
+:root,
+[data-scheme] {
+    --background: var(--bg);
+    --foreground: var(--fg);
+    --card: var(--bg-raised);
+    --card-foreground: var(--fg);
+    --popover: var(--bg-raised);
+    --popover-foreground: var(--fg);
+    --primary: var(--accent);
+    --primary-foreground: var(--accent-fg);
+    --secondary: var(--bg-hover);
+    --secondary-foreground: var(--fg);
+    --muted: var(--bg-sunken);
+    --muted-foreground: var(--fg-dim);
+    --accent-shadcn: var(--bg-hover);
+    --destructive: var(--red);
+    --border: var(--line);
+    --input: var(--line-strong);
+    --ring: var(--accent);
+    --radius: 0.375rem;
+
+    --kind-prompt: var(--yellow);
+    --kind-fragment: var(--magenta);
+    --kind-sequence: var(--green);
+    --kind-benchmark: var(--cyan);
 }
 
 @theme inline {
-    --font-sans: 'JetBrains Mono Variable', ui-monospace, monospace;
-    --font-mono: 'JetBrains Mono Variable', ui-monospace, monospace;
-    --color-sidebar-ring: var(--sidebar-ring);
-    --color-sidebar-border: var(--sidebar-border);
-    --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-    --color-sidebar-accent: var(--sidebar-accent);
-    --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-    --color-sidebar-primary: var(--sidebar-primary);
-    --color-sidebar-foreground: var(--sidebar-foreground);
-    --color-sidebar: var(--sidebar);
-    --color-chart-5: var(--chart-5);
-    --color-chart-4: var(--chart-4);
-    --color-chart-3: var(--chart-3);
-    --color-chart-2: var(--chart-2);
-    --color-chart-1: var(--chart-1);
-    --color-ring: var(--ring);
-    --color-input: var(--input);
-    --color-border: var(--border);
-    --color-destructive: var(--destructive);
-    --color-accent-foreground: var(--accent-foreground);
+    --font-mono:
+        'Terminal Symbols', 'Recursive Variable', ui-monospace, 'SFMono-Regular', Menlo, monospace;
+    --font-sans: var(--font-mono);
+
+    --color-bg: var(--bg);
+    --color-bg-raised: var(--bg-raised);
+    --color-bg-sunken: var(--bg-sunken);
+    --color-bg-hover: var(--bg-hover);
+    --color-bg-sel: var(--bg-sel);
+    --color-fg: var(--fg);
+    --color-fg-dim: var(--fg-dim);
+    --color-fg-faint: var(--fg-faint);
+    --color-line: var(--line);
+    --color-line-strong: var(--line-strong);
     --color-accent: var(--accent);
-    --color-muted-foreground: var(--muted-foreground);
-    --color-muted: var(--muted);
-    --color-secondary-foreground: var(--secondary-foreground);
-    --color-secondary: var(--secondary);
-    --color-primary-foreground: var(--primary-foreground);
-    --color-primary: var(--primary);
-    --color-popover-foreground: var(--popover-foreground);
-    --color-popover: var(--popover);
-    --color-card-foreground: var(--card-foreground);
-    --color-card: var(--card);
-    --color-foreground: var(--foreground);
+    --color-accent-fg: var(--accent-fg);
+    --color-red: var(--red);
+    --color-green: var(--green);
+    --color-yellow: var(--yellow);
+    --color-blue: var(--blue);
+    --color-magenta: var(--magenta);
+    --color-cyan: var(--cyan);
+    --color-kind-prompt: var(--kind-prompt);
+    --color-kind-fragment: var(--kind-fragment);
+    --color-kind-sequence: var(--kind-sequence);
+    --color-kind-benchmark: var(--kind-benchmark);
+
     --color-background: var(--background);
-    --radius-sm: calc(var(--radius) - 4px);
-    --radius-md: calc(var(--radius) - 2px);
-    --radius-lg: var(--radius);
-    --radius-xl: calc(var(--radius) + 4px);
-    --radius-2xl: calc(var(--radius) + 8px);
-    --radius-3xl: calc(var(--radius) + 12px);
-    --radius-4xl: calc(var(--radius) + 16px);
+    --color-foreground: var(--foreground);
+    --color-card: var(--card);
+    --color-card-foreground: var(--card-foreground);
+    --color-popover: var(--popover);
+    --color-popover-foreground: var(--popover-foreground);
+    --color-primary: var(--primary);
+    --color-primary-foreground: var(--primary-foreground);
+    --color-secondary: var(--secondary);
+    --color-secondary-foreground: var(--secondary-foreground);
+    --color-muted: var(--muted);
+    --color-muted-foreground: var(--muted-foreground);
+    --color-destructive: var(--destructive);
+    --color-border: var(--border);
+    --color-input: var(--input);
+    --color-ring: var(--ring);
+
+    --radius-sm: 0.25rem;
+    --radius-md: 0.375rem;
+    --radius-lg: 0.5rem;
+
+    --animate-blink: blink 1.06s steps(1) infinite;
+    --animate-type-in: type-in 0.28s steps(8) both;
+    --animate-boot: boot-line 0.18s steps(2) both;
+    --animate-pop: pop 0.14s ease-out both;
 }
 
 @layer base {
     * {
-        @apply border-border outline-ring/50;
+        @apply border-line outline-accent/70;
     }
+
     html {
-        @apply bg-background font-sans text-foreground;
+        @apply bg-bg font-mono text-fg;
+        font-variation-settings:
+            'MONO' 1,
+            'CASL' 0,
+            'CRSV' 0;
+        font-synthesis: none;
+        -webkit-tap-highlight-color: transparent;
     }
+
     body {
-        @apply min-h-screen bg-background font-sans text-foreground antialiased;
+        @apply min-h-dvh bg-bg text-[13.5px] leading-[1.6] text-fg antialiased;
+        text-shadow: 0 0 calc(var(--glow) * 6px) color-mix(in oklab, var(--fg) 55%, transparent);
+    }
+
+    /* Scanlines: barely there on the default scheme, unmistakable on the CRTs. */
+    body::after {
+        content: '';
+        position: fixed;
+        inset: 0;
+        z-index: 100;
+        pointer-events: none;
+        background: repeating-linear-gradient(
+            to bottom,
+            rgb(255 255 255 / var(--scanline-opacity)) 0,
+            rgb(255 255 255 / var(--scanline-opacity)) 1px,
+            transparent 1px,
+            transparent 3px
+        );
+    }
+
+    [data-crt] body::before {
+        content: '';
+        position: fixed;
+        inset: 0;
+        z-index: 100;
+        pointer-events: none;
+        background: radial-gradient(ellipse at center, transparent 55%, rgb(0 0 0 / 0.55) 100%);
+    }
+
+    ::selection {
+        background: var(--accent);
+        color: var(--accent-fg);
+        text-shadow: none;
+    }
+
+    :focus-visible {
+        outline: 1px solid var(--accent);
+        outline-offset: 1px;
+    }
+
+    input,
+    textarea {
+        caret-color: var(--accent);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+            animation-duration: 0.01ms !important;
+            animation-iteration-count: 1 !important;
+            transition-duration: 0.01ms !important;
+        }
     }
 }
 
 @layer components {
-    .terminal-app {
-        position: relative;
-        isolation: isolate;
-        font-size: 13px;
-        line-height: 1.55;
+    /* The handwritten-mono voice for annotations: Recursive's casual axis + slant. */
+    .voice-note {
+        font-variation-settings:
+            'MONO' 1,
+            'CASL' 1,
+            'CRSV' 1,
+            'slnt' -9;
     }
 
-    .terminal-app::before {
-        content: '';
-        position: fixed;
-        inset: 0;
-        background: repeating-linear-gradient(
-            0deg,
-            rgba(255, 255, 255, 0.015) 0,
-            rgba(255, 255, 255, 0.015) 1px,
-            transparent 1px,
-            transparent 3px
-        );
-        pointer-events: none;
-        z-index: 0;
+    /* Heavy, slightly casual display weight for titles — a figlet without the ASCII. */
+    .voice-title {
+        font-weight: 800;
+        font-variation-settings:
+            'MONO' 1,
+            'CASL' 0.35,
+            'CRSV' 0;
+        letter-spacing: -0.02em;
     }
 
-    .terminal-app::after {
+    /* A TUI pane: rounded single-line frame with its title set into the border. */
+    .pane {
+        @apply relative rounded-md border border-line bg-bg-raised;
+    }
+
+    .pane:focus-within {
+        @apply border-accent/70;
+    }
+
+    .pane-title {
+        @apply absolute -top-[0.72em] left-2.5 z-10 flex max-w-[calc(100%-1.25rem)] items-center gap-1.5 bg-bg-raised px-1.5 text-[12px] leading-[1.4] text-fg-dim;
+    }
+
+    .pane:focus-within > .pane-title {
+        @apply text-accent;
+    }
+
+    .pane-title-right {
+        @apply absolute -top-[0.72em] right-2.5 z-10 flex items-center gap-1.5 bg-bg-raised px-1.5 text-[12px] leading-[1.4] text-fg-faint;
+    }
+
+    .cursor-block::after {
         content: '';
-        position: fixed;
-        inset: 0;
-        background: radial-gradient(ellipse at center, transparent 45%, rgba(0, 0, 0, 0.45) 100%);
-        pointer-events: none;
-        z-index: 0;
+        display: inline-block;
+        width: 0.6em;
+        height: 1.15em;
+        margin-left: 1px;
+        vertical-align: -0.2em;
+        background: var(--accent);
+        animation: var(--animate-blink);
+    }
+
+    .scrollbar-term {
+        scrollbar-width: thin;
+        scrollbar-color: var(--line-strong) transparent;
     }
 }
 
-@keyframes terminal-blink {
+@keyframes blink {
     0%,
-    49% {
+    50% {
         opacity: 1;
     }
-
-    50%,
+    50.01%,
     100% {
         opacity: 0;
     }
 }
 
-@keyframes help-backdrop-in {
+@keyframes type-in {
+    from {
+        clip-path: inset(0 100% 0 0);
+    }
+    to {
+        clip-path: inset(0 0 0 0);
+    }
+}
+
+@keyframes boot-line {
     from {
         opacity: 0;
     }
@@ -186,18 +439,7 @@
     }
 }
 
-@keyframes help-panel-in {
-    from {
-        opacity: 0;
-        transform: translateY(6px) scale(0.985);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0) scale(1);
-    }
-}
-
-@keyframes help-row-in {
+@keyframes pop {
     from {
         opacity: 0;
         transform: translateY(4px);

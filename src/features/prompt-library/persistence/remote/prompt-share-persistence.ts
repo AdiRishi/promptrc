@@ -3,7 +3,11 @@ import {
   type PromptRow,
   rowToPrompt,
 } from '@/features/prompt-library/persistence/remote/d1-prompt-library-adapter'
-import { type PromptShareRecord, type PublicPromptShare } from '@/features/prompt-library/types'
+import {
+  type PromptRecord,
+  type PromptShareRecord,
+  type PublicPromptShare,
+} from '@/features/prompt-library/types'
 
 type PromptShareRow = {
   id: string
@@ -178,6 +182,19 @@ export const getPublicPromptShare = async (
   return {
     shareId: row.share_id,
     createdAt: row.share_created_at,
-    prompt: rowToPrompt(row),
+    prompt: toPublicPrompt(rowToPrompt(row)),
   }
 }
+
+/**
+ * A share link publishes the Prompt itself — title, body, kind, tags, images —
+ * not the owner's private marginalia: notes, benchmark runs, pins and usage stay
+ * in their library.
+ */
+export const toPublicPrompt = (prompt: PromptRecord): PromptRecord => ({
+  ...prompt,
+  notes: '',
+  runs: [],
+  pinned: false,
+  uses: 0,
+})

@@ -14,21 +14,28 @@ import {
   createPromptReferenceToken,
   shouldPreservePromptReferenceHref,
 } from '@/features/prompt-library/rendering/prompt-reference-tokens'
+import { PromptVariableSlot } from '@/features/prompt-library/rendering/prompt-variable-slot'
+import {
+  PROMPT_VARIABLE_ELEMENT,
+  remarkPromptVariables,
+} from '@/features/prompt-library/rendering/remark-prompt-variables'
 import { type PromptImage } from '@/features/prompt-library/types'
 import { cn } from '@/lib/utils'
 
 type PromptBodyMarkdownProps = {
   body: string
+  className?: string
   images?: PromptImage[]
   imageUrlFor?: PromptImageUrlResolver
 }
 
 export type PromptImageUrlResolver = (imageId: string, image?: PromptImage) => string
 
-const remarkPlugins = [remarkGfm, remarkBreaks]
+const remarkPlugins = [remarkGfm, remarkBreaks, remarkPromptVariables]
 
 export const PromptBodyMarkdown = memo(function PromptBodyMarkdownComponent({
   body,
+  className,
   images = [],
   imageUrlFor = defaultVersionedPromptImageUrlFor,
 }: PromptBodyMarkdownProps) {
@@ -39,7 +46,12 @@ export const PromptBodyMarkdown = memo(function PromptBodyMarkdownComponent({
   )
 
   return (
-    <div className="prompt-markdown text-[14px] leading-[1.75] text-foreground">
+    <div
+      className={cn(
+        'prompt-markdown text-[13.5px] leading-[1.7] [overflow-wrap:anywhere] text-fg',
+        className,
+      )}
+    >
       <Markdown components={components} remarkPlugins={remarkPlugins} urlTransform={urlTransform}>
         {body}
       </Markdown>
@@ -59,10 +71,10 @@ export function PromptImageAttachments({
   }
 
   return (
-    <section aria-label="Prompt images" className="mt-7 border-t border-dashed border-border pt-4">
-      <div className="mb-3 flex items-center gap-2 text-[11px] tracking-[0.14em] text-accent-foreground uppercase">
+    <section aria-label="Prompt images" className="mt-6">
+      <div className="mb-2 flex items-center gap-[1ch] text-[12px] text-fg-faint">
         <ImageIcon aria-hidden="true" className="size-3.5" />
-        images
+        attachments/
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2">
@@ -71,23 +83,23 @@ export function PromptImageAttachments({
 
           return (
             <a
-              className="group grid grid-cols-[72px_minmax(0,1fr)] items-center gap-3 border border-border bg-card/65 p-2 transition-colors hover:border-primary focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+              className="group grid grid-cols-[72px_minmax(0,1fr)] items-center gap-[1.5ch] rounded-sm border border-line bg-bg-sunken p-1.5 transition-colors hover:border-accent"
               href={imageUrl}
               key={image.id}
-              target="_blank"
               rel="noreferrer"
+              target="_blank"
             >
               <img
                 alt=""
-                className="h-14 w-[72px] border border-border bg-muted object-cover"
+                className="h-14 w-[72px] rounded-sm bg-bg object-cover"
                 loading="eager"
                 src={imageUrl}
               />
               <span className="min-w-0">
-                <span className="block truncate text-[12px] text-foreground group-hover:text-primary">
+                <span className="block truncate text-[12.5px] text-fg group-hover:text-accent">
                   {image.fileName}
                 </span>
-                <span className="block text-[11px] text-muted-foreground">
+                <span className="block text-[11px] text-fg-faint">
                   {formatImageSize(image.size)}
                 </span>
               </span>
@@ -99,11 +111,17 @@ export function PromptImageAttachments({
   )
 }
 
+type PromptVariableElementProps = {
+  name?: string
+  fallback?: string
+  children?: ReactNode
+}
+
 const createMarkdownComponents = (
   imagesById: Map<string, PromptImage>,
   imageUrlFor: PromptImageUrlResolver,
-) =>
-  ({
+) => {
+  const components = {
     a({ children, className, href, node: _node, ...props }) {
       const rawLabel = textFromReactNode(children).trim()
       const reference = href ? createPromptReferenceToken(rawLabel, href) : null
@@ -117,7 +135,7 @@ const createMarkdownComponents = (
       return (
         <a
           className={cn(
-            'rounded-[2px] text-[#7eb6f2] underline decoration-[#7eb6f2]/40 underline-offset-[3px] transition-colors hover:text-[#9fcbff] hover:decoration-[#9fcbff]/60 focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-primary',
+            'text-blue underline decoration-blue/40 underline-offset-[3px] transition-colors hover:decoration-blue',
             className,
           )}
           href={href}
@@ -133,7 +151,7 @@ const createMarkdownComponents = (
       return (
         <blockquote
           className={cn(
-            'my-5 border-l-2 border-accent-foreground bg-accent/55 px-4 py-3 text-muted-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] [&>p:first-child]:mt-0 [&>p:last-child]:mb-0',
+            'my-4 border-l-2 border-magenta/70 pl-[2ch] text-fg-dim [&>p:first-child]:mt-0 [&>p:last-child]:mb-0',
             className,
           )}
           {...props}
@@ -144,13 +162,13 @@ const createMarkdownComponents = (
       return <br {...props} />
     },
     code({ children, className, node: _node, ...props }) {
-      const code = String(children)
-      const isBlock = Boolean(className?.startsWith('language-') || code.includes('\n'))
+      const code = textFromReactNode(children)
+      const isBlock = className?.startsWith('language-') === true || code.includes('\n')
 
       if (isBlock) {
         return (
           <code
-            className={cn('block min-w-max text-[12px] leading-[1.7] whitespace-pre', className)}
+            className={cn('block min-w-max text-[12.5px] leading-[1.65] text-green', className)}
             {...props}
           >
             {children}
@@ -159,53 +177,44 @@ const createMarkdownComponents = (
       }
 
       return (
-        <code
-          className={cn(
-            'rounded-[3px] border border-border bg-muted px-1.5 py-[0.08rem] text-[0.9em] text-accent-foreground',
-            className,
-          )}
-          {...props}
-        >
+        <code className={cn('rounded-sm bg-bg-sunken px-[0.5ch] text-cyan', className)} {...props}>
           {children}
         </code>
       )
     },
     del({ className, node: _node, ...props }) {
+      return <del className={cn('text-fg-faint decoration-red/60', className)} {...props} />
+    },
+    em({ className, node: _node, ...props }) {
       return (
-        <del
-          className={cn('text-muted-foreground decoration-destructive/70', className)}
+        <em
+          className={cn("text-fg [font-variation-settings:'MONO'_1,'CASL'_1,'slnt'_-9]", className)}
           {...props}
         />
       )
     },
-    em({ className, node: _node, ...props }) {
-      return <em className={cn('text-foreground/95 italic', className)} {...props} />
-    },
     h1({ className, node: _node, ...props }) {
-      return <MarkdownHeading className={className} marker="#" rank={1} {...props} />
+      return <MarkdownHeading className={className} rank={1} {...props} />
     },
     h2({ className, node: _node, ...props }) {
-      return <MarkdownHeading className={className} marker="##" rank={2} {...props} />
+      return <MarkdownHeading className={className} rank={2} {...props} />
     },
     h3({ className, node: _node, ...props }) {
-      return <MarkdownHeading className={className} marker="###" rank={3} {...props} />
+      return <MarkdownHeading className={className} rank={3} {...props} />
     },
     h4({ className, node: _node, ...props }) {
-      return <MarkdownHeading className={className} marker="####" rank={4} {...props} />
+      return <MarkdownHeading className={className} rank={4} {...props} />
     },
     h5({ className, node: _node, ...props }) {
-      return <MarkdownHeading className={className} marker="#####" rank={5} {...props} />
+      return <MarkdownHeading className={className} rank={5} {...props} />
     },
     h6({ className, node: _node, ...props }) {
-      return <MarkdownHeading className={className} marker="######" rank={6} {...props} />
+      return <MarkdownHeading className={className} rank={6} {...props} />
     },
     hr({ className, node: _node, ...props }) {
       return (
         <hr
-          className={cn(
-            'my-7 h-px border-0 bg-gradient-to-r from-transparent via-border to-transparent',
-            className,
-          )}
+          className={cn('my-5 h-0 border-0 border-t border-dashed border-line-strong', className)}
           {...props}
         />
       )
@@ -220,12 +229,12 @@ const createMarkdownComponents = (
           return (
             <span
               className={cn(
-                'my-4 flex min-h-24 items-center gap-3 border border-dashed border-border bg-muted/55 px-4 py-3 text-[12px] text-muted-foreground',
+                'my-3 flex min-h-16 items-center gap-[1ch] rounded-sm border border-dashed border-line-strong px-[2ch] py-2 text-[12.5px] text-fg-faint',
                 className,
               )}
               role="note"
             >
-              <ImageIcon aria-hidden="true" className="size-4 text-accent-foreground" />
+              <ImageIcon aria-hidden="true" className="size-4" />
               image unavailable
             </span>
           )
@@ -234,15 +243,15 @@ const createMarkdownComponents = (
         const imageUrl = imageUrlFor(image.id, image)
 
         return (
-          <span className={cn('my-4 block', className)}>
+          <span className={cn('my-6 block', className)}>
             <img
               {...props}
               alt={alt ?? image.fileName}
-              className="max-h-[420px] max-w-full border border-border bg-muted object-contain shadow-[0_12px_32px_rgba(0,0,0,0.28)]"
+              className="max-h-[420px] max-w-full rounded-sm border border-line bg-bg-sunken object-contain"
               loading="eager"
               src={imageUrl}
             />
-            <span className="mt-2 block text-[11px] text-muted-foreground">{image.fileName}</span>
+            <span className="mt-1 block text-[11px] text-fg-faint">{image.fileName}</span>
           </span>
         )
       }
@@ -251,7 +260,7 @@ const createMarkdownComponents = (
         <img
           alt={alt ?? ''}
           className={cn(
-            'my-4 max-h-[420px] max-w-full border border-border bg-muted object-contain shadow-[0_12px_32px_rgba(0,0,0,0.28)]',
+            'my-6 max-h-[440px] max-w-full rounded-sm border border-line bg-bg-sunken object-contain',
             className,
           )}
           loading="lazy"
@@ -264,9 +273,10 @@ const createMarkdownComponents = (
       if (type === 'checkbox') {
         return (
           <input
+            aria-label={checked ? 'Done' : 'Not done'}
             checked={checked}
             className={cn(
-              'mr-2 size-3.5 translate-y-[0.18em] rounded-[2px] border border-border bg-background accent-primary disabled:opacity-90',
+              'mr-2 size-3.5 translate-y-[0.12em] accent-[var(--accent)] disabled:opacity-100',
               className,
             )}
             disabled={disabled ?? true}
@@ -285,8 +295,8 @@ const createMarkdownComponents = (
       return (
         <li
           className={cn(
-            'pl-1 marker:font-semibold marker:text-accent-foreground',
-            isTaskItem && 'list-none pl-0 has-[:checked]:text-muted-foreground',
+            'pl-[1ch] marker:text-fg-faint',
+            isTaskItem && 'list-none pl-0 has-[:checked]:text-fg-faint',
             className,
           )}
           {...props}
@@ -296,7 +306,7 @@ const createMarkdownComponents = (
     ol({ className, node: _node, ...props }) {
       return (
         <ol
-          className={cn('my-4 list-decimal space-y-1.5 pl-5 marker:text-primary', className)}
+          className={cn('my-3 list-decimal space-y-1 pl-[3ch] marker:text-yellow', className)}
           {...props}
         />
       )
@@ -307,11 +317,13 @@ const createMarkdownComponents = (
     pre({ className, node: _node, ...props }) {
       return (
         <pre
+          // Scrollable code needs to be reachable by keyboard.
+          // oxlint-disable-next-line jsx-a11y/no-noninteractive-tabindex
+          tabIndex={0}
           className={cn(
-            'my-5 overflow-x-auto border border-border bg-muted/80 px-4 py-4 text-accent-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.045)] focus-visible:outline-1 focus-visible:outline-primary',
+            'scrollbar-term my-4 overflow-x-auto rounded-sm border border-line bg-bg-sunken px-[2ch] py-2.5',
             className,
           )}
-          tabIndex={0}
           {...props}
         />
       )
@@ -320,7 +332,7 @@ const createMarkdownComponents = (
       return (
         <section
           className={cn(
-            'mt-7 border-t border-dashed border-border pt-4 text-[12px] text-muted-foreground',
+            'mt-6 border-t border-dashed border-line pt-3 text-[12.5px] text-fg-dim',
             className,
           )}
           {...props}
@@ -328,13 +340,13 @@ const createMarkdownComponents = (
       )
     },
     strong({ className, node: _node, ...props }) {
-      return <strong className={cn('font-semibold text-foreground', className)} {...props} />
+      return <strong className={cn('font-bold text-fg', className)} {...props} />
     },
     sup({ className, node: _node, ...props }) {
       return (
         <sup
           className={cn(
-            'ml-0.5 text-[0.72em] leading-none text-primary [&_a]:no-underline',
+            'ml-0.5 text-[0.7em] leading-none text-accent [&_a]:no-underline',
             className,
           )}
           {...props}
@@ -343,9 +355,12 @@ const createMarkdownComponents = (
     },
     table({ className, node: _node, ...props }) {
       return (
-        <div className="my-5 overflow-x-auto border border-border bg-background shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+        <div className="scrollbar-term my-4 overflow-x-auto rounded-sm border border-line">
           <table
-            className={cn('w-full min-w-[520px] border-collapse text-left text-[12px]', className)}
+            className={cn(
+              'w-full min-w-[520px] border-collapse text-left text-[12.5px]',
+              className,
+            )}
             {...props}
           />
         </div>
@@ -358,7 +373,7 @@ const createMarkdownComponents = (
       return (
         <td
           className={cn(
-            'border-t border-border px-3 py-2 align-top text-foreground/90 [&[align=center]]:text-center [&[align=right]]:text-right',
+            'border-t border-line px-[1.5ch] py-1.5 align-top text-fg [&[align=center]]:text-center [&[align=right]]:text-right',
             className,
           )}
           {...props}
@@ -369,7 +384,7 @@ const createMarkdownComponents = (
       return (
         <th
           className={cn(
-            'border-b border-border bg-card px-3 py-2 align-bottom text-[11px] font-semibold tracking-[0.08em] text-primary uppercase [&[align=center]]:text-center [&[align=right]]:text-right',
+            'px-[1.5ch] py-1.5 align-bottom font-bold text-accent [&[align=center]]:text-center [&[align=right]]:text-right',
             className,
           )}
           {...props}
@@ -377,29 +392,42 @@ const createMarkdownComponents = (
       )
     },
     thead({ className, node: _node, ...props }) {
-      return <thead className={className} {...props} />
+      return <thead className={cn('bg-bg-sunken', className)} {...props} />
     },
     tr({ className, node: _node, ...props }) {
-      return <tr className={cn('odd:bg-card/30', className)} {...props} />
+      return <tr className={className} {...props} />
     },
     ul({ className, node: _node, ...props }) {
       return (
         <ul
-          className={cn('my-4 list-disc space-y-1.5 pl-5 marker:text-accent-foreground', className)}
+          className={cn("my-3 list-['•_'] space-y-1 pl-[3ch] marker:text-yellow", className)}
           {...props}
         />
       )
     },
-  }) satisfies Components
+  } satisfies Components
+
+  // `<prompt-variable>` comes from remarkPromptVariables; react-markdown's element
+  // map isn't typed for custom tags, so it is attached separately.
+  return {
+    ...components,
+    [PROMPT_VARIABLE_ELEMENT]: ({ name = '', fallback, children }: PromptVariableElementProps) => (
+      <PromptVariableSlot
+        fallback={fallback || undefined}
+        name={name}
+        raw={textFromReactNode(children)}
+      />
+    ),
+  } as Components
+}
 
 type HeadingRank = 1 | 2 | 3 | 4 | 5 | 6
 
 type MarkdownHeadingProps = ComponentProps<'h1'> & {
-  marker: string
   rank: HeadingRank
 }
 
-function MarkdownHeading({ children, className, marker, rank, ...props }: MarkdownHeadingProps) {
+function MarkdownHeading({ children, className, rank, ...props }: MarkdownHeadingProps) {
   const Heading = `h${rank}` as const
 
   if (className?.split(/\s+/).includes('sr-only')) {
@@ -413,19 +441,19 @@ function MarkdownHeading({ children, className, marker, rank, ...props }: Markdo
   return (
     <Heading
       className={cn(
-        'mt-6 mb-3 flex scroll-mt-4 items-baseline gap-2 font-semibold tracking-normal first:mt-0',
-        rank === 1 && 'text-[18px] leading-[1.35] text-primary',
-        rank === 2 && 'text-[16px] leading-[1.4] text-foreground',
-        rank === 3 && 'text-[14px] leading-[1.45] text-accent-foreground',
-        rank >= 4 && 'text-[13px] leading-[1.45] text-secondary-foreground',
+        'mt-5 mb-2 scroll-mt-4 font-bold first:mt-0',
+        rank === 1 && 'text-[15px] text-accent',
+        rank === 2 && 'text-[14px] text-yellow',
+        rank === 3 && 'text-[13.5px] text-green',
+        rank >= 4 && 'text-[13.5px] text-cyan',
         className,
       )}
       {...props}
     >
-      <span aria-hidden="true" className="shrink-0 text-[0.8em] text-muted-foreground">
-        {marker}
+      <span aria-hidden="true" className="mr-[1ch] font-normal text-fg-faint">
+        {'#'.repeat(rank)}
       </span>
-      <span>{children}</span>
+      {children}
     </Heading>
   )
 }
@@ -458,7 +486,7 @@ function urlTransform(url: string, key: string) {
   return defaultUrlTransform(url)
 }
 
-function formatImageSize(size: number) {
+export function formatImageSize(size: number) {
   if (size < 1024 * 1024) {
     return `${Math.max(1, Math.round(size / 1024))} KB`
   }

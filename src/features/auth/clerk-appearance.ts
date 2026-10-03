@@ -4,48 +4,31 @@ export const CLERK_SIGN_IN_PATH = '/sign-in'
 export const CLERK_SIGN_UP_PATH = '/sign-up'
 export const CLERK_AFTER_AUTH_PATH = '/'
 
+/**
+ * Clerk's shadcn theme reads the same CSS tokens as the app (see
+ * global-styles/tailwind.css), so it follows the active colorscheme. This only
+ * makes it look like it belongs in a terminal: mono type, square-ish corners.
+ */
 export const promptrcClerkAppearance = {
   theme: shadcn,
   variables: {
-    colorPrimary: '#ffb454',
-    colorBackground: '#0e0f13',
-    colorForeground: '#e8e6e3',
-    colorInputBackground: '#0b0c0e',
-    colorInputText: '#e8e6e3',
-    colorText: '#e8e6e3',
-    colorTextSecondary: '#8a8682',
-    colorNeutral: '#8a8682',
-    colorDanger: '#ff6b6b',
-    colorSuccess: '#7acc8e',
-    colorRing: '#ffb454',
-    borderRadius: '0.125rem',
-    fontFamily: '"JetBrains Mono Variable", ui-monospace, monospace',
-    fontFamilyButtons: '"JetBrains Mono Variable", ui-monospace, monospace',
+    borderRadius: '0.25rem',
+    fontFamily: "'Recursive Variable', ui-monospace, monospace",
+    fontFamilyButtons: "'Recursive Variable', ui-monospace, monospace",
+    fontSize: '0.8125rem',
   },
   elements: {
     rootBox: 'w-full',
-    card: 'w-full border border-border bg-card shadow-none rounded-[2px]',
-    header: 'gap-1 text-left',
-    headerTitle: 'text-foreground text-[22px] tracking-normal',
-    headerSubtitle: 'text-muted-foreground text-[13px]',
+    cardBox: 'w-full rounded-md border border-[var(--line)] shadow-none',
+    card: 'bg-[var(--bg-raised)] shadow-none',
+    headerTitle: 'text-[17px] font-bold text-[var(--fg)]',
+    headerSubtitle: 'text-[12.5px] text-[var(--fg-dim)]',
     logoBox: 'hidden',
-    formFieldLabel: 'text-accent-foreground text-[11px] tracking-[0.12em] uppercase',
-    formFieldInput:
-      'rounded-[2px] border-border bg-background text-foreground placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring',
+    formFieldInput: 'rounded-sm border-[var(--line)] bg-[var(--bg-sunken)] shadow-none',
+    socialButtonsBlockButton: 'rounded-sm border-[var(--line)] bg-[var(--bg-sunken)] shadow-none',
     formButtonPrimary:
-      'rounded-[2px] bg-primary text-primary-foreground font-semibold hover:bg-[var(--primary-hover)]',
-    footerActionText: 'text-muted-foreground',
-    footerActionLink: 'text-primary hover:text-[var(--primary-hover)]',
-    identityPreview: 'rounded-[2px] border border-border bg-background',
-    identityPreviewText: 'text-foreground',
-    identityPreviewEditButton: 'text-primary',
-    otpCodeFieldInput:
-      'rounded-[2px] border-border bg-background text-foreground focus-visible:ring-2 focus-visible:ring-ring',
-    dividerLine: 'bg-border',
-    dividerText: 'text-muted-foreground',
-    socialButtonsBlockButton:
-      'rounded-[2px] border-border bg-background text-foreground hover:bg-muted',
-    formResendCodeLink: 'text-primary',
-    alert: 'rounded-[2px] border-border bg-background',
+      'rounded-sm bg-[var(--accent)] font-bold text-[var(--accent-fg)] shadow-none hover:bg-[var(--accent)] hover:brightness-110',
+    footer: 'bg-[var(--bg-raised)] [background-image:none]',
+    footerActionLink: 'text-[var(--accent)] hover:text-[var(--accent)]',
   },
 } as const

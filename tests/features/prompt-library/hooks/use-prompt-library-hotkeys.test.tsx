@@ -3,58 +3,66 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { type PromptLibraryCommandId } from '@/features/prompt-library/commands/prompt-library-command-surface'
 import { usePromptLibraryHotkeys } from '@/features/prompt-library/hooks/use-prompt-library-hotkeys'
-import { type PromptLibraryVisibleState } from '@/features/prompt-library/selectors/prompt-library-selectors'
-import { type PromptRecord } from '@/features/prompt-library/types'
-
-const prompt: PromptRecord = {
-  id: 'prompt-alpha',
-  title: 'Alpha',
-  body: 'Write a concise test plan.',
-  category: 'Engineering',
-  tags: ['testing'],
-  images: [],
-  createdAt: '2026-04-24T00:00:00.000Z',
-  updatedAt: '2026-04-24T00:00:00.000Z',
-  uses: 0,
-}
-
-const visibleState: PromptLibraryVisibleState = {
-  activePrompt: prompt,
-  categories: ['Engineering'],
-  categoryKeys: ['Engineering'],
-  emptyReason: null,
-  filteredPrompts: [prompt],
-  groupedPrompts: {
-    Engineering: [prompt],
-  },
-  orderedPromptIds: [prompt.id],
-  visiblePromptId: prompt.id,
-  getNearestPromptIdAfterRemoval: () => null,
-  getNextPromptId: () => prompt.id,
-  getPreviousPromptId: () => prompt.id,
-}
+import { type ComposerMode } from '@/features/prompt-library/types'
 
 type HotkeyHarnessProps = {
-  onRunCommand: (commandId: PromptLibraryCommandId) => void
+  composerMode?: ComposerMode
+  isOverlayOpen?: boolean
+  onRunCommand?: (commandId: PromptLibraryCommandId) => void
+  onTogglePalette?: () => void
+  onSaveComposer?: () => void
+  onCancelComposer?: () => void
+  onOpenCommandLine?: () => void
+  onFocusPane?: (pane: 1 | 2 | 3) => void
 }
 
-function HotkeyHarness({ onRunCommand }: HotkeyHarnessProps) {
+function HotkeyHarness({
+  composerMode = 'view',
+  isOverlayOpen = false,
+  onRunCommand = vi.fn(),
+  onTogglePalette = vi.fn(),
+  onSaveComposer = vi.fn(),
+  onCancelComposer = vi.fn(),
+  onOpenCommandLine = vi.fn(),
+  onFocusPane = vi.fn(),
+}: HotkeyHarnessProps) {
   usePromptLibraryHotkeys({
     commandState: {
       canSharePrompts: true,
-      composerMode: 'view',
+      composerMode,
       hasActivePrompt: true,
     },
-    composerMode: 'view',
+    composerMode,
+    isOverlayOpen,
     isHelpOpen: false,
-    visibleState,
-    onCancelComposer: vi.fn(),
+    onCancelComposer,
     onRunCommand,
-    onSaveComposer: vi.fn(),
+    onSaveComposer,
     onToggleHelp: vi.fn(),
+    onTogglePalette,
+    onOpenCommandLine,
+    onFocusPane,
   })
 
-  return <input aria-label="Search Prompts" />
+  return (
+    <>
+      <input aria-label="Filter entries" defaultValue="selected words" />
+      <ol data-prompt-list>
+        <li>
+          <button type="button">Entry</button>
+        </li>
+      </ol>
+      <div tabIndex={-1}>Reader</div>
+    </>
+  )
+}
+
+const keydown = (target: EventTarget, init: KeyboardEventInit) => {
+  const event = new KeyboardEvent('keydown', { bubbles: true, cancelable: true, ...init })
+
+  target.dispatchEvent(event)
+
+  return event
 }
 
 afterEach(() => {
@@ -63,52 +71,131 @@ afterEach(() => {
 })
 
 describe('usePromptLibraryHotkeys', () => {
-  it('lets regular Prompt Library shortcut keys type inside inputs', () => {
+  it('lets single-letter shortcuts type inside inputs', () => {
     const onRunCommand = vi.fn()
     render(<HotkeyHarness onRunCommand={onRunCommand} />)
 
-    const event = new KeyboardEvent('keydown', {
-      bubbles: true,
-      cancelable: true,
-      key: 'n',
-    })
-
-    screen.getByLabelText('Search Prompts').dispatchEvent(event)
+    const event = keydown(screen.getByLabelText('Filter entries'), { key: 'n' })
 
     expect(event.defaultPrevented).toBe(false)
     expect(onRunCommand).not.toHaveBeenCalled()
   })
 
-  it('still runs the copy Prompt Body shortcut inside inputs when no text is selected', () => {
+  it('copies the Prompt Body from inside an input when no text is selected', () => {
     const onRunCommand = vi.fn()
     render(<HotkeyHarness onRunCommand={onRunCommand} />)
 
-    const event = new KeyboardEvent('keydown', {
-      bubbles: true,
-      cancelable: true,
-      key: 'c',
-      metaKey: true,
-    })
+    const input = screen.getByLabelText<HTMLInputElement>('Filter entries')
+    input.setSelectionRange(0, 0)
 
-    screen.getByLabelText('Search Prompts').dispatchEvent(event)
+    const event = keydown(input, { key: 'c', metaKey: true })
 
     expect(event.defaultPrevented).toBe(true)
     expect(onRunCommand).toHaveBeenCalledWith('copy-prompt-body')
   })
 
-  it('runs the share Prompt shortcut outside text inputs', () => {
+  it('leaves ⌘C alone when text inside an input is selected', () => {
     const onRunCommand = vi.fn()
     render(<HotkeyHarness onRunCommand={onRunCommand} />)
 
-    const event = new KeyboardEvent('keydown', {
-      bubbles: true,
-      cancelable: true,
-      key: 's',
-    })
+    const input = screen.getByLabelText<HTMLInputElement>('Filter entries')
+    input.setSelectionRange(0, 8)
 
-    window.dispatchEvent(event)
+    const event = keydown(input, { key: 'c', ctrlKey: true })
+
+    expect(event.defaultPrevented).toBe(false)
+    expect(onRunCommand).not.toHaveBeenCalled()
+  })
+
+  it('runs letter commands outside text inputs, including capture and pin', () => {
+    const onRunCommand = vi.fn()
+    render(<HotkeyHarness onRunCommand={onRunCommand} />)
+
+    expect(keydown(window, { key: 's' }).defaultPrevented).toBe(true)
+    keydown(window, { key: 'c' })
+    keydown(window, { key: 'p' })
+
+    expect(onRunCommand.mock.calls.map(([commandId]) => commandId)).toEqual([
+      'share-prompt',
+      'capture',
+      'toggle-pin',
+    ])
+  })
+
+  it('opens the command palette with ⌘K even while typing', () => {
+    const onTogglePalette = vi.fn()
+    render(<HotkeyHarness onTogglePalette={onTogglePalette} />)
+
+    const event = keydown(screen.getByLabelText('Filter entries'), { key: 'k', metaKey: true })
 
     expect(event.defaultPrevented).toBe(true)
-    expect(onRunCommand).toHaveBeenCalledWith('share-prompt')
+    expect(onTogglePalette).toHaveBeenCalledOnce()
+  })
+
+  it('ignores library shortcuts while an overlay owns the keyboard', () => {
+    const onRunCommand = vi.fn()
+    render(<HotkeyHarness isOverlayOpen onRunCommand={onRunCommand} />)
+
+    keydown(window, { key: 'x' })
+    keydown(window, { key: 'c', metaKey: true })
+
+    expect(onRunCommand).not.toHaveBeenCalled()
+  })
+
+  it('moves with the arrow keys from the list but lets them scroll elsewhere', () => {
+    const onRunCommand = vi.fn()
+    render(<HotkeyHarness onRunCommand={onRunCommand} />)
+
+    const fromList = keydown(screen.getByRole('button', { name: 'Entry' }), { key: 'ArrowDown' })
+    const fromReader = keydown(screen.getByText('Reader'), { key: 'ArrowDown' })
+
+    expect(fromList.defaultPrevented).toBe(true)
+    expect(fromReader.defaultPrevented).toBe(false)
+    expect(onRunCommand).toHaveBeenCalledExactlyOnceWith('next-prompt')
+  })
+
+  it('saves with ⌘Enter and cancels with Esc while composing', () => {
+    const onSaveComposer = vi.fn()
+    const onCancelComposer = vi.fn()
+    const onRunCommand = vi.fn()
+    render(
+      <HotkeyHarness
+        composerMode="edit"
+        onCancelComposer={onCancelComposer}
+        onRunCommand={onRunCommand}
+        onSaveComposer={onSaveComposer}
+      />,
+    )
+
+    keydown(screen.getByLabelText('Filter entries'), { key: 'Enter', metaKey: true })
+    keydown(window, { key: 'Escape' })
+    keydown(window, { key: 'x' })
+
+    expect(onSaveComposer).toHaveBeenCalledOnce()
+    expect(onCancelComposer).toHaveBeenCalledOnce()
+    expect(onRunCommand).not.toHaveBeenCalled()
+  })
+
+  it('opens the command line with : and focuses panes with digits', () => {
+    const onOpenCommandLine = vi.fn()
+    const onFocusPane = vi.fn()
+    render(<HotkeyHarness onFocusPane={onFocusPane} onOpenCommandLine={onOpenCommandLine} />)
+
+    keydown(window, { key: ':' })
+    keydown(window, { key: '3' })
+    keydown(screen.getByLabelText('Filter entries'), { key: '2' })
+
+    expect(onOpenCommandLine).toHaveBeenCalledOnce()
+    expect(onFocusPane).toHaveBeenCalledExactlyOnceWith(3)
+  })
+
+  it('still opens the command line while composing, outside the fields', () => {
+    const onOpenCommandLine = vi.fn()
+    render(<HotkeyHarness composerMode="new" onOpenCommandLine={onOpenCommandLine} />)
+
+    keydown(screen.getByLabelText('Filter entries'), { key: ':' })
+    keydown(window, { key: ':' })
+
+    expect(onOpenCommandLine).toHaveBeenCalledOnce()
   })
 })

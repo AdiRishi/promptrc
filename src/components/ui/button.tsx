@@ -3,33 +3,26 @@ import { type VariantProps, cva } from 'class-variance-authority'
 
 import { cn } from '@/lib/utils'
 
+/** Terminal buttons: a bracketed hit target, inverse video when it matters. */
 const buttonVariants = cva(
-  "group/button inline-flex shrink-0 items-center justify-center whitespace-nowrap rounded-[2px] border text-[12px] font-medium transition-colors outline-none select-none disabled:pointer-events-none disabled:opacity-45 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+  "inline-flex shrink-0 items-center justify-center gap-[1ch] rounded-sm font-mono whitespace-nowrap transition-colors outline-none select-none focus-visible:ring-1 focus-visible:ring-accent disabled:pointer-events-none disabled:opacity-40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-3.5",
   {
     variants: {
       variant: {
-        default:
-          'border-primary bg-primary text-primary-foreground hover:border-[var(--primary-hover)] hover:bg-[var(--primary-hover)] focus-visible:border-primary',
-        outline:
-          'border-border bg-transparent text-foreground hover:border-primary hover:text-primary focus-visible:border-primary',
-        secondary:
-          'border-border bg-card text-muted-foreground hover:border-primary hover:text-foreground focus-visible:border-primary',
-        ghost:
-          'border-transparent bg-transparent text-muted-foreground hover:text-primary focus-visible:border-primary',
-        destructive:
-          'border-destructive bg-destructive/12 text-destructive hover:bg-destructive/20 focus-visible:border-destructive',
-        link: 'border-transparent px-0 text-primary underline-offset-4 hover:underline',
+        default: 'bg-accent text-accent-fg hover:brightness-110',
+        outline: 'border border-line-strong text-fg hover:border-accent hover:text-accent',
+        ghost: 'text-fg-dim hover:bg-bg-hover hover:text-fg',
+        destructive: 'border border-red/60 text-red hover:bg-red hover:text-bg',
+        link: 'px-0 text-accent underline-offset-4 hover:underline',
       },
       size: {
-        default:
-          'h-10 gap-2 px-4 has-data-[icon=inline-end]:pr-3 has-data-[icon=inline-start]:pl-3',
-        xs: 'h-7 gap-1.5 px-2.5 text-[11px]',
-        sm: 'h-9 gap-2 px-3.5',
-        lg: 'h-11 gap-2 px-5 text-[13px]',
-        icon: 'size-10',
-        'icon-xs': 'size-7',
-        'icon-sm': 'size-9',
-        'icon-lg': 'size-11',
+        default: 'h-8 px-[1.5ch] text-[13px]',
+        xs: 'h-6 px-[1ch] text-[11.5px]',
+        sm: 'h-7 px-[1.25ch] text-[12.5px]',
+        lg: 'h-9 px-[2ch] text-[13.5px]',
+        icon: 'size-8',
+        'icon-xs': 'size-6',
+        'icon-sm': 'size-7',
       },
     },
     defaultVariants: {

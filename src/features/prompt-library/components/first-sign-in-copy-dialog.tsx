@@ -1,21 +1,14 @@
 'use client'
 
 import { useCallback } from 'react'
-import { toast } from 'sonner'
 
 import { Button } from '@/components/ui/button'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog'
 import {
   usePromptLibraryClient,
   usePromptLibraryStore,
 } from '@/features/prompt-library/components/prompt-library-provider'
+import { echo } from '@/lib/echo'
 
 export function FirstSignInCopyDialog() {
   const library = usePromptLibraryClient()
@@ -30,18 +23,18 @@ export function FirstSignInCopyDialog() {
   const acceptCopy = useCallback(async () => {
     try {
       await library.acceptFirstSignInCopy()
-      toast(`copied ${promptCount} ${promptCount === 1 ? 'prompt' : 'prompts'} to cloud`)
+      echo(`Copied ${promptCount} ${promptCount === 1 ? 'entry' : 'entries'} into your account`)
     } catch (error) {
-      toast(`copy failed - ${library.reportError(error)}`)
+      echo(`Couldn’t copy — ${library.reportError(error)}`)
     }
   }, [library, promptCount])
 
   const declineCopy = useCallback(async () => {
     try {
       await library.declineFirstSignInCopy()
-      toast('cloud library started empty')
+      echo('Your synced library starts empty')
     } catch (error) {
-      toast(`choice failed - ${library.reportError(error)}`)
+      echo(`Couldn’t save that choice — ${library.reportError(error)}`)
     }
   }, [library])
 
@@ -49,39 +42,67 @@ export function FirstSignInCopyDialog() {
     return null
   }
 
+  const entries = `${promptCount} ${promptCount === 1 ? 'entry' : 'entries'}`
+
   return (
     <Dialog open={isOpen}>
       <DialogContent
-        className="gap-5 rounded-[4px] border border-border bg-card p-0 shadow-xl sm:max-w-[460px]"
+        className="gap-0 p-0 sm:max-w-[520px]"
+        // y / n answer the prompt, like any good installer.
+        onKeyDown={(event) => {
+          if (isBusy) {
+            return
+          }
+
+          if (event.key === 'y') {
+            event.preventDefault()
+            void acceptCopy()
+          } else if (event.key === 'n') {
+            event.preventDefault()
+            void declineCopy()
+          }
+        }}
         showCloseButton={false}
       >
-        <DialogHeader className="border-b border-border px-5 py-4">
-          <DialogTitle className="text-[15px] text-foreground">
-            Copy local Prompt Library?
-          </DialogTitle>
-          <DialogDescription className="text-[13px] leading-6">
-            You have {promptCount} local {promptCount === 1 ? 'Prompt' : 'Prompts'}. Copy them into
-            your cloud Prompt Library, or start cloud empty.
+        <DialogTitle className="pane-title text-accent">first sign-in</DialogTitle>
+        <div className="px-[2ch] pt-5 pb-4 text-[13px] leading-[1.75]">
+          <p className="text-fg-dim">
+            <span className="text-fg-faint">$</span> promptrc sync --from=this-browser
+          </p>
+          <DialogDescription className="mt-1 text-fg-dim">
+            found <span className="font-bold text-fg">{entries}</span> here that aren’t in your
+            account yet.
+            <br />
+            <span className="text-fg-faint"># nothing on this device is removed either way</span>
           </DialogDescription>
-        </DialogHeader>
-
-        <div className="px-5 text-[12px] leading-6 text-muted-foreground">
-          Local Prompts stay on this browser either way.
           {firstSignInCopy.error ? (
-            <div className="mt-3 border border-destructive/40 bg-destructive/10 px-3 py-2 text-destructive">
-              {firstSignInCopy.error}
-            </div>
+            <p className="mt-2 text-red">error: {firstSignInCopy.error}</p>
           ) : null}
+          <p className="mt-3 text-fg">
+            copy {promptCount === 1 ? 'it' : `all ${promptCount}`} into your account?{' '}
+            <span className="text-fg-dim">[Y/n]</span>{' '}
+            {isBusy ? (
+              <span className="text-yellow">copying…</span>
+            ) : (
+              <span className="cursor-block" />
+            )}
+          </p>
+          <div className="mt-4 flex justify-end gap-[2ch]">
+            <Button disabled={isBusy} onClick={declineCopy} type="button" variant="ghost">
+              n · start empty
+            </Button>
+            <Button
+              // The prompt waits for an answer; focus the default one.
+              // oxlint-disable-next-line jsx-a11y/no-autofocus
+              autoFocus
+              disabled={isBusy}
+              onClick={acceptCopy}
+              type="button"
+            >
+              Y · copy {promptCount === 1 ? 'it' : `all ${promptCount}`}
+            </Button>
+          </div>
         </div>
-
-        <DialogFooter className="border-t border-border px-5 py-4">
-          <Button disabled={isBusy} onClick={declineCopy} size="sm" type="button" variant="outline">
-            Continue empty
-          </Button>
-          <Button disabled={isBusy} onClick={acceptCopy} size="sm" type="button">
-            {isBusy ? 'Copying...' : 'Copy local Prompts'}
-          </Button>
-        </DialogFooter>
       </DialogContent>
     </Dialog>
   )

@@ -115,7 +115,7 @@ const ok = true
     expect(alpacaReference?.querySelector('img')?.getAttribute('src')).toBe(
       '/codex-plugin-icons/alpaca.svg',
     )
-    expect(alpacaReference?.className).toContain('text-[#6f7890]')
+    expect(alpacaReference?.className).toContain('text-fg-dim')
     expect(alpacaReference?.className).not.toContain('text-current')
     expect(browserReference?.querySelector('img')?.getAttribute('src')).toBe(
       '/codex-plugin-icons/browser.svg',

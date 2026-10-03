@@ -6,51 +6,112 @@ import {
   type PromptLibraryCommandState,
   canRunPromptLibraryCommand,
 } from '@/features/prompt-library/commands/prompt-library-command-surface'
-import { type PromptLibraryVisibleState } from '@/features/prompt-library/selectors/prompt-library-selectors'
+import { type ComposerMode } from '@/features/prompt-library/types'
 
 type UsePromptLibraryHotkeysOptions = {
   commandState: PromptLibraryCommandState
-  composerMode: 'view' | 'new' | 'edit'
+  composerMode: ComposerMode
+  /** A dialog (palette, capture, keys) owns the keyboard while it is open. */
+  isOverlayOpen: boolean
   isHelpOpen: boolean
-  visibleState: PromptLibraryVisibleState
   onSaveComposer: () => void
   onCancelComposer: () => void
   onRunCommand: (commandId: PromptLibraryCommandId) => void
   onToggleHelp: () => void
+  onTogglePalette: () => void
+  onOpenCommandLine: () => void
+  onFocusPane: (pane: 1 | 2 | 3) => void
+}
+
+const isTypingTarget = (target: EventTarget | null): target is HTMLElement => {
+  if (!(target instanceof HTMLElement)) {
+    return false
+  }
+
+  return target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable
+}
+
+/** True when the user has text selected — then ⌘C must copy that, not the Prompt. */
+const hasTextSelection = (target: EventTarget | null) => {
+  if (
+    (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement) &&
+    target.selectionStart !== null &&
+    target.selectionStart !== target.selectionEnd
+  ) {
+    return true
+  }
+
+  return Boolean(window.getSelection()?.toString())
+}
+
+const isListNavigationTarget = (target: EventTarget | null) => {
+  return (
+    target === document.body ||
+    (target instanceof HTMLElement && Boolean(target.closest('[data-prompt-list]')))
+  )
 }
 
 export function usePromptLibraryHotkeys({
   commandState,
   composerMode,
+  isOverlayOpen,
   isHelpOpen,
-  visibleState,
   onSaveComposer,
   onCancelComposer,
   onRunCommand,
   onToggleHelp,
+  onTogglePalette,
+  onOpenCommandLine,
+  onFocusPane,
 }: UsePromptLibraryHotkeysOptions) {
   const onKeyDown = useEffectEvent((event: KeyboardEvent) => {
-    if (isHelpOpen) {
-      if (event.key === 'Escape' || event.key === '?') {
+    if (event.defaultPrevented || event.isComposing) {
+      return
+    }
+
+    const isMod = event.metaKey || event.ctrlKey
+    const key = event.key.toLowerCase()
+
+    if (isMod && key === 'k' && !event.altKey && !event.shiftKey) {
+      event.preventDefault()
+      onTogglePalette()
+      return
+    }
+
+    if (isHelpOpen && (event.key === '?' || event.key === 'q')) {
+      event.preventDefault()
+      onToggleHelp()
+      return
+    }
+
+    if (isOverlayOpen) {
+      return
+    }
+
+    const target = event.target
+    const isTyping = isTypingTarget(target)
+
+    // `:` opens the command line from anywhere you aren't typing — in the
+    // editor too, so `:w` and `:q` work once focus leaves the fields.
+    if (event.key === ':' && !isTyping && !isMod && !event.altKey) {
+      event.preventDefault()
+      onOpenCommandLine()
+      return
+    }
+
+    if (composerMode !== 'view') {
+      if (event.key === 'Escape') {
         event.preventDefault()
-        onToggleHelp()
+        onCancelComposer()
+      } else if (isMod && event.key === 'Enter') {
+        event.preventDefault()
+        onSaveComposer()
       }
 
       return
     }
 
-    const target = event.target as HTMLElement | null
-    const isTyping =
-      !!target &&
-      (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)
-
     if (event.key === 'Escape') {
-      if (composerMode !== 'view') {
-        event.preventDefault()
-        onCancelComposer()
-        return
-      }
-
       if (isTyping) {
         target.blur()
       }
@@ -58,27 +119,12 @@ export function usePromptLibraryHotkeys({
       return
     }
 
-    if (composerMode !== 'view' && (event.metaKey || event.ctrlKey) && event.key === 'Enter') {
-      event.preventDefault()
-      onSaveComposer()
-      return
-    }
-
-    if (isTyping) {
-      const isCopyShortcut =
-        (event.metaKey || event.ctrlKey) &&
-        event.key.toLowerCase() === 'c' &&
-        composerMode === 'view' &&
-        !window.getSelection()?.toString()
-
-      if (!isCopyShortcut) {
+    if (isMod && key === 'c' && !event.altKey && !event.shiftKey) {
+      if (hasTextSelection(target)) {
         return
       }
 
-      const commandId = getPromptLibraryKeyboardCommandId({
-        key: event.key.toLowerCase(),
-        isCopyShortcut: true,
-      })
+      const commandId = getPromptLibraryKeyboardCommandId({ key, isCopyShortcut: true })
 
       if (commandId && canRunPromptLibraryCommand(commandId, commandState)) {
         event.preventDefault()
@@ -88,27 +134,7 @@ export function usePromptLibraryHotkeys({
       return
     }
 
-    if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'c') {
-      const selectedText = window.getSelection()?.toString()
-
-      if (selectedText || !visibleState.activePrompt) {
-        return
-      }
-
-      event.preventDefault()
-      const commandId = getPromptLibraryKeyboardCommandId({
-        key: event.key.toLowerCase(),
-        isCopyShortcut: true,
-      })
-
-      if (commandId && canRunPromptLibraryCommand(commandId, commandState)) {
-        onRunCommand(commandId)
-      }
-
-      return
-    }
-
-    if (event.metaKey || event.ctrlKey || event.altKey) {
+    if (isTyping || isMod || event.altKey) {
       return
     }
 
@@ -118,10 +144,25 @@ export function usePromptLibraryHotkeys({
       return
     }
 
-    const commandId = getPromptLibraryKeyboardCommandId({
-      key: event.key.toLowerCase(),
-      isCopyShortcut: false,
-    })
+    if (event.key === '1' || event.key === '2' || event.key === '3') {
+      event.preventDefault()
+      onFocusPane(Number(event.key) as 1 | 2 | 3)
+      return
+    }
+
+    const isArrow = event.key === 'ArrowDown' || event.key === 'ArrowUp'
+
+    // Arrows move the selection only from the list (or nowhere in particular);
+    // elsewhere they keep scrolling the page as usual.
+    if (isArrow && !isListNavigationTarget(target)) {
+      return
+    }
+
+    const commandId = isArrow
+      ? event.key === 'ArrowDown'
+        ? 'next-prompt'
+        : 'previous-prompt'
+      : getPromptLibraryKeyboardCommandId({ key, isCopyShortcut: false })
 
     if (commandId && canRunPromptLibraryCommand(commandId, commandState)) {
       event.preventDefault()
@@ -135,5 +176,5 @@ export function usePromptLibraryHotkeys({
     return () => {
       window.removeEventListener('keydown', onKeyDown)
     }
-  }, [onKeyDown])
+  }, [])
 }

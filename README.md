@@ -1,250 +1,212 @@
 <div align="center">
-  <img src="public/logo512.png" alt="promptrc logo" width="120" height="120" />
+  <img src="public/logo512.png" alt="promptrc" width="96" height="96" />
 
 # promptrc
 
-A terminal-inspired prompt library for storing, searching, and reusing your best AI prompts.
+**A terminal for the prompts that worked.**
+Keep the prompts, phrasings, sequences and benchmarks that worked — before they slip away.
 
-[![CI](https://github.com/AdiRishi/promptrc/actions/workflows/ci.yml/badge.svg)](https://github.com/AdiRishi/promptrc/actions/workflows/ci.yml) [![Deploy](https://github.com/AdiRishi/promptrc/actions/workflows/deploy.yml/badge.svg)](https://github.com/AdiRishi/promptrc/actions/workflows/deploy.yml) ![GitHub License](https://img.shields.io/github/license/AdiRishi/promptrc) [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/AdiRishi/promptrc/pulls)
+[![CI](https://github.com/AdiRishi/promptrc/actions/workflows/ci.yml/badge.svg)](https://github.com/AdiRishi/promptrc/actions/workflows/ci.yml) [![Deploy](https://github.com/AdiRishi/promptrc/actions/workflows/deploy.yml/badge.svg)](https://github.com/AdiRishi/promptrc/actions/workflows/deploy.yml) ![GitHub License](https://img.shields.io/github/license/AdiRishi/promptrc)
 
 [**promptrc.app**](https://promptrc.app) · [Report a bug](https://github.com/AdiRishi/promptrc/issues)
+
+<img src="docs/screenshots/library.jpg" alt="promptrc as a three-pane terminal UI: a ~/.promptrc tree of projects and tags, an fzf-style list of entries, and the Bug Hunt prompt open with one fill-in blank completed, above a vim-style status line" width="100%" />
 
 </div>
 
 ---
 
-## ✨ Features
+## What it keeps
 
-- ⌨️ **Keyboard-first workflow** — `j/k` to navigate, `n` to create, `e` to edit, `d` to duplicate, `x` to delete, `⌘C` to copy, `?` for the keymap
-- 🗂️ **Organize by category and tag** — group prompts the way your brain actually works
-- 🔎 **Instant search** — fuzzy match across title, body, category, and tags as you type
-- 💾 **Local-first, cloud-optional** — anonymous users persist to `localStorage`; signed-in users sync to a Cloudflare D1 database
-- 🔐 **Auth via Clerk** — sign in to access your library from any browser, no account required to try the app
-- 📈 **Use counter** — promptrc tracks how often you reach for each prompt so the ones that matter rise to the top
-- 🖥️ **Terminal aesthetic** — monospace, dim chrome, `$ promptrc --help` framing, no dialog spam
-- ⚡ **Edge-deployed** — TanStack Start + Nitro running on Cloudflare Workers
+promptrc is your `~/.promptrc`: a keyboard-driven library for the moments when working with an AI goes exactly right. Every entry is a **Prompt**, marked by the kind of thing it is:
+
+|     | Kind          | For                               | What the viewer gives you                                                 |
+| --- | ------------- | --------------------------------- | ------------------------------------------------------------------------- |
+| ❯   | **Prompt**    | A reusable instruction            | `{{variables}}` become inline fill-in blanks; yank uses your words        |
+| “   | **Fragment**  | Wording that landed exactly right | Set in a handwritten mono, ready to drop into a larger prompt             |
+| »   | **Sequence**  | An ordered chain of instructions  | Numbered steps, each yanked on its own (`:y2`), with progress as you go   |
+| ◆   | **Benchmark** | A reproducible test               | The expected result, a test-runner log of runs per model, and a pass rate |
+
+Every entry lives in a **project** and can carry **notes** (why it works, what good looks like), **tags**, pasted **images**, and a **pin**.
+
+<table>
+  <tr>
+    <td colspan="2"><img src="docs/screenshots/projects.jpg" alt="The render-md project with the sequences toggle on: the path reads ~/.promptrc/render-md/sequences, the projects tree is on the left and kind toggles with counts sit above the list" /></td>
+  </tr>
+  <tr>
+    <td colspan="2" align="center"><sub>Projects first: <kbd>:cd render-md</kbd>, then <kbd>:sequences</kbd> — they stack</sub></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="docs/screenshots/command-line.jpg" alt="The vim-style command line open at the bottom of the screen, with a wildmenu completing :cd with project names" /></td>
+    <td width="50%"><img src="docs/screenshots/finder.jpg" alt="The Telescope-style finder: results on the left, a line-numbered preview of the highlighted sequence on the right" /></td>
+  </tr>
+  <tr>
+    <td align="center"><sub><kbd>:</kbd> — the command line, with completion and history</sub></td>
+    <td align="center"><sub><kbd>⌘</kbd><kbd>K</kbd> — find anything, with a live preview</sub></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="docs/screenshots/capture-phosphor.jpg" alt="Quick capture in the amber phosphor colorscheme; the project field asks did you mean render-md? for a typo" /></td>
+    <td width="50%"><img src="docs/screenshots/sequence-raw.jpg" alt="A sequence in raw view with line numbers, in the tokyo-night colorscheme" /></td>
+  </tr>
+  <tr>
+    <td align="center"><sub><kbd>c</kbd> — capture, and the project picker catching a typo (phosphor)</sub></td>
+    <td align="center"><sub><kbd>r</kbd> — raw source with line numbers (tokyo-night)</sub></td>
+  </tr>
+</table>
+
+## Highlights
+
+- **It drives like a terminal** — three lazygit-style panes (<kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd>), a vim status line that shows the mode, and an echo line instead of toasts.
+- **Projects first** — the tree is your projects; kinds, ★ and tags narrow whichever one you're in, and they stack: `:cd render-md` then `:sequences` is `~/.promptrc/render-md/sequences`.
+- **No near-duplicate projects** — picking a project suggests existing ones as you type, asks "did you mean render-md?" for a typo, and files "Render MD" under an existing `render-md`. A new project is always an explicit choice.
+- **A real command line** — <kbd>:</kbd> takes ex commands with <kbd>⇥</kbd> completion and <kbd>↑</kbd> history: `:cd render-md`, `:sequences`, `:new benchmark`, `:y2`, `:rm!`, `:w`, `:q`.
+- **Capture in seconds** — <kbd>c</kbd> floats a capture shell over whatever you're doing. Paste, pick a kind, <kbd>⌘</kbd><kbd>↵</kbd>. The title comes from the first line if you skip it.
+- **Fill-in blanks** — write `{{audience}}` or `{{tone | calm}}`; the viewer turns them into slots you type straight into, and remembers what you typed per entry.
+- **glow and bat** — read entries rendered, or press <kbd>r</kbd> for the raw markdown with line numbers and syntax colour.
+- **Benchmarks as a test runner** — `:log claude-opus-5-5 pass decision led` records a run; the ledger shows ✓/~/✗ rows, a pass rate and a sparkline.
+- **Seven colorschemes** — `:colorscheme promptrc | daylight | phosphor | green-screen | tokyo-night | catppuccin | gruvbox`. The phosphor and green-screen CRTs get scanlines, glow and a vignette.
+- **Local-first, cloud-optional** — everything works signed out (stored in your browser). `:login` to sync to Cloudflare D1 and share read-only links.
+
+<img src="docs/screenshots/colorschemes.jpg" alt="The same benchmark in six colorschemes: promptrc, daylight, green-screen, catppuccin, gruvbox and phosphor" width="100%" />
+
+## Keys
+
+| Action                         | Keys                                                             |
+| ------------------------------ | ---------------------------------------------------------------- |
+| Quick capture                  | <kbd>c</kbd>                                                     |
+| New, in the full editor        | <kbd>n</kbd> (or `:new [kind]`)                                  |
+| Command line                   | <kbd>:</kbd>                                                     |
+| Find anything                  | <kbd>⌘</kbd> <kbd>K</kbd>                                        |
+| Focus a pane                   | <kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd>                           |
+| Go to a project                | `:cd <project>` (<kbd>⇥</kbd> completes), `:cd ~` for everything |
+| Narrow to a kind · ★           | `:sequences` … · `:pinned`, or the toggles above the list        |
+| Grep the list                  | <kbd>/</kbd>                                                     |
+| Next · previous                | <kbd>j</kbd> · <kbd>k</kbd> (or arrows in the list)              |
+| Yank (with filled blanks)      | <kbd>y</kbd> or <kbd>⌘</kbd> <kbd>C</kbd>                        |
+| Rendered ⇄ raw                 | <kbd>r</kbd>                                                     |
+| Edit · pin · duplicate · share | <kbd>e</kbd> · <kbd>p</kbd> · <kbd>d</kbd> · <kbd>s</kbd>        |
+| Delete                         | <kbd>x</kbd> twice, or `:rm!`                                    |
+| Save · cancel while editing    | <kbd>⌘</kbd> <kbd>↵</kbd> · <kbd>Esc</kbd> (or `:w` · `:q!`)     |
+| The manual                     | <kbd>?</kbd> (or `:help`)                                        |
 
 ---
 
-## 🚀 Quick Start
+## Quick start
 
-### Prerequisites
-
-- [Node.js](https://nodejs.org/) (see [`.node-version`](.node-version))
-- [pnpm](https://pnpm.io/) 10.x or later
-- A [Clerk](https://clerk.com/) project (free tier is fine) for authentication
-
-### Installation
+**Prerequisites:** Node.js (see [`.node-version`](.node-version)), pnpm (pinned in `package.json`), and a [Clerk](https://clerk.com/) project (free tier is fine).
 
 ```bash
-# Clone the repository
 git clone https://github.com/AdiRishi/promptrc.git
 cd promptrc
-
-# Install dependencies
 pnpm install
-
-# Configure environment
-cp .env.example .env
-# Edit .env with your VITE_CLERK_PUBLISHABLE_KEY and CLERK_SECRET_KEY
-
-# Start the development server
-pnpm dev
+cp .env.example .env   # add VITE_CLERK_PUBLISHABLE_KEY and CLERK_SECRET_KEY
+pnpm db:migrate        # apply D1 migrations locally
+pnpm dev               # http://localhost:8080
 ```
 
-The app will be available at **http://localhost:8080**
+## Tech stack
 
-> 💡 You can use promptrc fully without signing in — your library will persist to `localStorage`. Sign in to sync prompts across devices via Cloudflare D1.
+|               |                                                                                                                                                                                                                      |
+| ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Framework** | [TanStack Start](https://tanstack.com/start) + [TanStack Router](https://tanstack.com/router) on [React 19.3](https://react.dev) with the [React Compiler](https://react.dev/learn/react-compiler) (native oxc port) |
+| **Build**     | [Vite 8](https://vite.dev) (Rolldown) + [Nitro](https://nitro.build) targeting [Cloudflare Workers](https://workers.cloudflare.com)                                                                                  |
+| **Data**      | [Cloudflare D1](https://developers.cloudflare.com/d1/) (prompts) + [R2](https://developers.cloudflare.com/r2/) (images); `localStorage` when signed out                                                              |
+| **State**     | [Zustand](https://github.com/pmndrs/zustand) (library) + [TanStack Query](https://tanstack.com/query) (server reads)                                                                                                 |
+| **Auth**      | [Clerk](https://clerk.com) via `@clerk/tanstack-react-start`                                                                                                                                                         |
+| **UI**        | [Tailwind CSS 4](https://tailwindcss.com), [Base UI](https://base-ui.com), [cmdk](https://cmdk.paco.me), [Lucide](https://lucide.dev)                                                                                |
+| **Type**      | [Recursive](https://www.recursive.design) (mono, with its casual axis for notes) + a box-drawing subset of [JetBrains Mono](https://www.jetbrains.com/lp/mono/)                                                      |
+| **Tooling**   | [TypeScript 7](https://devblogs.microsoft.com/typescript/) (native compiler), [Oxlint](https://oxc.rs/docs/guide/usage/linter) (type-aware) and [Oxfmt](https://oxc.rs/docs/guide/usage/formatter)                   |
+| **Tests**     | [Vitest 5](https://vitest.dev) — jsdom for UI, [`@cloudflare/vitest-plugin`](https://www.npmjs.com/package/@cloudflare/vitest-plugin) (Miniflare) for D1/R2                                                          |
 
----
+## Architecture
 
-## ⌨️ Keymap
-
-promptrc is built around a single-letter, modifier-light keymap. Press `?` anywhere to summon the in-app cheat sheet.
-
-| Action               | Keys                      |
-| -------------------- | ------------------------- |
-| Next prompt          | <kbd>j</kbd>              |
-| Previous prompt      | <kbd>k</kbd>              |
-| Focus search         | <kbd>/</kbd>              |
-| New prompt           | <kbd>n</kbd>              |
-| Edit selected        | <kbd>e</kbd>              |
-| Duplicate            | <kbd>d</kbd>              |
-| Copy body            | <kbd>⌘</kbd> <kbd>C</kbd> |
-| Delete (×2 confirms) | <kbd>x</kbd>              |
-| Toggle help          | <kbd>?</kbd>              |
-| Cancel · dismiss     | <kbd>esc</kbd>            |
-
----
-
-## 🛠️ Tech Stack
-
-| Category          | Technology                                                                                                                      |
-| ----------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| **Framework**     | [TanStack Start](https://tanstack.com/start) (React meta-framework)                                                             |
-| **UI Library**    | [React 19](https://react.dev)                                                                                                   |
-| **Routing**       | [TanStack Router](https://tanstack.com/router) with file-based routes                                                           |
-| **Build Tool**    | [Vite 8](https://vite.dev)                                                                                                      |
-| **Styling**       | [Tailwind CSS 4](https://tailwindcss.com)                                                                                       |
-| **Components**    | [shadcn/ui](https://ui.shadcn.com) + [Base UI](https://base-ui.com) primitives                                                  |
-| **State**         | [Zustand](https://github.com/pmndrs/zustand) (client) + [TanStack Query](https://tanstack.com/query) (server)                   |
-| **Auth**          | [Clerk](https://clerk.com) via [@clerk/tanstack-react-start](https://www.npmjs.com/package/@clerk/tanstack-react-start)         |
-| **Database**      | [Cloudflare D1](https://developers.cloudflare.com/d1/) (SQLite at the edge)                                                     |
-| **Server**        | [Nitro](https://nitro.unjs.io) targeting [Cloudflare Workers](https://workers.cloudflare.com)                                   |
-| **Notifications** | [Sonner](https://sonner.emilkowal.ski)                                                                                          |
-| **Typography**    | [Inter](https://rsms.me/inter/) (Sans) + [JetBrains Mono](https://www.jetbrains.com/lp/mono/)                                   |
-| **Icons**         | [Lucide React](https://lucide.dev)                                                                                              |
-| **Testing**       | [Vitest](https://vitest.dev) + [@cloudflare/vitest-pool-workers](https://www.npmjs.com/package/@cloudflare/vitest-pool-workers) |
-
----
-
-## 🏗️ Architecture
-
-promptrc is a **local-first** app with optional cloud sync.
+promptrc is **local-first** with optional cloud sync. One `PromptLibraryClient` sits over two storage adapters, so components never branch on whether you're signed in.
 
 ```
-┌──────────────────────────────────────────────────────────────┐
-│  Browser                                                     │
-│  ┌────────────────────┐    ┌──────────────────────────────┐  │
-│  │ Zustand store      │◄──►│ PromptLibraryClient          │  │
-│  │ (UI state)         │    │ ┌──────────┐  ┌────────────┐ │  │
-│  └────────────────────┘    │ │  local   │  │   remote   │ │  │
-│                            │ │ storage  │  │  storage   │ │  │
-│                            │ └────┬─────┘  └──────┬─────┘ │  │
-│                            └──────┼───────────────┼───────┘  │
-└───────────────────────────────────┼───────────────┼──────────┘
-                                    │               │
-                          ┌─────────▼──┐    ┌───────▼──────────┐
-                          │ localStorage│    │ TanStack server  │
-                          │  (signed   │    │  functions       │
-                          │   out)     │    │  (Cloudflare     │
-                          └────────────┘    │   Worker + D1)   │
-                                            └──────────────────┘
+ Browser                                                    Cloudflare Worker
+┌──────────────────────────────────────────────┐          ┌──────────────────────┐
+│  Zustand store ◄──► PromptLibraryClient       │          │ TanStack server fns   │
+│  (library, filter,     ├─ local storage  ─────┼─► localStorage                  │
+│   selection, composer) └─ remote storage ─────┼─────────►│  D1 (prompts)        │
+│                                               │          │  R2 (images)         │
+└──────────────────────────────────────────────┘          └──────────────────────┘
 ```
 
-- The same `PromptLibraryClient` interface backs both modes — components don't know or care where a prompt lives.
-- Signed-out users get a fully functional app with zero network calls.
-- Signing in promotes the in-memory snapshot to D1 on next write; subsequent loads hydrate from the server.
-
-### Project layout
+- Signed-out users get the full app with zero network calls.
+- On first sign-in, a library kept in the browser can be copied into the account (see [ADR 0003](docs/adr/0003-copy-local-prompts-on-first-sign-in.md)).
+- All four kinds share one record; a sequence's steps live in its body behind an invisible `<!-- step -->` marker (see [ADR 0004](docs/adr/0004-prompt-kinds-share-one-record.md)).
 
 ```
 src/
-├── components/ui/             # shadcn/ui primitives
+├── components/ui/                 # Primitives: pane, button, dialog, input, kbd, choice
 ├── features/
-│   ├── auth/                  # Clerk shell + appearance
+│   ├── auth/                      # Sign-in shell + Clerk appearance
 │   └── prompt-library/
-│       ├── components/        # Tree panel, workspace, help overlay
-│       ├── hooks/             # Command palette / keyboard commands
-│       ├── lib/               # Validation & formatting utilities
-│       ├── server/            # TanStack server functions (D1 access)
-│       ├── storage/           # local + remote storage adapters
-│       ├── store/             # Zustand store
-│       └── types.ts
-├── lib/                       # App providers, query client, SEO, site config
-└── routes/                    # File-based TanStack Router routes
-migrations/                    # D1 SQL migrations
-tests/                         # Vitest + workers pool
+│       ├── commands/              # Command metadata, keys, ex commands, executor
+│       ├── components/            # Panes, status line, command line, finder, manual
+│       ├── hooks/                 # Hotkeys, commands, remembered blanks
+│       ├── lifecycle/             # Hydration + fresh-library transitions
+│       ├── model/                 # Records, kinds, templates, sequences, runs, validation
+│       ├── persistence/           # localStorage + D1/R2 adapters
+│       ├── rendering/             # Markdown, fill-in blanks, references, formatting
+│       ├── selectors/             # Filters, sorts, facets, catalog numbers
+│       ├── server/                # TanStack server functions
+│       ├── store/                 # Zustand store
+│       └── sync/                  # Client + session orchestration
+├── lib/                           # Providers, colorschemes, echo line, SEO, site config
+└── routes/                        # File-based routes
+migrations/                        # D1 migrations
+tests/                             # Mirrors src/features
 ```
 
----
+## Development
 
-## 🔧 Development
+| Command          | Description                                          |
+| ---------------- | ---------------------------------------------------- |
+| `pnpm dev`       | Dev server on port 8080 (runs the Worker in workerd) |
+| `pnpm build`     | Production build into `.output/`                     |
+| `pnpm test`      | Vitest with coverage (jsdom + workers projects)      |
+| `pnpm lint`      | Oxlint, type-aware                                   |
+| `pnpm format`    | Oxfmt                                                |
+| `pnpm typecheck` | Regenerate Worker types, then TypeScript 7           |
+| `pnpm check`     | The CI gate: format, lint, typecheck, deploy dry-run |
+| `pnpm deploy`    | Deploy to Cloudflare Workers                         |
 
-### Available scripts
+### Environment
 
-| Command               | Description                                                  |
-| --------------------- | ------------------------------------------------------------ |
-| `pnpm dev`            | Start the dev server on port 8080                            |
-| `pnpm build`          | Build for production (outputs to `.output/`)                 |
-| `pnpm preview`        | Preview the production build locally                         |
-| `pnpm test`           | Run the Vitest suite (Cloudflare workers pool)               |
-| `pnpm lint`           | Run ESLint                                                   |
-| `pnpm format`         | Format with Prettier                                         |
-| `pnpm typecheck`      | Regenerate Worker types and run `tsc`                        |
-| `pnpm cf-typegen`     | Regenerate `worker-configuration.d.ts` from `wrangler.jsonc` |
-| `pnpm check`          | Run all checks (format, lint, typecheck, deploy dry-run)     |
-| `pnpm deploy`         | Deploy to Cloudflare Workers                                 |
-| `pnpm deploy:dry-run` | Validate deployment without publishing                       |
+| Variable                     | Required | Description                               |
+| ---------------------------- | -------- | ----------------------------------------- |
+| `VITE_CLERK_PUBLISHABLE_KEY` | yes      | Clerk publishable key (client)            |
+| `CLERK_SECRET_KEY`           | yes      | Clerk secret key (Worker only)            |
+| `VITE_SITE_URL`              | optional | Canonical origin for SEO and social cards |
 
-### Environment variables
+Only `VITE_*` variables reach the client bundle.
 
-Copy `.env.example` to `.env`:
+## Deployment
 
-| Variable                     | Required | Description                                                  |
-| ---------------------------- | -------- | ------------------------------------------------------------ |
-| `VITE_SITE_URL`              | optional | Canonical origin for SEO/social tags (defaults to localhost) |
-| `VITE_CLERK_PUBLISHABLE_KEY` | yes      | Clerk publishable key (`pk_test_…` or `pk_live_…`)           |
-| `CLERK_SECRET_KEY`           | yes      | Clerk secret key (`sk_test_…` or `sk_live_…`) — server-only  |
-
-Only `VITE_*` variables are exposed to the client. Server functions read `CLERK_SECRET_KEY` from the Worker environment.
-
-### Database
-
-The remote prompt store is a single Cloudflare D1 table. Migrations live in [`migrations/`](migrations) and run automatically on deploy. To apply locally:
+promptrc deploys to Cloudflare Workers with a D1 database (`DB`) and an R2 bucket (`PROMPT_IMAGES`). The Deploy workflow builds and ships the Worker on every green `main`; it does **not** touch the database. Migrations in [`migrations/`](migrations) are applied by hand, before merging the change that needs them — keep them additive so the version still serving traffic keeps working:
 
 ```bash
-pnpx wrangler d1 migrations apply promptrc --local
-```
-
-### Adding UI components
-
-```bash
-npx shadcn@latest add <component-name>
-```
-
----
-
-## 🌐 Deployment
-
-promptrc is configured for [Cloudflare Workers](https://workers.cloudflare.com) with a D1 database binding (`DB`).
-
-```bash
+pnpx wrangler d1 migrations apply promptrc --remote
 pnpm build
 pnpm deploy
 ```
 
-The `wrangler.jsonc` file pins the production routes (`promptrc.app`, `www.promptrc.app`) and the D1 database id. Fork-and-deploy your own copy by:
+To deploy your own copy: create a D1 database (`pnpx wrangler d1 create <name>`) and an R2 bucket, update the ids and `routes` in `wrangler.jsonc`, and set `CLERK_SECRET_KEY` as a Worker secret (`pnpx wrangler secret put CLERK_SECRET_KEY`).
 
-1. Creating a new D1 database: `pnpx wrangler d1 create <your-name>`
-2. Updating `wrangler.jsonc` with your `database_id`, `name`, and `routes`
-3. Setting `CLERK_SECRET_KEY` as a Worker secret: `pnpx wrangler secret put CLERK_SECRET_KEY`
+## Design notes
 
-Because the app runs through Nitro, retargeting another platform is a one-line change in [`nitro.config.ts`](nitro.config.ts).
+- **It should feel like a terminal, because that's where you work.** Panes with titles set into their borders, a status line, a command line, an echo area. Nothing floats that a TUI wouldn't float.
+- **One monospace, three voices.** Recursive at `MONO 1` throughout: heavy and slightly casual for titles, upright for prompts, and its casual, slanted cut for notes, like comments someone left in the margin.
+- **Glyphs, not icons.** ❯ “ » ◆ mark the kinds; trees, rules and frames are box-drawing characters.
+- **Colour comes from the colorscheme.** Every surface reads named terminal colours (`--bg`, `--fg`, `--accent`, `--red` … `--cyan`), so a scheme is a dozen lines of CSS.
+- **Local-first by default.** Useful before you sign in, before you sync, before you trust it.
+- **Nothing gets in your way.** Single-letter keys, confirm-by-repeat for delete, messages in the echo line instead of dialogs.
 
----
+## Contributing
 
-## 🎨 Design philosophy
+Contributions are welcome — please open an issue first for anything beyond a small fix, and run `pnpm check` and `pnpm test` before opening a pull request.
 
-promptrc treats the prompt library as a **piece of developer tooling**, not a content-management UI. That choice drives every interaction:
-
-- **Single-letter keys, no chords.** If a power user can't reach an action with one press, the workflow is wrong.
-- **Toasts, not modals.** Confirm-by-repeat (`x` twice) replaces blocking dialogs. The library never gets in your way.
-- **Monospace everywhere that matters.** Prompt bodies, filenames (`.md` projection), and the help overlay all read like a terminal session.
-- **Local-first by default.** The app is useful before you sign in, before you sync, before you trust it. Cloud is an upgrade path, not a gate.
-- **No prompt left behind.** Use counts, timestamps, and tags exist to surface the prompts you actually reuse — nothing is buried.
-
-The palette is a warm dark slate with a signature amber accent (`#ffb454`) borrowed from terminal status lines.
-
----
-
-## 🤝 Contributing
-
-Contributions are welcome. Please open an issue first for anything beyond a small fix.
-
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feat/your-thing`)
-3. Run `pnpm check` before committing
-4. Open a Pull Request
-
----
-
-## 📄 License
+## License
 
 MIT — see [LICENSE](LICENSE).
-
----
-
-<div align="center">
-  <sub>Built by <a href="https://github.com/AdiRishi">Adishwar Rishi</a></sub>
-</div>
