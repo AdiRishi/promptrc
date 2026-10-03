@@ -5,7 +5,11 @@ import {
   deriveTitleFromBody,
 } from '@/features/prompt-library/model/prompt-library-integrity'
 import { createPromptRun } from '@/features/prompt-library/model/prompt-runs'
-import { selectPromptLibraryVisibleState } from '@/features/prompt-library/selectors/prompt-library-selectors'
+import {
+  matchesPromptFilter,
+  matchesPromptQuery,
+  selectPromptLibraryVisibleState,
+} from '@/features/prompt-library/selectors/prompt-library-selectors'
 import { type PromptLibraryStoreApi } from '@/features/prompt-library/store/prompt-library-store'
 import { type PromptLibraryClient } from '@/features/prompt-library/sync/prompt-library-client'
 import {
@@ -203,6 +207,19 @@ export const createPromptLibraryCommandExecutor = ({
     return result.value
   }
 
+  /** A saved Prompt must not open hidden behind the current filter. */
+  const revealPrompt = (prompt: PromptRecord) => {
+    const { actions, filter } = store.getState()
+
+    if (!matchesPromptFilter(prompt, filter)) {
+      actions.setFilter({ type: 'all' })
+    }
+
+    if (!matchesPromptQuery(prompt, store.getState().query)) {
+      actions.clearQuery()
+    }
+  }
+
   const saveComposer = () => {
     const result = store.getState().actions.saveComposer()
 
@@ -218,12 +235,14 @@ export const createPromptLibraryCommandExecutor = ({
     }
 
     if (result.status === 'created') {
+      revealPrompt(result.prompt)
       void commitPrompt(result.prompt, result.discardedImages)
       notify(`Saved “${result.prompt.title}”`)
       return
     }
 
     if (result.status === 'updated') {
+      revealPrompt(result.prompt)
       void commitPrompt(result.prompt, result.discardedImages)
       notify(`Updated “${result.prompt.title}”`)
     }
@@ -343,6 +362,13 @@ export const createPromptLibraryCommandExecutor = ({
 
   /** Quick capture: saves immediately, deriving a title when none is given. */
   const capturePrompt = (input: PromptCaptureInput) => {
+    // Capturing selects the new Prompt; doing that mid-edit would point the open
+    // draft at the wrong record.
+    if (store.getState().composer.mode !== 'view') {
+      notify('Finish editing first — save or press Esc')
+      return null
+    }
+
     const body = input.body.trim()
 
     if (!body) {

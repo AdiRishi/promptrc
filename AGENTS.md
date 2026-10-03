@@ -4,7 +4,7 @@ This file provides guidance to AI Agents when working with code in this reposito
 
 ## Commands
 
-Package manager is **pnpm** (version pinned in `package.json`). Node version is pinned in `.node-version`.
+Package manager is **pnpm 12** (exact version pinned in `package.json` `packageManager`; pnpm switches to it automatically). Node version is pinned in `.node-version`. `pnpm-workspace.yaml` sets `minimumReleaseAge: 1440`, so nothing younger than a day is installed — when upgrading, pick versions at least a day old rather than adding exclusions. To rebuild the lockfile, delete `pnpm-lock.yaml` and run `pnpm install`.
 
 - `pnpm dev` — Vite dev server on port **8080**
 - `pnpm build` — production build into `.output/`
@@ -79,7 +79,7 @@ Tests should mirror the feature folders under `tests/features/<feature>/`. Use t
 - `browser-unit` — `jsdom`, includes `tests/**/*.test.{ts,tsx}` but **excludes** `tests/**/*.server.test.{ts,tsx}`
 - `cloudflare-server` — `@cloudflare/vitest-plugin` Miniflare, includes `tests/**/*.server.test.{ts,tsx}`, runs `tests/setup-cloudflare.ts` which re-applies D1 migrations and truncates `prompts` before each test
 
-Vitest is on v5. `@cloudflare/vitest-plugin@1.3.6` only declares support for Vitest 4, so `patches/@cloudflare__vitest-plugin@1.3.6.patch` backports the Vitest 5 changes from cloudflare/workers-sdk#15500 (new module registry, `weak_ref`, `node:process` fallback, coverage loopback). `pnpm-workspace.yaml` allows the peer mismatch. Remove both once an upstream release supports Vitest 5.
+Vitest is on v5. `@cloudflare/vitest-plugin@1.3.5` only declares support for Vitest 4, so `patches/@cloudflare__vitest-plugin@1.3.5.patch` backports the Vitest 5 changes from cloudflare/workers-sdk#15500 (new module registry, `weak_ref`, `node:process` fallback, coverage loopback). `pnpm-workspace.yaml` allows the peer mismatch. Remove both once an upstream release supports Vitest 5.
 
 **Naming matters:** D1 and server-function tests must use the `.server.test.ts` suffix so they hit the workers pool (and get the D1 binding). Put browser/unit tests in the mirrored feature folder without that suffix, or they'll run in the wrong environment.
 
@@ -93,7 +93,7 @@ Vitest is on v5. `@cloudflare/vitest-plugin@1.3.6` only declares support for Vit
 
 Target: Cloudflare Workers with a D1 binding named `DB` (see `wrangler.jsonc`). `nitro.config.ts` sets the Nitro preset to Cloudflare; retargeting elsewhere is a preset change. `pnpm build` outputs the Worker bundle + `.output/server/wrangler.json`, and `pnpm deploy` runs wrangler against that output directory — never the repo root.
 
-Production routes (`promptrc.app`, `www.promptrc.app`) and the D1 database id are pinned in `wrangler.jsonc`. `wrangler deploy` (and the Deploy workflow) does **not** apply D1 migrations — run `pnpx wrangler d1 migrations apply promptrc --remote` before shipping code that depends on a new migration. Fork-to-deploy requires editing those and setting `CLERK_SECRET_KEY` as a Worker secret.
+Production routes (`promptrc.app`, `www.promptrc.app`) and the D1 database id are pinned in `wrangler.jsonc`. The Deploy workflow runs `wrangler d1 migrations apply promptrc --remote` before `wrangler deploy`; a manual `pnpm deploy` does **not**, so run that first. PR previews (`versions upload`) share the production D1 database, so a preview of code that needs a new migration only works once the migration has been applied. Fork-to-deploy requires editing those and setting `CLERK_SECRET_KEY` as a Worker secret.
 
 ## Environment
 

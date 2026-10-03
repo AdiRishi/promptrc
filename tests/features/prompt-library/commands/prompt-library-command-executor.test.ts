@@ -418,6 +418,38 @@ const setup = (
 }
 
 describe('prompt library command executor: capture, pin, runs, and filled copies', () => {
+  it('refuses to capture while a Prompt is being edited, so the draft keeps its target', () => {
+    const { commands, notify, savePrompt, store } = setup([createPrompt({ id: 'prompt-alpha' })])
+
+    store.getState().actions.startEdit('prompt-alpha')
+    store.getState().actions.updateDraft('title', 'Alpha edited')
+
+    expect(commands.capturePrompt({ kind: 'prompt', body: 'my captured idea' })).toBeNull()
+    expect(store.getState().prompts).toHaveLength(1)
+    expect(store.getState().selectedPromptId).toBe('prompt-alpha')
+    expect(savePrompt).not.toHaveBeenCalled()
+    expect(notify).toHaveBeenCalledWith('Finish editing first — save or press Esc')
+  })
+
+  it('reveals a saved Prompt that the current filter or query would hide', async () => {
+    const { commands, store } = setup([createPrompt({ id: 'prompt-alpha', pinned: true })])
+
+    store.getState().actions.setFilter({ type: 'pinned' })
+    store.getState().actions.setQuery('alpha')
+    store.getState().actions.startNew('fragment')
+    store.getState().actions.updateDraft('title', 'Fresh fragment')
+    store.getState().actions.updateDraft('body', 'Keep it short.')
+    commands.saveComposer()
+    await flushPromises()
+
+    expect(store.getState().filter).toEqual({ type: 'all' })
+    expect(store.getState().query).toBe('')
+    expect(
+      store.getState().prompts.find((prompt) => prompt.id === store.getState().selectedPromptId)
+        ?.title,
+    ).toBe('Fresh fragment')
+  })
+
   it('captures a body, deriving the title, and commits it through library.savePrompt', async () => {
     const { commands, notify, savePrompt, store } = setup([])
 

@@ -159,7 +159,7 @@ Only `VITE_*` variables reach the client bundle.
 
 ## Deployment
 
-promptrc deploys to Cloudflare Workers with a D1 database (`DB`) and an R2 bucket (`PROMPT_IMAGES`). Migrations in [`migrations/`](migrations) are additive; `wrangler deploy` does **not** apply them, so apply any new ones to the remote database before deploying code that needs them:
+promptrc deploys to Cloudflare Workers with a D1 database (`DB`) and an R2 bucket (`PROMPT_IMAGES`). Migrations in [`migrations/`](migrations) are additive. The Deploy workflow applies them before shipping the Worker; `wrangler deploy` on its own does **not**, so for a manual deploy run:
 
 ```bash
 pnpx wrangler d1 migrations apply promptrc --remote

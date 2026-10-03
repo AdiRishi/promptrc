@@ -4,6 +4,7 @@ import { useId, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { KeyCombo } from '@/components/ui/kbd'
 import { KIND_GLYPHS, KIND_TEXT_CLASS } from '@/features/prompt-library/components/kind-mark'
+import { hasPendingPromptImageUploads } from '@/features/prompt-library/model/prompt-images'
 import {
   PROMPT_KIND_DEFINITIONS,
   PROMPT_KINDS,
@@ -66,8 +67,12 @@ export function PromptEditor({
   // trailing whitespace survive; the draft body is always the joined result.
   const [steps, setSteps] = useState(() => splitSequenceStepsForEditing(draft.body))
 
+  // Uploads resolve by rewriting the draft body; changing kind mid-upload would
+  // let the step editor's copy of the body resurrect the pending marker.
+  const isUploading = hasPendingPromptImageUploads(draft.body)
+
   const changeKind = (kind: PromptKind) => {
-    if (kind === draft.kind) {
+    if (kind === draft.kind || isUploading) {
       return
     }
 
@@ -161,6 +166,7 @@ export function PromptEditor({
                       aria-label={PROMPT_KIND_DEFINITIONS[kind].label}
                       checked={selected}
                       className="sr-only"
+                      disabled={isUploading && !selected}
                       name={`${id}-kind`}
                       onChange={() => changeKind(kind)}
                       type="radio"
@@ -189,7 +195,11 @@ export function PromptEditor({
                 )
               })}
             </div>
-            <p className="mt-2 text-[12.5px] text-ink-muted">{definition.description}</p>
+            <p className="mt-2 text-[12.5px] text-ink-muted">
+              {isUploading
+                ? 'Images are still uploading — the kind can change once they finish.'
+                : definition.description}
+            </p>
           </fieldset>
 
           <div>

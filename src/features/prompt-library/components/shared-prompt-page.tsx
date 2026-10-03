@@ -6,18 +6,15 @@ import { useState } from 'react'
 import { toast } from 'sonner'
 
 import { Button } from '@/components/ui/button'
-import { BenchmarkSummary } from '@/features/prompt-library/components/benchmark-ledger'
 import { KindBadge } from '@/features/prompt-library/components/kind-mark'
 import { Wordmark } from '@/features/prompt-library/components/library-sidebar'
 import {
   BlanksHint,
-  Marginalia,
   Ornament,
   PromptBody,
 } from '@/features/prompt-library/components/prompt-reader'
 import { getPromptCopyText } from '@/features/prompt-library/model/prompt-copy'
 import { appendPromptImageCacheKey } from '@/features/prompt-library/model/prompt-images'
-import { getPromptKindDefinition } from '@/features/prompt-library/model/prompt-kinds'
 import { extractFillablePromptVariables } from '@/features/prompt-library/model/prompt-templates'
 import {
   PromptImageAttachments,
@@ -155,14 +152,6 @@ export function SharedPromptPage({ shareId }: SharedPromptPageProps) {
             </PromptVariableProvider>
 
             <PromptImageAttachments imageUrlFor={imageUrlFor} images={prompt.images} />
-
-            {prompt.kind === 'benchmark' ? (
-              <BenchmarkSummary expected={prompt.notes} runs={prompt.runs} />
-            ) : prompt.notes ? (
-              <Marginalia label={getPromptKindDefinition(prompt.kind).notesLabel}>
-                {prompt.notes}
-              </Marginalia>
-            ) : null}
 
             <div className="mt-12 flex flex-wrap items-center gap-2 border-t border-rule pt-6">
               <Button onClick={() => void copy()}>

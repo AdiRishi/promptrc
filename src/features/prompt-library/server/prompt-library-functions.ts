@@ -5,8 +5,8 @@ import {
   assertPromptId,
   assertPromptImageId,
   assertPromptImageUploadInput,
-  assertPromptRecord,
-  assertPromptRecords,
+  assertPromptRecordWithinLimits,
+  assertPromptRecordsWithinLimits,
   assertPromptShareId,
 } from '@/features/prompt-library/model/prompt-library-validation'
 import {
@@ -101,7 +101,7 @@ export const getRemotePromptLibrary = createServerFn({ method: 'GET' }).handler(
 })
 
 export const addRemoteStarterPrompts = createServerFn({ method: 'POST' })
-  .validator(assertPromptRecords)
+  .validator(assertPromptRecordsWithinLimits)
   .handler(async ({ data: prompts }) => {
     const promptLibrary = await getAuthenticatedPromptLibraryPersistence()
 
@@ -109,7 +109,7 @@ export const addRemoteStarterPrompts = createServerFn({ method: 'POST' })
   })
 
 export const acceptRemoteFirstSignInCopy = createServerFn({ method: 'POST' })
-  .validator(assertPromptRecords)
+  .validator(assertPromptRecordsWithinLimits)
   .handler(async ({ data: prompts }) => {
     const promptLibrary = await getAuthenticatedPromptLibraryPersistence()
 
@@ -126,7 +126,7 @@ export const seedRemoteStarterPrompts = addRemoteStarterPrompts
 export const copyRemotePromptsToPromptLibrary = acceptRemoteFirstSignInCopy
 
 export const upsertRemotePrompt = createServerFn({ method: 'POST' })
-  .validator(assertPromptRecord)
+  .validator(assertPromptRecordWithinLimits)
   .handler(async ({ data: prompt }) => {
     const extUserId = await requireUserId()
     const db = await getDatabase()

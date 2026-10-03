@@ -38,10 +38,6 @@ type BenchmarkLedgerProps = {
   onRemoveRun?: (runId: string) => void
 }
 
-export function BenchmarkSummary({ expected, runs }: { expected: string; runs: PromptRun[] }) {
-  return <BenchmarkLedger expected={expected} runs={runs} />
-}
-
 /** The lab sheet under a benchmark: what good looks like, and what actually happened. */
 export function BenchmarkLedger({
   expected,

@@ -1,10 +1,8 @@
+import { useSyncExternalStore } from 'react'
+
 import { cn } from '@/lib/utils'
 
-const IS_APPLE_PLATFORM =
-  typeof navigator !== 'undefined' && /Mac|iPhone|iPad|iPod/.test(navigator.platform)
-
 const KEY_GLYPHS: Record<string, string> = {
-  Mod: IS_APPLE_PLATFORM ? '⌘' : 'Ctrl',
   Enter: '↵',
   Esc: 'Esc',
   Shift: '⇧',
@@ -12,8 +10,18 @@ const KEY_GLYPHS: Record<string, string> = {
   ArrowDown: '↓',
 }
 
-/** Renders a key name with platform-aware glyphs (`Mod` is ⌘ on Apple, Ctrl elsewhere). */
-export const formatKey = (key: string) => KEY_GLYPHS[key] ?? key
+const subscribeToNothing = () => () => {}
+const isApplePlatform = () => /Mac|iPhone|iPad|iPod/.test(navigator.platform)
+
+/**
+ * `Mod` is ⌘ on Apple platforms and Ctrl elsewhere. The server can't know which,
+ * so it renders Ctrl and the client corrects it after hydration (no mismatch).
+ */
+export function useModKeyLabel() {
+  const isApple = useSyncExternalStore(subscribeToNothing, isApplePlatform, () => false)
+
+  return isApple ? '⌘' : 'Ctrl'
+}
 
 function Kbd({ className, ...props }: React.ComponentProps<'kbd'>) {
   return (
@@ -29,10 +37,12 @@ function Kbd({ className, ...props }: React.ComponentProps<'kbd'>) {
 }
 
 function KeyCombo({ keys, className }: { keys: readonly string[]; className?: string }) {
+  const modLabel = useModKeyLabel()
+
   return (
     <span className={cn('inline-flex items-center gap-0.5', className)}>
       {keys.map((key) => (
-        <Kbd key={key}>{formatKey(key)}</Kbd>
+        <Kbd key={key}>{key === 'Mod' ? modLabel : (KEY_GLYPHS[key] ?? key)}</Kbd>
       ))}
     </span>
   )

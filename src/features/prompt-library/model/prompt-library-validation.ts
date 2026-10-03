@@ -215,6 +215,58 @@ export const assertPromptRecord = (value: unknown): PromptRecord => {
   }
 }
 
+/**
+ * Upper bounds for what a client may store. Generous for real prompts, but they
+ * stop a client from filling D1 (and every list/share response) with junk. Only
+ * applied at the server boundary, so an oversized local library still loads.
+ */
+export const PROMPT_RECORD_LIMITS = {
+  title: 300,
+  body: 200_000,
+  notes: 20_000,
+  tags: 50,
+  tagLength: 64,
+  libraryImport: 2_000,
+} as const
+
+export const assertPromptRecordWithinLimits = (value: unknown): PromptRecord => {
+  const prompt = assertPromptRecord(value)
+
+  if (prompt.title.length > PROMPT_RECORD_LIMITS.title) {
+    throw new Error(`title must be at most ${PROMPT_RECORD_LIMITS.title} characters`)
+  }
+
+  if (prompt.body.length > PROMPT_RECORD_LIMITS.body) {
+    throw new Error(`body must be at most ${PROMPT_RECORD_LIMITS.body} characters`)
+  }
+
+  if (prompt.notes.length > PROMPT_RECORD_LIMITS.notes) {
+    throw new Error(`notes must be at most ${PROMPT_RECORD_LIMITS.notes} characters`)
+  }
+
+  if (prompt.tags.length > PROMPT_RECORD_LIMITS.tags) {
+    throw new Error(`a prompt can have at most ${PROMPT_RECORD_LIMITS.tags} tags`)
+  }
+
+  if (prompt.tags.some((tag) => tag.length > PROMPT_RECORD_LIMITS.tagLength)) {
+    throw new Error(`tags must be at most ${PROMPT_RECORD_LIMITS.tagLength} characters`)
+  }
+
+  return prompt
+}
+
+export const assertPromptRecordsWithinLimits = (value: unknown): PromptRecord[] => {
+  if (!Array.isArray(value)) {
+    throw new Error('prompts must be an array')
+  }
+
+  if (value.length > PROMPT_RECORD_LIMITS.libraryImport) {
+    throw new Error(`at most ${PROMPT_RECORD_LIMITS.libraryImport} prompts can be copied at once`)
+  }
+
+  return value.map(assertPromptRecordWithinLimits)
+}
+
 export const assertPromptRecords = (value: unknown): PromptRecord[] => {
   if (!Array.isArray(value)) {
     throw new Error('prompts must be an array')

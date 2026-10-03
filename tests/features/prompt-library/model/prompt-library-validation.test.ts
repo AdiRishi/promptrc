@@ -5,7 +5,9 @@ import {
   assertPromptId,
   assertPromptImageUploadInput,
   assertPromptRecord,
+  assertPromptRecordWithinLimits,
   assertPromptRecords,
+  assertPromptRecordsWithinLimits,
   assertPromptRun,
   parsePromptLibraryPersistedSnapshot,
 } from '@/features/prompt-library/model/prompt-library-validation'
@@ -357,5 +359,44 @@ describe('prompt library validation for kinds, notes, runs, and pinning', () => 
       notes: '',
       title: 'Legacy draft',
     })
+  })
+})
+
+describe('server-side prompt limits', () => {
+  const base = {
+    id: 'prompt-alpha',
+    title: 'Alpha',
+    body: 'Body',
+    category: 'Engineering',
+    tags: ['one'],
+    createdAt: '2026-04-24T00:00:00.000Z',
+    updatedAt: '2026-04-24T00:00:00.000Z',
+    uses: 0,
+  }
+
+  it('accepts ordinary prompts and rejects oversized fields', () => {
+    expect(assertPromptRecordWithinLimits(base).title).toBe('Alpha')
+    expect(() => assertPromptRecordWithinLimits({ ...base, notes: 'x'.repeat(20_001) })).toThrow(
+      /notes/,
+    )
+    expect(() =>
+      assertPromptRecordWithinLimits({
+        ...base,
+        tags: Array.from({ length: 51 }, (_, index) => `tag${index}`),
+      }),
+    ).toThrow(/tags/)
+    expect(() => assertPromptRecordWithinLimits({ ...base, title: 't'.repeat(301) })).toThrow(
+      /title/,
+    )
+  })
+
+  it('caps how many prompts one request may copy', () => {
+    expect(() =>
+      assertPromptRecordsWithinLimits(Array.from({ length: 2_001 }, () => base)),
+    ).toThrow(/at most 2000/)
+  })
+
+  it('leaves the local snapshot parser unbounded so oversized libraries still load', () => {
+    expect(assertPromptRecord({ ...base, notes: 'x'.repeat(20_001) }).notes).toHaveLength(20_001)
   })
 })

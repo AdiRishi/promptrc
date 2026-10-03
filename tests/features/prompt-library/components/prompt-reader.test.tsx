@@ -1,7 +1,6 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { BenchmarkSummary } from '@/features/prompt-library/components/benchmark-ledger'
 import { PromptReader } from '@/features/prompt-library/components/prompt-reader'
 import { joinSequenceSteps } from '@/features/prompt-library/model/prompt-sequences'
 import { type PromptRecord } from '@/features/prompt-library/types'
@@ -131,14 +130,5 @@ describe('PromptReader', () => {
     renderReader(createPrompt(), { isConfirmingDelete: true })
 
     expect(screen.getByRole('button', { name: 'Press again to delete' })).toBeTruthy()
-  })
-})
-
-describe('BenchmarkSummary', () => {
-  it('is read-only for shared pages', () => {
-    render(<BenchmarkSummary expected="" runs={[]} />)
-
-    expect(screen.queryByRole('form', { name: 'Log a run' })).toBeNull()
-    expect(screen.getByText('no runs yet')).toBeTruthy()
   })
 })

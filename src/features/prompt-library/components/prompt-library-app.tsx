@@ -85,6 +85,9 @@ function PromptLibraryScreen() {
   const composer = usePromptLibraryStore((state) => state.composer)
   const confirmDeleteId = usePromptLibraryStore((state) => state.confirmDeleteId)
   const hasHydrated = usePromptLibraryStore((state) => state.hasHydrated)
+  const isFirstSignInCopyOpen = usePromptLibraryStore(
+    (state) => state.firstSignInCopy.status !== 'idle',
+  )
   const syncMode = usePromptLibraryStore((state) => state.syncMode)
   const syncStatus = usePromptLibraryStore((state) => state.syncStatus)
   const actions = usePromptLibraryStore((state) => state.actions)
@@ -199,6 +202,16 @@ function PromptLibraryScreen() {
     setMobilePane('reader')
   }
 
+  const openCapture = () => {
+    if (composer.mode !== 'view') {
+      toast('Finish editing first — save or press Esc')
+      return
+    }
+
+    setIsSidebarOpen(false)
+    setIsCaptureOpen(true)
+  }
+
   const capture = (input: Parameters<typeof commands.capturePrompt>[0]) => {
     const prompt = commands.capturePrompt(input)
 
@@ -292,7 +305,7 @@ function PromptLibraryScreen() {
   const runCommand = (commandId: PromptLibraryCommandId) => {
     runPromptLibraryCommand(commandId, {
       commandState,
-      capture: () => setIsCaptureOpen(true),
+      capture: openCapture,
       togglePin: commands.togglePinActivePrompt,
       copyActivePrompt: () => copyActivePrompt(),
       deletePrompt: commands.deletePrompt,
@@ -385,7 +398,7 @@ function PromptLibraryScreen() {
   usePromptLibraryHotkeys({
     commandState,
     composerMode: composer.mode,
-    isOverlayOpen: isPaletteOpen || isCaptureOpen || isHelpOpen,
+    isOverlayOpen: isPaletteOpen || isCaptureOpen || isHelpOpen || isFirstSignInCopyOpen,
     isHelpOpen,
     onCancelComposer: cancelComposer,
     onRunCommand: runCommand,
@@ -468,10 +481,7 @@ function PromptLibraryScreen() {
         <LibrarySidebar
           facets={visibleState.facets}
           filter={filter}
-          onCapture={() => {
-            setIsSidebarOpen(false)
-            setIsCaptureOpen(true)
-          }}
+          onCapture={openCapture}
           onFilterChange={changeFilter}
           onOpenHelp={() => setIsHelpOpen(true)}
           onOpenPalette={() => {
@@ -495,7 +505,7 @@ function PromptLibraryScreen() {
           emptyReason={visibleState.emptyReason}
           filter={filter}
           isLoading={isLoading}
-          onCapture={() => setIsCaptureOpen(true)}
+          onCapture={openCapture}
           onClearFilter={() => changeFilter({ type: 'all' })}
           onOpenSidebar={() => setIsSidebarOpen(true)}
           onQueryChange={actions.setQuery}
@@ -559,7 +569,7 @@ function PromptLibraryScreen() {
             variableValues={blanks.values}
           />
         ) : isLoading ? null : (
-          <ReaderPlaceholder onCapture={() => setIsCaptureOpen(true)} />
+          <ReaderPlaceholder onCapture={openCapture} />
         )}
       </main>
 

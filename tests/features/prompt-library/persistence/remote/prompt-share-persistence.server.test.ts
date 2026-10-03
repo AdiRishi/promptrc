@@ -136,6 +136,43 @@ describe('prompt share persistence', () => {
     })
   })
 
+  it('publishes the Prompt but keeps notes, runs, pins and usage private', async () => {
+    await upsertPromptForUser(
+      env.DB,
+      'user_a',
+      createPrompt({
+        kind: 'benchmark',
+        notes: 'Private rubric',
+        pinned: true,
+        uses: 9,
+        runs: [
+          {
+            id: 'run-1',
+            model: 'internal-model',
+            verdict: 'fail',
+            note: 'Leaked a customer name',
+            ranAt: '2026-04-25T00:00:00.000Z',
+          },
+        ],
+      }),
+    )
+    await createPromptShareForUser(env.DB, 'user_a', 'prompt-alpha', {
+      generateId: () => 'share-alpha',
+    })
+
+    const share = await getPublicPromptShare(env.DB, 'share-alpha')
+
+    expect(share?.prompt).toMatchObject({
+      kind: 'benchmark',
+      title: 'Alpha',
+      body: 'Write a concise test plan.',
+      notes: '',
+      runs: [],
+      pinned: false,
+      uses: 0,
+    })
+  })
+
   it('stops resolving public shares when the underlying Prompt is deleted', async () => {
     await upsertPromptForUser(env.DB, 'user_a', createPrompt())
     await createPromptShareForUser(env.DB, 'user_a', 'prompt-alpha', {
