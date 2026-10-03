@@ -35,37 +35,55 @@ jobs:
           VITE_CLERK_PUBLISHABLE_KEY: ${{ vars.CLERK_PUBLISHABLE_KEY }}
           CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY }}
 
+      # Runs from the repo root so the action uses the project's own Wrangler.
+      # The build writes .wrangler/deploy/config.json, which points Wrangler at
+      # .output/server/wrangler.json. (Running inside .output makes the action
+      # `pnpm add wrangler`, which pnpm 12 refuses over unapproved build scripts.)
       - name: Deploy Worker Version
         id: deploy-worker-preview
         uses: cloudflare/wrangler-action@v3
         with:
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          workingDirectory: '.output'
-          wranglerVersion: '4'
           packageManager: 'pnpm'
           command: versions upload --message="PR#${{ github.event.number }}"
 
       - name: Comment Preview URL
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const url = process.env.PREVIEW_URL;
-            const prNumber = context.issue.number;
-
-            const body = `
-            🚀 **Preview Deployment Ready!**
-
-            | Application | Preview URL |
-            | :--- | :--- |
-            | promptrc | [Visit Preview](${url}) |
-            `;
-
-            github.rest.issues.createComment({
-              issue_number: prNumber,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body,
-            });
+        uses: actions/github-script@v8
         env:
           PREVIEW_URL: ${{ steps.deploy-worker-preview.outputs.deployment-url }}
+          COMMIT_SHA: ${{ github.event.pull_request.head.sha }}
+        with:
+          script: |
+            // One comment per PR, updated in place on every push.
+            const marker = '<!-- promptrc-preview -->'
+            const url = process.env.PREVIEW_URL
+            const sha = process.env.COMMIT_SHA.slice(0, 7)
+            const body = [
+              marker,
+              '🚀 **Preview Deployment Ready!**',
+              '',
+              '| Application | Preview URL | Commit | Status |',
+              '| :--- | :--- | :--- | :--- |',
+              `| promptrc | ${url ? `[Visit Preview](${url})` : 'unavailable'} | \`${sha}\` | ${url ? '✅ Ready' : '⚠️ No URL returned'} |`,
+              '',
+              '<sub>Previews share the production D1 database and R2 bucket. Changes that need a new migration only work here once it has been applied.</sub>',
+            ].join('\n')
+
+            const { owner, repo } = context.repo
+            const issue_number = context.issue.number
+            const comments = await github.paginate(github.rest.issues.listComments, {
+              owner,
+              repo,
+              issue_number,
+              per_page: 100,
+            })
+            const existing = comments.find(
+              (comment) => comment.user?.type === 'Bot' && comment.body?.includes(marker),
+            )
+
+            if (existing) {
+              await github.rest.issues.updateComment({ owner, repo, comment_id: existing.id, body })
+            } else {
+              await github.rest.issues.createComment({ owner, repo, issue_number, body })
+            }
