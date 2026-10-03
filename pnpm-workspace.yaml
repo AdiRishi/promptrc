@@ -8,3 +8,13 @@ allowBuilds:
   unrs-resolver: true
   utf-8-validate: true
   workerd: true
+minimumReleaseAgeExclude:
+  - '@cloudflare/vitest-plugin@1.3.6'
+  - wrangler@4.147.0
+patchedDependencies:
+  '@cloudflare/vitest-plugin@1.3.6': patches/@cloudflare__vitest-plugin@1.3.6.patch
+peerDependencyRules:
+  allowedVersions:
+    # Vitest 5 support is backported via patches/@cloudflare__vitest-plugin@1.3.6.patch
+    # (cloudflare/workers-sdk#15500). Drop both once an upstream release ships it.
+    '@cloudflare/vitest-plugin>vitest': '5'

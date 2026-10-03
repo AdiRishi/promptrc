@@ -1,0 +1,321 @@
+diff --git a/dist/pool/index.mjs b/dist/pool/index.mjs
+index 6b7d1a1798ca40a93ffe00b581f0497c1daab0ca..1d9ac4f1a91d83676d859a89250bde2514333668 100644
+--- a/dist/pool/index.mjs
++++ b/dist/pool/index.mjs
+@@ -49719,11 +49719,20 @@ async function listDurableObjectIds(request$1, mf, url$2) {
+ 	const ids = await mf.listDurableObjectIds(bindingName, workerName);
+ 	return Response.json(ids);
+ }
+-function handleLoopbackRequest(request$1, mf) {
+-	const url$2 = new URL(request$1.url);
+-	if (url$2.pathname === "/snapshot") return handleSnapshotRequest(request$1, url$2);
+-	if (url$2.pathname === "/durable-objects") return listDurableObjectIds(request$1, mf, url$2);
+-	return new Response(null, { status: 404 });
++async function handleCoverageRequest(request$1, coverageFilesDirectory) {
++	if (request$1.method !== "POST") return new Response(null, { status: 405 });
++	const filePath = path.join(coverageFilesDirectory, `coverage-${randomUUID()}.json`);
++	await fs$1.writeFile(filePath, new Uint8Array(await request$1.arrayBuffer()));
++	return new Response(filePath);
++}
++function createLoopbackHandler(coverageFilesDirectory) {
++	return function handleLoopbackRequest(request$1, mf) {
++		const url$2 = new URL(request$1.url);
++		if (url$2.pathname === "/snapshot") return handleSnapshotRequest(request$1, url$2);
++		if (url$2.pathname === "/coverage") return handleCoverageRequest(request$1, coverageFilesDirectory);
++		if (url$2.pathname === "/durable-objects") return listDurableObjectIds(request$1, mf, url$2);
++		return new Response(null, { status: 404 });
++	};
+ }
+ 
+ //#endregion
+@@ -50367,8 +50376,8 @@ async function load$1(vite, logBase, method, target, rawTarget, specifier, fileP
+ /** Dispatches module fallback requests using Workerd's selected protocol. */
+ async function handleModuleFallbackRequest(vite, request$1) {
+ 	const parsed = await parseModuleFallbackRequest(request$1);
+-	if (parsed === null) return new Response("Invalid module fallback request", { status: 400 });
+-	return parsed.protocol === "v1" ? handleV1ModuleFallbackRequest(vite, request$1) : handleV2ModuleFallbackRequest(vite, parsed);
++	if (parsed === null || parsed.protocol !== "v2") return new Response("Invalid module fallback request", { status: 400 });
++	return handleV2ModuleFallbackRequest(vite, parsed);
+ }
+ /** Handles the legacy V1 fallback protocol. */
+ async function handleV1ModuleFallbackRequest(vite, request$1) {
+@@ -50545,6 +50554,7 @@ function getV2RequestSpecifier(request$1, target, referrer) {
+ /** Handles a parsed V2 fallback request. */
+ async function handleV2ModuleFallbackRequest(vite, request$1) {
+ 	if (request$1.referrer === void 0) return new Response("Invalid module fallback request", { status: 400 });
++	if (request$1.specifier === "node:process") return new Response();
+ 	let vitestModulePaths = v2VitestModulePaths.get(vite);
+ 	if (vitestModulePaths === void 0) {
+ 		vitestModulePaths = /* @__PURE__ */ new Set();
+@@ -64943,6 +64953,9 @@ async function buildProjectWorkerOptions(project, customOptions, main) {
+ 	}
+ 	runnerWorker.name = getRunnerName(project);
+ 	runnerWorker.compatibilityFlags ??= [];
++	const legacyModuleRegistryFlagIndex = runnerWorker.compatibilityFlags.indexOf("legacy_module_registry");
++	if (legacyModuleRegistryFlagIndex !== -1) runnerWorker.compatibilityFlags.splice(legacyModuleRegistryFlagIndex, 1);
++	if (!runnerWorker.compatibilityFlags.includes("new_module_registry")) runnerWorker.compatibilityFlags.push("new_module_registry");
+ 	runnerWorker.compatibilityFlags.push("no_handle_cross_request_promise_resolution");
+ 	if (runnerWorker.compatibilityDate === void 0) {
+ 		runnerWorker.compatibilityDate = DEFAULT_COMPAT_DATE;
+@@ -64971,6 +64984,7 @@ async function buildProjectWorkerOptions(project, customOptions, main) {
+ 		if (!isNodejsCompatDefaultOn(runnerWorker.compatibilityDate)) runnerWorker.compatibilityFlags.push("nodejs_compat_v2");
+ 	}
+ 	if (!runnerWorker.compatibilityFlags.includes("unsafe_module")) runnerWorker.compatibilityFlags.push("unsafe_module");
++	ensureFeature(runnerWorker.compatibilityFlags, "weak_ref", runnerWorker.compatibilityDate >= "2025-05-05");
+ 	ensureFeature(runnerWorker.compatibilityFlags, "nodejs_tty_module");
+ 	ensureFeature(runnerWorker.compatibilityFlags, "nodejs_fs_module");
+ 	ensureFeature(runnerWorker.compatibilityFlags, "nodejs_http_modules");
+@@ -64981,7 +64995,7 @@ async function buildProjectWorkerOptions(project, customOptions, main) {
+ 	runnerWorker.unsafeUseModuleFallbackService = true;
+ 	runnerWorker.serviceBindings ??= {};
+ 	runnerWorker.serviceBindings[SELF_SERVICE_BINDING] = kCurrentWorker;
+-	runnerWorker.serviceBindings[LOOPBACK_SERVICE_BINDING] = handleLoopbackRequest;
++	runnerWorker.serviceBindings[LOOPBACK_SERVICE_BINDING] = createLoopbackHandler(project.serializedConfig.coverage.coverageFilesDirectory);
+ 	runnerWorker.durableObjects ??= {};
+ 	const durableObjectClassNames = getDurableObjectClasses(runnerWorker);
+ 	const workflowClassNames = getWorkflowClasses(runnerWorker, configWorkerName);
+@@ -65191,10 +65205,10 @@ function assertCompatibleVitestVersion(ctx) {
+ * @param compatibilityFlags The list of current compatibility flags.
+ * @param feature The name of the feature to enable.
+ */
+-function ensureFeature(compatibilityFlags, feature) {
++function ensureFeature(compatibilityFlags, feature, enabledByDefault = false) {
+ 	const flagToEnable = `enable_${feature}`;
+ 	const flagToDisable = `disable_${feature}`;
+-	if (!compatibilityFlags.includes(flagToEnable)) {
++	if (!enabledByDefault && !compatibilityFlags.includes(flagToEnable)) {
+ 		debug("Adding `%s` compatibility flag during tests as this feature is needed to support the Vitest runner.", flagToEnable);
+ 		compatibilityFlags.push(flagToEnable);
+ 	}
+diff --git a/dist/worker/index.mjs b/dist/worker/index.mjs
+index b4491b08b26b656a464fb4df3551c44ad0c719b4..139da6f795d9d8314f99c5032104b1c1d28b992b 100644
+--- a/dist/worker/index.mjs
++++ b/dist/worker/index.mjs
+@@ -788,6 +788,14 @@ function ensurePatchedFunction(unsafeEval) {
+ 		return unsafeEval.newFunction(script, "anonymous", ...args);
+ 	} });
+ }
++async function writeCoverageFile(loopback, coverage) {
++	const response = await loopback.fetch("http://placeholder/coverage", {
++		method: "POST",
++		body: JSON.stringify(coverage)
++	});
++	if (!response.ok) throw new Error(`Failed to write coverage file: ${response.status}`);
++	return response.text();
++}
+ function applyDefines() {
+ 	for (const [key, value] of Object.entries(defines)) {
+ 		const segments = key.split(".");
+@@ -804,6 +812,11 @@ var __VITEST_POOL_WORKERS_RUNNER_DURABLE_OBJECT__ = class extends DurableObject
+ 		super(_state, doEnv);
+ 		vm._setUnsafeEval(doEnv.__VITEST_POOL_WORKERS_UNSAFE_EVAL);
+ 		ensurePatchedFunction(doEnv.__VITEST_POOL_WORKERS_UNSAFE_EVAL);
++		globalThis.__vitest_browser_runner__ = { commands: { triggerCommand: (command, args) => {
++			assert.strictEqual(command, "__vitest_writeCoverageFile");
++			assert.strictEqual(args.length, 1);
++			return writeCoverageFile(doEnv.__VITEST_POOL_WORKERS_LOOPBACK_SERVICE, args[0]);
++		} } };
+ 		applyDefines();
+ 	}
+ 	async handleVitestRunRequest(request) {
+@@ -852,6 +865,7 @@ var __VITEST_POOL_WORKERS_RUNNER_DURABLE_OBJECT__ = class extends DurableObject
+ 			setup: setupEnvironment,
+ 			onModuleRunner(moduleRunner) {
+ 				const runner = moduleRunner;
++				runner.isBrowser = true;
+ 				if (runner.evaluator?.createRequire) {
+ 					const originalCreateRequire = runner.evaluator.createRequire.bind(runner.evaluator);
+ 					function createRequire(url) {
+diff --git a/package.json b/package.json
+index 41caf06d772649cd9bb0995853aed366e6f17552..148cdc1986544d908476eaec8ee52fe6f19f29dc 100644
+--- a/package.json
++++ b/package.json
+@@ -1,96 +1,94 @@
+ {
+-  "name": "@cloudflare/vitest-plugin",
+-  "version": "1.3.6",
+-  "description": "Workers Vitest integration for writing Vitest unit and integration tests that run inside the Workers runtime",
+-  "keywords": [
+-    "cloudflare",
+-    "environment",
+-    "integration",
+-    "jest",
+-    "miniflare",
+-    "pool",
+-    "test",
+-    "unit",
+-    "vitest",
+-    "worker",
+-    "workers"
+-  ],
+-  "homepage": "https://github.com/cloudflare/workers-sdk/tree/main/packages/vitest-plugin#readme",
+-  "bugs": {
+-    "url": "https://github.com/cloudflare/workers-sdk/issues"
+-  },
+-  "license": "MIT",
+-  "repository": {
+-    "type": "git",
+-    "url": "https://github.com/cloudflare/workers-sdk.git",
+-    "directory": "packages/vitest-plugin"
+-  },
+-  "files": [
+-    "dist",
+-    "types/cloudflare-test.d.ts"
+-  ],
+-  "type": "module",
+-  "main": "dist/pool/index.mjs",
+-  "types": "dist/pool/index.d.mts",
+-  "exports": {
+-    ".": {
+-      "types": "./dist/pool/index.d.mts",
+-      "import": "./dist/pool/index.mjs"
+-    },
+-    "./types": {
+-      "types": "./types/cloudflare-test.d.ts"
+-    }
+-  },
+-  "dependencies": {
+-    "cjs-module-lexer": "1.2.3",
+-    "esbuild": "0.28.1",
+-    "zod": "4.4.3",
+-    "miniflare": "5.20261001.0-alpha",
+-    "wrangler": "4.147.0"
+-  },
+-  "devDependencies": {
+-    "@cloudflare/workers-types": "^5.20261001.1",
+-    "@types/node": "22.15.17",
+-    "@types/semver": "^7.5.1",
+-    "@vitest/runner": "4.1.0",
+-    "@vitest/snapshot": "4.1.0",
+-    "birpc": "0.2.14",
+-    "capnp-es": "0.0.16",
+-    "devalue": "^5.6.3",
+-    "es-module-lexer": "2.3.1",
+-    "get-port": "^7.1.0",
+-    "semver": "^7.7.1",
+-    "tree-kill": "1.2.2",
+-    "ts-dedent": "^2.2.0",
+-    "tsdown": "0.16.3",
+-    "typescript": "5.8.3",
+-    "undici": "7.29.1",
+-    "vitest": "4.1.0",
+-    "@cloudflare/config": "0.23.0",
+-    "@cloudflare/mock-npm-registry": "0.0.0",
+-    "@cloudflare/remote-bindings": "0.0.43",
+-    "@cloudflare/runtime-types": "0.1.7",
+-    "@cloudflare/workers-tsconfig": "0.0.0",
+-    "@cloudflare/workers-utils": "0.46.0",
+-    "@cloudflare/workflows-shared": "0.15.0"
+-  },
+-  "peerDependencies": {
+-    "@vitest/runner": "^4.1.0",
+-    "@vitest/snapshot": "^4.1.0",
+-    "vitest": "^4.1.0"
+-  },
+-  "volta": {
+-    "extends": "../../package.json"
+-  },
+-  "workers-sdk": {
+-    "prerelease": true
+-  },
+-  "scripts": {
+-    "build": "tsdown",
+-    "capnp:rtti": "capnp-es scripts/rtti/rtti.capnp -ojs",
+-    "check:type": "tsc && tsc -p src/worker/tsconfig.json && tsc -p types/tsconfig.json",
+-    "dev": "tsdown --watch",
+-    "test": "vitest run",
+-    "test:ci": "vitest run"
+-  }
++	"name": "@cloudflare/vitest-plugin",
++	"version": "1.3.6",
++	"description": "Workers Vitest integration for writing Vitest unit and integration tests that run inside the Workers runtime",
++	"keywords": [
++		"cloudflare",
++		"environment",
++		"integration",
++		"jest",
++		"miniflare",
++		"pool",
++		"test",
++		"unit",
++		"vitest",
++		"worker",
++		"workers"
++	],
++	"homepage": "https://github.com/cloudflare/workers-sdk/tree/main/packages/vitest-plugin#readme",
++	"bugs": {
++		"url": "https://github.com/cloudflare/workers-sdk/issues"
++	},
++	"license": "MIT",
++	"repository": {
++		"type": "git",
++		"url": "https://github.com/cloudflare/workers-sdk.git",
++		"directory": "packages/vitest-plugin"
++	},
++	"files": [
++		"dist",
++		"types/cloudflare-test.d.ts"
++	],
++	"type": "module",
++	"main": "dist/pool/index.mjs",
++	"types": "dist/pool/index.d.mts",
++	"exports": {
++		".": {
++			"types": "./dist/pool/index.d.mts",
++			"import": "./dist/pool/index.mjs"
++		},
++		"./types": {
++			"types": "./types/cloudflare-test.d.ts"
++		}
++	},
++	"dependencies": {
++		"cjs-module-lexer": "1.2.3",
++		"esbuild": "0.28.1",
++		"zod": "4.4.3",
++		"miniflare": "5.20261001.0-alpha",
++		"wrangler": "4.147.0"
++	},
++	"devDependencies": {
++		"@cloudflare/workers-types": "^5.20261001.1",
++		"@types/node": "22.15.17",
++		"@types/semver": "^7.5.1",
++		"@vitest/runner": "4.1.0",
++		"@vitest/snapshot": "4.1.0",
++		"birpc": "0.2.14",
++		"capnp-es": "0.0.16",
++		"devalue": "^5.6.3",
++		"es-module-lexer": "2.3.1",
++		"get-port": "^7.1.0",
++		"semver": "^7.7.1",
++		"tree-kill": "1.2.2",
++		"ts-dedent": "^2.2.0",
++		"tsdown": "0.16.3",
++		"typescript": "5.8.3",
++		"undici": "7.29.1",
++		"vitest": "4.1.0",
++		"@cloudflare/config": "0.23.0",
++		"@cloudflare/mock-npm-registry": "0.0.0",
++		"@cloudflare/remote-bindings": "0.0.43",
++		"@cloudflare/runtime-types": "0.1.7",
++		"@cloudflare/workers-tsconfig": "0.0.0",
++		"@cloudflare/workers-utils": "0.46.0",
++		"@cloudflare/workflows-shared": "0.15.0"
++	},
++	"peerDependencies": {
++		"vitest": "^4.1.11 || ^5.0.0"
++	},
++	"volta": {
++		"extends": "../../package.json"
++	},
++	"workers-sdk": {
++		"prerelease": true
++	},
++	"scripts": {
++		"build": "tsdown",
++		"capnp:rtti": "capnp-es scripts/rtti/rtti.capnp -ojs",
++		"check:type": "tsc && tsc -p src/worker/tsconfig.json && tsc -p types/tsconfig.json",
++		"dev": "tsdown --watch",
++		"test": "vitest run",
++		"test:ci": "vitest run"
++	}
+ }

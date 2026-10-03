@@ -1,0 +1,32 @@
+{
+  "$schema": "./node_modules/oxfmt/configuration_schema.json",
+  "semi": false,
+  "singleQuote": true,
+  "trailingComma": "all",
+  "printWidth": 100,
+  "sortImports": {
+    "groups": [["builtin", "external"], "internal", ["parent", "sibling", "index"]],
+    "internalPattern": ["@/"],
+    "newlinesBetween": true
+  },
+  "sortTailwindcss": {
+    "stylesheet": "./src/global-styles/tailwind.css",
+    "functions": ["cn", "cva"]
+  },
+  "sortPackageJson": false,
+  "ignorePatterns": [
+    "node_modules",
+    ".output",
+    ".wrangler",
+    ".tanstack",
+    ".nitro",
+    "coverage",
+    "public/sitemap.xml",
+    "worker-configuration.d.ts",
+    ".agents",
+    ".claude",
+    "patches",
+    "pnpm-lock.yaml",
+    "**/*.gen.ts"
+  ]
+}
