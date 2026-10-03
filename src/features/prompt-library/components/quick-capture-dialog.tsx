@@ -5,8 +5,10 @@ import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/compone
 import { KeyCombo } from '@/components/ui/kbd'
 import { type PromptCaptureInput } from '@/features/prompt-library/commands/prompt-library-command-executor'
 import { KIND_GLYPHS, KIND_TEXT_CLASS } from '@/features/prompt-library/components/kind-mark'
+import { ProjectPicker } from '@/features/prompt-library/components/project-picker'
 import { PROMPT_KIND_DEFINITIONS, PROMPT_KINDS } from '@/features/prompt-library/model/prompt-kinds'
 import { deriveTitleFromBody } from '@/features/prompt-library/model/prompt-library-integrity'
+import { type PromptProject } from '@/features/prompt-library/model/prompt-projects'
 import { type PromptKind } from '@/features/prompt-library/types'
 import { cn } from '@/lib/utils'
 
@@ -15,6 +17,7 @@ type QuickCaptureDialogProps = {
   defaultKind: PromptKind
   defaultCategory: string
   defaultTags: string
+  projects: readonly PromptProject[]
   onOpenChange: (open: boolean) => void
   onCapture: (input: PromptCaptureInput) => boolean
 }
@@ -48,6 +51,7 @@ function CaptureShell({
   defaultKind,
   defaultCategory,
   defaultTags,
+  projects,
   onCapture,
   onClose,
 }: Omit<QuickCaptureDialogProps, 'open' | 'onOpenChange'> & { onClose: () => void }) {
@@ -144,8 +148,8 @@ function CaptureShell({
         </div>
       </div>
 
-      <div className="grid gap-x-[2ch] gap-y-1 border-t border-dashed border-line px-[2ch] py-2.5 text-[12.5px] sm:grid-cols-[1.4fr_1fr_1fr]">
-        <CaptureField label="title">
+      <div className="grid gap-x-[2ch] gap-y-1 border-t border-dashed border-line px-[2ch] py-2.5 text-[12.5px] sm:grid-cols-[1.3fr_1fr]">
+        <CaptureField className="sm:col-span-2" label="title">
           <input
             autoComplete="off"
             className="w-full bg-transparent text-fg outline-none placeholder:text-fg-faint"
@@ -155,13 +159,12 @@ function CaptureShell({
             value={title}
           />
         </CaptureField>
-        <CaptureField label="category">
-          <input
-            autoComplete="off"
-            className="w-full bg-transparent text-blue outline-none placeholder:text-fg-faint"
-            onChange={(event) => setCategory(event.target.value)}
+        <CaptureField htmlFor={`${id}-project`} label="project">
+          <ProjectPicker
+            id={`${id}-project`}
+            onChange={setCategory}
             onKeyDown={submitOnModEnter}
-            placeholder="personal"
+            projects={projects}
             value={category}
           />
         </CaptureField>
@@ -202,9 +205,31 @@ function CaptureShell({
   )
 }
 
-function CaptureField({ label, children }: { label: string; children: ReactNode }) {
+function CaptureField({
+  label,
+  htmlFor,
+  className,
+  children,
+}: {
+  label: string
+  /** For fields that are more than one input (the project picker). */
+  htmlFor?: string
+  className?: string
+  children: ReactNode
+}) {
+  if (htmlFor) {
+    return (
+      <div className={cn('flex min-w-0 items-baseline gap-[1ch]', className)}>
+        <label className="shrink-0 text-yellow" htmlFor={htmlFor}>
+          {label}:
+        </label>
+        <div className="min-w-0 flex-1">{children}</div>
+      </div>
+    )
+  }
+
   return (
-    <label className="flex min-w-0 items-baseline gap-[1ch]">
+    <label className={cn('flex min-w-0 items-baseline gap-[1ch]', className)}>
       <span className="shrink-0 text-yellow">{label}:</span>
       {children}
     </label>

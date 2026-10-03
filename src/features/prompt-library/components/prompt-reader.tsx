@@ -65,8 +65,8 @@ const slug = (value: string) =>
   value
     .toLowerCase()
     .trim()
-    .replace(/[^a-z0-9]+/g, '_')
-    .replace(/^_+|_+$/g, '')
+    .replace(/[^a-z0-9-]+/g, '_')
+    .replace(/^[_-]+|[_-]+$/g, '')
     .slice(0, 40) || 'untitled'
 
 /** `engineering/bug_hunt.md` — the path the entry would have on disk. */
@@ -128,7 +128,7 @@ export function PromptReader({
               title={`cd ${prompt.category}`}
               type="button"
             >
-              ~/{prompt.category.toLowerCase()}/
+              ~/{prompt.category}/
             </button>
             <span>{formatCatalogNumber(catalogNumber)}</span>
             {prompt.pinned ? <span className="text-accent">★ pinned</span> : null}

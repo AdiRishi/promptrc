@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils'
 
 type CommandLineProps = {
   open: boolean
-  categories: readonly string[]
+  projects: readonly string[]
   tags: readonly string[]
   onOpen: () => void
   onClose: () => void
@@ -65,7 +65,7 @@ export function EchoLine({ onOpen }: { onOpen?: () => void }) {
 }
 
 function CommandLineInput({
-  categories,
+  projects,
   tags,
   onClose,
   onSubmit,
@@ -74,7 +74,7 @@ function CommandLineInput({
   const [highlighted, setHighlighted] = useState(-1)
   const historyIndexRef = useRef<number | null>(null)
   const typedRef = useRef('')
-  const completions = completeExCommand(value, { categories, tags }).slice(0, 10)
+  const completions = completeExCommand(value, { projects, tags }).slice(0, 10)
 
   const submit = (text: string) => {
     const trimmed = text.trim()

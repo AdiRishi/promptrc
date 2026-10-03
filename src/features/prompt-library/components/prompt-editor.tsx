@@ -4,9 +4,11 @@ import { Choice, ChoiceGroup } from '@/components/ui/choice'
 import { KeyCombo } from '@/components/ui/kbd'
 import { Pane } from '@/components/ui/pane'
 import { KIND_GLYPHS, KIND_TEXT_CLASS } from '@/features/prompt-library/components/kind-mark'
+import { ProjectPicker } from '@/features/prompt-library/components/project-picker'
 import { promptPath } from '@/features/prompt-library/components/prompt-reader'
 import { hasPendingPromptImageUploads } from '@/features/prompt-library/model/prompt-images'
 import { PROMPT_KINDS, getPromptKindDefinition } from '@/features/prompt-library/model/prompt-kinds'
+import { type PromptProject } from '@/features/prompt-library/model/prompt-projects'
 import {
   joinSequenceStepsForEditing,
   splitSequenceStepsForEditing,
@@ -33,7 +35,7 @@ type DraftChangeHandler = <TFieldName extends keyof PromptDraft>(
 
 type PromptEditorProps = {
   composer: ComposerState
-  categories: string[]
+  projects: readonly PromptProject[]
   titleInputRef: React.RefObject<HTMLInputElement | null>
   onCancel: () => void
   onSave: () => void
@@ -46,7 +48,7 @@ const textareaClass =
 
 export function PromptEditor({
   composer,
-  categories,
+  projects,
   titleInputRef,
   onCancel,
   onSave,
@@ -186,21 +188,13 @@ export function PromptEditor({
               value={draft.title}
             />
           </FrontmatterRow>
-          <FrontmatterRow htmlFor={`${id}-category`} label="category">
-            <input
-              autoComplete="off"
-              className="w-full bg-transparent text-blue outline-none placeholder:text-fg-faint"
-              id={`${id}-category`}
-              list={`${id}-categories`}
-              onChange={(event) => onDraftChange('category', event.target.value)}
-              placeholder="personal"
+          <FrontmatterRow htmlFor={`${id}-project`} label="project">
+            <ProjectPicker
+              id={`${id}-project`}
+              onChange={(value) => onDraftChange('category', value)}
+              projects={projects}
               value={draft.category}
             />
-            <datalist id={`${id}-categories`}>
-              {categories.map((category) => (
-                <option key={category} value={category} />
-              ))}
-            </datalist>
           </FrontmatterRow>
           <FrontmatterRow htmlFor={`${id}-tags`} label="tags">
             <input

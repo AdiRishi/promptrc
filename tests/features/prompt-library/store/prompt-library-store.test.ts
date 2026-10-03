@@ -6,7 +6,11 @@ import {
   createPromptLibraryStore,
   getPromptLibraryPersistedSnapshot,
 } from '@/features/prompt-library/store/prompt-library-store'
-import { type PromptRecord, type PromptRun } from '@/features/prompt-library/types'
+import {
+  type PromptLibraryFilter,
+  type PromptRecord,
+  type PromptRun,
+} from '@/features/prompt-library/types'
 
 const createPrompt = (overrides: Partial<PromptRecord> = {}): PromptRecord => ({
   id: 'prompt-alpha',
@@ -50,6 +54,14 @@ const createStorageMock = () => {
     },
   }
 }
+
+const filterOf = (patch: Partial<PromptLibraryFilter>): PromptLibraryFilter => ({
+  project: null,
+  kind: null,
+  pinned: false,
+  tag: null,
+  ...patch,
+})
 
 describe('prompt library store', () => {
   beforeEach(() => {
@@ -202,18 +214,18 @@ describe('prompt library store', () => {
     const store = createPromptLibraryStore()
     const { actions } = store.getState()
 
-    expect(store.getState()).toMatchObject({ filter: { type: 'all' }, sort: 'created' })
+    expect(store.getState()).toMatchObject({ filter: filterOf({}), sort: 'created' })
 
-    actions.setFilter({ type: 'kind', kind: 'benchmark' })
+    actions.setFilter(filterOf({ kind: 'benchmark' }))
     actions.setSort('used')
 
     expect(store.getState()).toMatchObject({
-      filter: { type: 'kind', kind: 'benchmark' },
+      filter: filterOf({ kind: 'benchmark' }),
       sort: 'used',
       isFresh: true,
     })
     expect(getPromptLibraryPersistedSnapshot(store.getState())).toMatchObject({
-      filter: { type: 'kind', kind: 'benchmark' },
+      filter: filterOf({ kind: 'benchmark' }),
       sort: 'used',
     })
   })
@@ -229,11 +241,11 @@ describe('prompt library store', () => {
       isFresh: false,
     }
 
-    actions.restoreLocalState({ ...snapshot, filter: { type: 'pinned' }, sort: 'title' })
-    expect(store.getState()).toMatchObject({ filter: { type: 'pinned' }, sort: 'title' })
+    actions.restoreLocalState({ ...snapshot, filter: filterOf({ pinned: true }), sort: 'title' })
+    expect(store.getState()).toMatchObject({ filter: filterOf({ pinned: true }), sort: 'title' })
 
     actions.restoreLocalState(snapshot)
-    expect(store.getState()).toMatchObject({ filter: { type: 'pinned' }, sort: 'title' })
+    expect(store.getState()).toMatchObject({ filter: filterOf({ pinned: true }), sort: 'title' })
   })
 
   it('starts a new draft of the requested kind', () => {
@@ -252,15 +264,15 @@ describe('prompt library store', () => {
     const store = createPromptLibraryStore()
     const { actions } = store.getState()
 
-    actions.setFilter({ type: 'kind', kind: 'benchmark' })
+    actions.setFilter(filterOf({ kind: 'benchmark' }))
     actions.startNew()
     expect(store.getState().composer.draft).toMatchObject({ kind: 'benchmark', category: '' })
 
-    actions.setFilter({ type: 'category', category: 'Research' })
+    actions.setFilter(filterOf({ project: 'Research' }))
     actions.startNew()
     expect(store.getState().composer.draft).toMatchObject({ kind: 'prompt', category: 'Research' })
 
-    actions.setFilter({ type: 'tag', tag: 'review' })
+    actions.setFilter(filterOf({ tag: 'review' }))
     actions.startNew('fragment')
     expect(store.getState().composer.draft).toMatchObject({
       kind: 'fragment',
@@ -268,7 +280,7 @@ describe('prompt library store', () => {
       tagsInput: '#review',
     })
 
-    actions.setFilter({ type: 'pinned' })
+    actions.setFilter(filterOf({ pinned: true }))
     actions.startNew()
     expect(store.getState().composer.draft).toMatchObject({
       kind: 'prompt',
@@ -277,18 +289,54 @@ describe('prompt library store', () => {
     })
   })
 
+  it('pre-fills every part of a stacked filter at once', () => {
+    const store = createPromptLibraryStore()
+    const { actions } = store.getState()
+
+    actions.setFilter(filterOf({ project: 'render-md', kind: 'sequence', tag: 'plan' }))
+    actions.startNew()
+
+    expect(store.getState().composer.draft).toMatchObject({
+      kind: 'sequence',
+      category: 'render-md',
+      tagsInput: '#plan',
+    })
+  })
+
+  it('files a draft under an existing Project when only the spelling differs', () => {
+    const store = createPromptLibraryStore()
+    const { actions } = store.getState()
+
+    actions.restoreLocalState({
+      prompts: [createPrompt({ id: 'existing', category: 'render-md' })],
+      query: '',
+      selectedPromptId: null,
+      composer: { mode: 'view', draft: store.getState().composer.draft },
+      isFresh: false,
+    })
+    actions.startNew()
+    actions.updateDraft('title', 'Route migration')
+    actions.updateDraft('body', 'Move the route.')
+    actions.updateDraft('category', ' Render MD ')
+
+    const result = actions.saveComposer()
+
+    expect(result.status).toBe('created')
+    expect(store.getState().prompts[0]?.category).toBe('render-md')
+  })
+
   it('lets an explicit kind win over a kind filter, without leaking into later drafts', () => {
     const store = createPromptLibraryStore()
     const { actions } = store.getState()
 
-    actions.setFilter({ type: 'kind', kind: 'benchmark' })
+    actions.setFilter(filterOf({ kind: 'benchmark' }))
     actions.startNew('fragment')
     expect(store.getState().composer.draft.kind).toBe('fragment')
 
-    actions.setFilter({ type: 'category', category: 'Research' })
+    actions.setFilter(filterOf({ project: 'Research' }))
     actions.startNew()
     actions.cancelComposer()
-    actions.setFilter({ type: 'all' })
+    actions.setFilter(filterOf({}))
     actions.startNew()
     expect(store.getState().composer.draft).toMatchObject({ kind: 'prompt', category: '' })
   })
@@ -297,7 +345,7 @@ describe('prompt library store', () => {
     const store = createPromptLibraryStore()
     const { actions } = store.getState()
 
-    actions.setFilter({ type: 'tag', tag: 'review' })
+    actions.setFilter(filterOf({ tag: 'review' }))
     actions.startNew('benchmark')
     actions.updateDraft('title', 'Off-by-one hunt')
     actions.updateDraft('body', 'Find the bug in this loop.')

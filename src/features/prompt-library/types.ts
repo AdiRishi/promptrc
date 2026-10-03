@@ -99,13 +99,17 @@ export type PromptSyncMode = 'local' | 'remote'
 
 export type PromptSyncStatus = 'idle' | 'loading' | 'ready' | 'error'
 
-/** Which slice of the Prompt Library the list is showing. */
-export type PromptLibraryFilter =
-  | { type: 'all' }
-  | { type: 'pinned' }
-  | { type: 'kind'; kind: PromptKind }
-  | { type: 'category'; category: string }
-  | { type: 'tag'; tag: string }
+/**
+ * Which slice of the Prompt Library the list is showing. The parts stack: a
+ * Project is where you are (stored on the Prompt as `category`), and kind,
+ * pinned and tag narrow what you see there. `null` / `false` means "any".
+ */
+export type PromptLibraryFilter = {
+  project: string | null
+  kind: PromptKind | null
+  pinned: boolean
+  tag: string | null
+}
 
 export type PromptLibrarySort = 'created' | 'used' | 'title'
 

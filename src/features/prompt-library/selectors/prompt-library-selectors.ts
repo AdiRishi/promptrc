@@ -1,11 +1,18 @@
 import { PROMPT_KIND_DEFINITIONS, PROMPT_KINDS } from '@/features/prompt-library/model/prompt-kinds'
-import { DEFAULT_PROMPT_CATEGORIES } from '@/features/prompt-library/model/prompt-library-data'
+import { comparePromptLibraryText } from '@/features/prompt-library/model/prompt-library-text'
+import {
+  type PromptProject,
+  getPromptProjects,
+  isSameProject,
+} from '@/features/prompt-library/model/prompt-projects'
 import {
   type PromptKind,
   type PromptLibraryFilter,
   type PromptLibrarySort,
   type PromptRecord,
 } from '@/features/prompt-library/types'
+
+export { comparePromptLibraryText }
 
 export type PromptLibraryEmptyReason = 'no-prompts' | 'no-query-matches' | 'empty-filter'
 
@@ -17,8 +24,6 @@ export type PromptLibraryFacet = {
 
 export type PromptLibraryVisibleState = {
   activePrompt: PromptRecord | null
-  /** Category names for the composer (defaults first, then the library's own). */
-  categories: string[]
   emptyReason: PromptLibraryEmptyReason | null
   /** Prompts in the current filter + query, in list order. */
   filteredPrompts: PromptRecord[]
@@ -31,13 +36,26 @@ export type PromptLibraryVisibleState = {
 }
 
 export type PromptLibraryFacets = {
+  /** Every Prompt in the library. */
   total: number
-  pinned: number
-  kinds: Record<PromptKind, number>
-  /** Categories in Category Order: alphabetical and independent of recency. */
-  categories: PromptLibraryFacet[]
-  /** Most-used tags first. */
+  /** Every Project, A–Z (Category Order never follows recency). */
+  projects: PromptProject[]
+  /** Every Tag in the library, most used first. */
   tags: PromptLibraryFacet[]
+  /** Counts inside the current Project — the whole library when there is none. */
+  here: {
+    total: number
+    pinned: number
+    kinds: Record<PromptKind, number>
+    tags: PromptLibraryFacet[]
+  }
+}
+
+export const EMPTY_PROMPT_LIBRARY_FILTER: PromptLibraryFilter = {
+  project: null,
+  kind: null,
+  pinned: false,
+  tag: null,
 }
 
 type SelectPromptLibraryVisibleStateInput = {
@@ -48,13 +66,11 @@ type SelectPromptLibraryVisibleStateInput = {
   sort?: PromptLibrarySort
 }
 
-const ALL_FILTER: PromptLibraryFilter = { type: 'all' }
-
 export const selectPromptLibraryVisibleState = ({
   prompts,
   query,
   selectedPromptId,
-  filter = ALL_FILTER,
+  filter = EMPTY_PROMPT_LIBRARY_FILTER,
   sort = 'created',
 }: SelectPromptLibraryVisibleStateInput): PromptLibraryVisibleState => {
   const orderedPrompts = orderPrompts(prompts, sort)
@@ -78,12 +94,11 @@ export const selectPromptLibraryVisibleState = ({
 
   return {
     activePrompt,
-    categories: getPromptCategories(prompts),
     emptyReason,
     filteredPrompts,
     orderedPromptIds,
     visiblePromptId,
-    facets: getPromptLibraryFacets(prompts),
+    facets: getPromptLibraryFacets(prompts, filter.project),
     getNearestPromptIdAfterRemoval: (promptId) => {
       const fallbackPromptIds = orderedPromptIds.includes(promptId)
         ? orderedPromptIds
@@ -113,19 +128,6 @@ export const selectPromptLibraryVisibleState = ({
   }
 }
 
-const promptLibrarySortCollator = new Intl.Collator(undefined, {
-  numeric: true,
-  sensitivity: 'base',
-})
-
-export const comparePromptLibraryText = (left: string, right: string) => {
-  const normalizedLeft = left.trim()
-  const normalizedRight = right.trim()
-  const result = promptLibrarySortCollator.compare(normalizedLeft, normalizedRight)
-
-  return result === 0 ? normalizedLeft.localeCompare(normalizedRight) : result
-}
-
 const compareBySort = (sort: PromptLibrarySort) => (left: PromptRecord, right: PromptRecord) => {
   switch (sort) {
     case 'used':
@@ -150,19 +152,37 @@ export const orderPrompts = (prompts: readonly PromptRecord[], sort: PromptLibra
   )
 }
 
+/** Every part of the filter that is set must hold. */
 export const matchesPromptFilter = (prompt: PromptRecord, filter: PromptLibraryFilter) => {
-  switch (filter.type) {
-    case 'all':
-      return true
-    case 'pinned':
-      return prompt.pinned
-    case 'kind':
-      return prompt.kind === filter.kind
-    case 'category':
-      return prompt.category.toLowerCase() === filter.category.toLowerCase()
-    case 'tag':
-      return prompt.tags.includes(filter.tag)
+  return (
+    (filter.project === null || isSameProject(prompt.category, filter.project)) &&
+    (filter.kind === null || prompt.kind === filter.kind) &&
+    (!filter.pinned || prompt.pinned) &&
+    (filter.tag === null || prompt.tags.includes(filter.tag))
+  )
+}
+
+/**
+ * The filter to switch to so `prompt` shows up: drop the narrowing first, and
+ * follow the Prompt to its own Project only if it lives somewhere else.
+ */
+export const getFilterShowingPrompt = (
+  prompt: PromptRecord,
+  filter: PromptLibraryFilter,
+): PromptLibraryFilter => {
+  if (matchesPromptFilter(prompt, filter)) {
+    return filter
   }
+
+  const sameProject = { ...EMPTY_PROMPT_LIBRARY_FILTER, project: filter.project }
+
+  return matchesPromptFilter(prompt, sameProject)
+    ? sameProject
+    : { ...EMPTY_PROMPT_LIBRARY_FILTER, project: prompt.category }
+}
+
+export const isPromptLibraryFilterEmpty = (filter: PromptLibraryFilter) => {
+  return filter.project === null && filter.kind === null && !filter.pinned && filter.tag === null
 }
 
 /**
@@ -200,83 +220,73 @@ export const matchesPromptQuery = (prompt: PromptRecord, query: string) => {
   })
 }
 
-export const getPromptLibraryFacets = (prompts: readonly PromptRecord[]): PromptLibraryFacets => {
-  const kinds = Object.fromEntries(PROMPT_KINDS.map((kind) => [kind, 0])) as Record<
-    PromptKind,
-    number
-  >
-  const categories = new Map<string, PromptLibraryFacet>()
+const countTags = (prompts: readonly PromptRecord[]): PromptLibraryFacet[] => {
   const tags = new Map<string, number>()
-  let pinned = 0
 
   for (const prompt of prompts) {
-    kinds[prompt.kind] += 1
-    pinned += prompt.pinned ? 1 : 0
-
-    const categoryKey = prompt.category.toLowerCase()
-    const category = categories.get(categoryKey)
-
-    if (category) {
-      category.count += 1
-    } else {
-      categories.set(categoryKey, { key: prompt.category, label: prompt.category, count: 1 })
-    }
-
     for (const tag of prompt.tags) {
       tags.set(tag, (tags.get(tag) ?? 0) + 1)
     }
   }
 
+  return Array.from(tags, ([tag, count]) => ({ key: tag, label: tag, count })).sort(
+    (left, right) => right.count - left.count || comparePromptLibraryText(left.key, right.key),
+  )
+}
+
+export const getPromptLibraryFacets = (
+  prompts: readonly PromptRecord[],
+  project: string | null = null,
+): PromptLibraryFacets => {
+  const here =
+    project === null ? prompts : prompts.filter((prompt) => isSameProject(prompt.category, project))
+  const kinds = Object.fromEntries(PROMPT_KINDS.map((kind) => [kind, 0])) as Record<
+    PromptKind,
+    number
+  >
+  let pinned = 0
+
+  for (const prompt of here) {
+    kinds[prompt.kind] += 1
+    pinned += prompt.pinned ? 1 : 0
+  }
+
   return {
     total: prompts.length,
-    pinned,
-    kinds,
-    categories: Array.from(categories.values()).sort((left, right) =>
-      comparePromptLibraryText(left.label, right.label),
-    ),
-    tags: Array.from(tags.entries())
-      .map(([tag, count]) => ({ key: tag, label: tag, count }))
-      .sort(
-        (left, right) => right.count - left.count || comparePromptLibraryText(left.key, right.key),
-      ),
+    projects: getPromptProjects(prompts),
+    tags: countTags(prompts),
+    here: { total: here.length, pinned, kinds, tags: countTags(here) },
   }
 }
 
-export const getPromptCategories = (prompts: readonly PromptRecord[]) => {
-  const categories = new Set<string>(DEFAULT_PROMPT_CATEGORIES)
-  const defaultCategories = new Set<string>(DEFAULT_PROMPT_CATEGORIES)
-
-  for (const prompt of prompts) {
-    categories.add(prompt.category)
-  }
-
-  const customCategories = Array.from(categories)
-    .filter((category) => !defaultCategories.has(category))
-    .sort(comparePromptLibraryText)
-
-  return [...DEFAULT_PROMPT_CATEGORIES, ...customCategories]
-}
-
+/** "Pinned sequences in render-md tagged #review", or "Everything". */
 export const describePromptLibraryFilter = (filter: PromptLibraryFilter) => {
-  switch (filter.type) {
-    case 'all':
-      return 'Everything'
-    case 'pinned':
-      return 'Pinned'
-    case 'kind':
-      return PROMPT_KIND_DEFINITIONS[filter.kind].plural
-    case 'category':
-      return filter.category
-    case 'tag':
-      return `#${filter.tag}`
-  }
+  const what = filter.kind ? PROMPT_KIND_DEFINITIONS[filter.kind].plural : 'Everything'
+  const pinned = filter.pinned ? `Pinned ${filter.kind ? what.toLowerCase() : 'entries'}` : what
+
+  return [
+    pinned,
+    filter.project ? `in ${filter.project}` : '',
+    filter.tag ? `tagged #${filter.tag}` : '',
+  ]
+    .filter(Boolean)
+    .join(' ')
 }
 
 export const isSamePromptLibraryFilter = (
   left: PromptLibraryFilter,
   right: PromptLibraryFilter,
 ) => {
-  return JSON.stringify(left) === JSON.stringify(right)
+  const sameProject =
+    left.project === right.project ||
+    (left.project !== null && right.project !== null && isSameProject(left.project, right.project))
+
+  return (
+    sameProject &&
+    left.kind === right.kind &&
+    left.pinned === right.pinned &&
+    left.tag === right.tag
+  )
 }
 
 /**

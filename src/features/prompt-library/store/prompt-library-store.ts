@@ -13,6 +13,10 @@ import {
   updatePromptRecordFromDraft,
 } from '@/features/prompt-library/model/prompt-library-integrity'
 import {
+  getPromptProjects,
+  resolveProjectName,
+} from '@/features/prompt-library/model/prompt-projects'
+import {
   getExistingSelectedPromptId,
   upsertPromptRecord,
 } from '@/features/prompt-library/model/prompt-record-collection'
@@ -71,7 +75,7 @@ type PromptLibraryStateShape = PromptCollectionState &
 const createInitialState = (): PromptLibraryStateShape => ({
   prompts: INITIAL_PROMPTS,
   isFresh: true,
-  filter: { type: 'all' },
+  filter: { project: null, kind: null, pinned: false, tag: null },
   sort: 'created',
   query: '',
   selectedPromptId: INITIAL_PROMPTS[0]?.id ?? null,
@@ -91,6 +95,15 @@ const createInitialState = (): PromptLibraryStateShape => ({
 type SaveComposerResult =
   | { status: 'created' | 'updated'; discardedImages: PromptImage[]; prompt: PromptRecord }
   | { status: 'invalid' | 'idle' | 'pending-images' }
+
+/** Saving into "Render MD" when "render-md" exists files it under "render-md". */
+const withResolvedProject = (
+  draft: PromptDraft,
+  prompts: readonly PromptRecord[],
+): PromptDraft => ({
+  ...draft,
+  category: resolveProjectName(draft.category, getPromptProjects(prompts)),
+})
 
 const getDiscardedDraftImages = (draft: PromptDraft, savedPrompt: PromptRecord) => {
   const savedImageIds = new Set(savedPrompt.images.map((image) => image.id))
@@ -300,17 +313,12 @@ export const createPromptLibraryStore = () => {
           set({ selectedPromptId })
         },
         startNew: (kind) => {
+          // A new entry starts where you are: this Project, this kind, this tag.
           const filter = get().filter
-          const draftKind = kind ?? (filter.type === 'kind' ? filter.kind : undefined)
-          const draft = createEmptyPromptDraft(draftKind)
+          const draft = createEmptyPromptDraft(kind ?? filter.kind ?? undefined)
 
-          if (filter.type === 'category') {
-            draft.category = filter.category
-          }
-
-          if (filter.type === 'tag') {
-            draft.tagsInput = `#${filter.tag}`
-          }
+          draft.category = filter.project ?? ''
+          draft.tagsInput = filter.tag ? `#${filter.tag}` : ''
 
           set({
             composer: {
@@ -405,7 +413,7 @@ export const createPromptLibraryStore = () => {
           }
 
           if (state.composer.mode === 'new') {
-            const draft = state.composer.draft
+            const draft = withResolvedProject(state.composer.draft, state.prompts)
             const createdPrompt = createPromptRecordFromDraft(draft)
 
             if (!createdPrompt) {
@@ -435,7 +443,10 @@ export const createPromptLibraryStore = () => {
             return { status: 'invalid' }
           }
 
-          const draft = state.composer.draft
+          const draft = withResolvedProject(
+            state.composer.draft,
+            state.prompts.filter((prompt) => prompt.id !== promptToUpdate.id),
+          )
           const updatedPrompt = updatePromptRecordFromDraft(promptToUpdate, draft)
 
           if (!updatedPrompt) {

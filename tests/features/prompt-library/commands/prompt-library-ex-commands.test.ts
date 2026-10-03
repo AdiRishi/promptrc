@@ -40,26 +40,27 @@ describe('parseExCommand', () => {
     expect(error('new essay')).toBe('E475: Invalid kind: essay')
   })
 
-  it('filters the list by kind, category, tag, or words', () => {
-    expect(action('sequences')).toEqual({
-      type: 'filter',
-      filter: { type: 'kind', kind: 'sequence' },
-    })
-    expect(action('kind fragment')).toEqual({
-      type: 'filter',
-      filter: { type: 'kind', kind: 'fragment' },
-    })
-    expect(action('cd Product Work')).toEqual({
-      type: 'filter',
-      filter: { type: 'category', category: 'Product Work' },
-    })
-    expect(action('cd ~')).toEqual({ type: 'filter', filter: { type: 'all' } })
-    expect(action('tag #Review')).toEqual({
-      type: 'filter',
-      filter: { type: 'tag', tag: 'review' },
-    })
+  it('changes parts of the filter, which stack: project, kind, pin, tag', () => {
+    const patch = (input: string) => {
+      const result = action(input)
+
+      return result.type === 'filter' ? result.patch : result
+    }
+
+    expect(patch('sequences')).toEqual({ kind: 'sequence' })
+    expect(patch('kind fragment')).toEqual({ kind: 'fragment' })
+    expect(patch('kind')).toEqual({ kind: null })
+    expect(patch('cd Product Work')).toEqual({ project: 'Product Work', tag: null })
+    expect(patch('cd render-md/')).toEqual({ project: 'render-md', tag: null })
+    expect(patch('project render-md')).toEqual({ project: 'render-md', tag: null })
+    expect(patch('cd ~')).toEqual({ project: null, tag: null })
+    expect(patch('cd ..')).toEqual({ project: null, tag: null })
+    expect(patch('cd')).toEqual({ project: null, tag: null })
+    expect(patch('tag #Review')).toEqual({ tag: 'review' })
+    expect(patch('tag')).toEqual({ tag: null })
+    expect(patch('pinned')).toEqual({ pinned: true })
+    expect(patch('all')).toEqual({ kind: null, pinned: false, tag: null })
     expect(action('grep root cause')).toEqual({ type: 'search', query: 'root cause' })
-    expect(action('pinned')).toEqual({ type: 'filter', filter: { type: 'pinned' } })
   })
 
   it('sorts, switches colorschemes, and changes the view', () => {
@@ -119,8 +120,14 @@ describe('completeExCommand', () => {
       completeExCommand('tag re', { tags: ['review', 'reply', 'tone'] }).map((c) => c.label),
     ).toEqual(['review', 'reply'])
     expect(
-      completeExCommand('cd eng', { categories: ['Engineering', 'Writing'] }).map((c) => c.value),
-    ).toEqual(['category Engineering'])
+      completeExCommand('cd eng', { projects: ['Engineering', 'Writing'] }).map((c) => c.value),
+    ).toEqual(['cd Engineering'])
+    // Projects match ignoring case and punctuation, prefixes first.
+    expect(
+      completeExCommand('cd md', { projects: ['render-md', 'Mdx Docs', 'promptrc'] }).map(
+        (c) => c.label,
+      ),
+    ).toEqual(['Mdx Docs', 'render-md'])
     expect(completeExCommand('nope arg')).toEqual([])
   })
 })

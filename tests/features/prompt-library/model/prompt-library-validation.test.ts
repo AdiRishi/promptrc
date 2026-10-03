@@ -30,6 +30,9 @@ const prompt: PromptRecord = {
   uses: 0,
 }
 
+const parseFilter = (filter: unknown) =>
+  parsePromptLibraryPersistedSnapshot({ prompts: [prompt], filter })?.filter
+
 describe('prompt library validation', () => {
   it('normalizes trusted Prompt fields at the server-function boundary', () => {
     expect(
@@ -295,17 +298,17 @@ describe('prompt library validation for kinds, notes, runs, and pinning', () => 
   })
 
   it('parses persisted filter and sort, defaulting when they are missing', () => {
+    const empty = { project: null, kind: null, pinned: false, tag: null }
+
     expect(parsePromptLibraryPersistedSnapshot({ prompts: [prompt] })).toMatchObject({
-      filter: { type: 'all' },
+      filter: empty,
       sort: 'created',
     })
 
     for (const filter of [
-      { type: 'all' },
-      { type: 'pinned' },
-      { type: 'kind', kind: 'sequence' },
-      { type: 'category', category: 'Engineering' },
-      { type: 'tag', tag: 'testing' },
+      empty,
+      { ...empty, pinned: true },
+      { project: 'render-md', kind: 'sequence', pinned: true, tag: 'plan' },
     ] as const) {
       expect(parsePromptLibraryPersistedSnapshot({ prompts: [prompt], filter })?.filter).toEqual(
         filter,
@@ -317,20 +320,36 @@ describe('prompt library validation for kinds, notes, runs, and pinning', () => 
     }
   })
 
+  it('upgrades filters saved by earlier builds, one part at a time', () => {
+    const empty = { project: null, kind: null, pinned: false, tag: null }
+    expect(parseFilter(undefined)).toEqual(empty)
+
+    expect(parseFilter({ type: 'all' })).toEqual(empty)
+    expect(parseFilter({ type: 'pinned' })).toEqual({ ...empty, pinned: true })
+    expect(parseFilter({ type: 'kind', kind: 'sequence' })).toEqual({ ...empty, kind: 'sequence' })
+    expect(parseFilter({ type: 'category', category: 'Engineering' })).toEqual({
+      ...empty,
+      project: 'Engineering',
+    })
+    expect(parseFilter({ type: 'tag', tag: 'testing' })).toEqual({ ...empty, tag: 'testing' })
+  })
+
   it('falls back to the default filter and sort for invalid persisted values', () => {
+    const empty = { project: null, kind: null, pinned: false, tag: null }
+
     for (const filter of [
       'pinned',
       null,
       { type: 'unknown' },
       { type: 'kind', kind: 'note' },
-      { type: 'kind' },
       { type: 'category', category: '' },
       { type: 'category', category: 7 },
       { type: 'tag', tag: '' },
+      { project: '  ', kind: 'note', pinned: 'yes', tag: 7 },
     ]) {
-      expect(parsePromptLibraryPersistedSnapshot({ prompts: [prompt], filter })?.filter).toEqual({
-        type: 'all',
-      })
+      expect(parsePromptLibraryPersistedSnapshot({ prompts: [prompt], filter })?.filter).toEqual(
+        empty,
+      )
     }
 
     for (const sort of ['newest', 42, null, 'TITLE']) {
@@ -342,9 +361,9 @@ describe('prompt library validation for kinds, notes, runs, and pinning', () => 
     expect(
       parsePromptLibraryPersistedSnapshot({
         prompts: [prompt],
-        filter: { type: 'pinned', kind: 'benchmark', extra: true },
+        filter: { project: 'x', kind: 'benchmark', pinned: false, tag: null, extra: true },
       })?.filter,
-    ).toEqual({ type: 'pinned' })
+    ).toEqual({ project: 'x', kind: 'benchmark', pinned: false, tag: null })
   })
 
   it('parses draft kind and notes, falling back for invalid values', () => {

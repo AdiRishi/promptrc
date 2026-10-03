@@ -4,8 +4,13 @@ import {
   createEmptyPromptDraft,
   deriveTitleFromBody,
 } from '@/features/prompt-library/model/prompt-library-integrity'
+import {
+  getPromptProjects,
+  resolveProjectName,
+} from '@/features/prompt-library/model/prompt-projects'
 import { createPromptRun } from '@/features/prompt-library/model/prompt-runs'
 import {
+  getFilterShowingPrompt,
   matchesPromptFilter,
   matchesPromptQuery,
   selectPromptLibraryVisibleState,
@@ -212,7 +217,7 @@ export const createPromptLibraryCommandExecutor = ({
     const { actions, filter } = store.getState()
 
     if (!matchesPromptFilter(prompt, filter)) {
-      actions.setFilter({ type: 'all' })
+      actions.setFilter(getFilterShowingPrompt(prompt, filter))
     }
 
     if (!matchesPromptQuery(prompt, store.getState().query)) {
@@ -380,7 +385,10 @@ export const createPromptLibraryCommandExecutor = ({
       ...createEmptyPromptDraft(input.kind),
       body,
       title: input.title?.trim() || deriveTitleFromBody(body) || 'Untitled',
-      category: input.category ?? '',
+      category: resolveProjectName(
+        input.category ?? '',
+        getPromptProjects(store.getState().prompts),
+      ),
       tagsInput: input.tagsInput ?? '',
     })
 

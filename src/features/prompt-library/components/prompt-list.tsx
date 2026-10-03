@@ -8,7 +8,7 @@ import {
   KIND_TEXT_CLASS,
   KindMark,
 } from '@/features/prompt-library/components/kind-mark'
-import { PROMPT_KIND_DEFINITIONS } from '@/features/prompt-library/model/prompt-kinds'
+import { PROMPT_KIND_DEFINITIONS, PROMPT_KINDS } from '@/features/prompt-library/model/prompt-kinds'
 import { summarizePromptRuns } from '@/features/prompt-library/model/prompt-runs'
 import { splitSequenceSteps } from '@/features/prompt-library/model/prompt-sequences'
 import {
@@ -18,6 +18,7 @@ import {
 } from '@/features/prompt-library/rendering/prompt-library-formatting'
 import {
   type PromptLibraryEmptyReason,
+  type PromptLibraryFacets,
   describePromptLibraryFilter,
 } from '@/features/prompt-library/selectors/prompt-library-selectors'
 import {
@@ -39,6 +40,8 @@ type PromptListProps = {
   catalogNumbers: Map<string, number>
   activePromptId: string | null
   filter: PromptLibraryFilter
+  /** Counts inside the current Project, for the kind and ★ toggles. */
+  counts: PromptLibraryFacets['here']
   sort: PromptLibrarySort
   query: string
   emptyReason: PromptLibraryEmptyReason | null
@@ -49,24 +52,25 @@ type PromptListProps = {
   onQueryChange: (query: string) => void
   onSortChange: (sort: PromptLibrarySort) => void
   onClearFilter: () => void
+  onFilterChange: (patch: Partial<PromptLibraryFilter>) => void
   onCapture: () => void
   onOpenLibrary: () => void
 }
 
-/** The heading for the list, written as the path you'd `ls`. */
+/**
+ * The heading for the list, written as the path you'd `ls`: the Project, then
+ * whatever narrows it — `~/.promptrc/render-md/sequences/★/#review`.
+ */
 export const listPath = (filter: PromptLibraryFilter) => {
-  switch (filter.type) {
-    case 'all':
-      return '~/.promptrc'
-    case 'pinned':
-      return '~/.promptrc/★pinned'
-    case 'kind':
-      return `~/.promptrc/${PROMPT_KIND_DEFINITIONS[filter.kind].plural.toLowerCase()}`
-    case 'category':
-      return `~/.promptrc/${filter.category.toLowerCase()}`
-    case 'tag':
-      return `~/.promptrc/#${filter.tag}`
-  }
+  return [
+    '~/.promptrc',
+    filter.project,
+    filter.kind ? PROMPT_KIND_DEFINITIONS[filter.kind].plural.toLowerCase() : null,
+    filter.pinned ? '★' : null,
+    filter.tag ? `#${filter.tag}` : null,
+  ]
+    .filter(Boolean)
+    .join('/')
 }
 
 export function PromptList({
@@ -75,6 +79,7 @@ export function PromptList({
   catalogNumbers,
   activePromptId,
   filter,
+  counts,
   sort,
   query,
   emptyReason,
@@ -85,6 +90,7 @@ export function PromptList({
   onQueryChange,
   onSortChange,
   onClearFilter,
+  onFilterChange,
   onCapture,
   onOpenLibrary,
 }: PromptListProps) {
@@ -120,7 +126,8 @@ export function PromptList({
       </div>
 
       <div className="px-[1ch] pt-3">
-        <label className="flex h-8 items-center gap-[1ch] rounded-sm border border-line bg-bg-sunken px-[1ch] text-[13px] focus-within:border-accent">
+        <FilterToggles counts={counts} filter={filter} onFilterChange={onFilterChange} />
+        <label className="mt-2 flex h-8 items-center gap-[1ch] rounded-sm border border-line bg-bg-sunken px-[1ch] text-[13px] focus-within:border-accent">
           <span className="text-accent">/</span>
           <span className="sr-only">Filter entries</span>
           <input
@@ -270,7 +277,7 @@ function PromptListItem({ prompt, catalogNumber, active, onSelect }: PromptListI
         ) : null}
         <span className="mt-0.5 flex gap-x-[1ch] truncate text-[11.5px] text-fg-faint">
           <span>{formatCatalogNumber(catalogNumber)}</span>
-          <span className="text-blue/80">{prompt.category.toLowerCase()}/</span>
+          <span className="text-blue/80">{prompt.category}/</span>
           {prompt.tags.slice(0, 3).map((tag) => (
             <span className="text-magenta/80" key={tag}>
               #{tag}
@@ -382,7 +389,7 @@ function ListEmptyState({
           <span className="text-fg-faint">$</span> ls {listPath(filter)}
         </p>
         <p className="text-fg-faint">total 0</p>
-        {filter.type === 'kind' ? (
+        {filter.kind ? (
           <p className="mt-2 text-fg-dim">
             <span className={KIND_TEXT_CLASS[filter.kind]}>{KIND_GLYPHS[filter.kind]}</span>{' '}
             {PROMPT_KIND_DEFINITIONS[filter.kind].description}
@@ -398,7 +405,9 @@ function ListEmptyState({
             type="button"
           >
             <ArrowLeft aria-hidden="true" className="mr-[0.5ch] inline size-3.5" />
-            cd ~
+            {filter.kind || filter.pinned || filter.tag
+              ? `show all of ${filter.project ?? '~'}`
+              : 'cd ~'}
           </button>
         </div>
       </div>
@@ -416,6 +425,89 @@ function ListEmptyState({
       <button className="mt-3 text-accent hover:underline" onClick={onCapture} type="button">
         ❯ capture the first one <span className="text-fg-faint">(c)</span>
       </button>
+    </div>
+  )
+}
+
+const toggleClass = (active: boolean, empty: boolean) =>
+  cn(
+    'inline-flex items-center gap-[0.5ch] rounded-sm px-[0.75ch] tabular-nums transition-colors',
+    active
+      ? 'bg-bg-sel font-bold text-fg'
+      : empty
+        ? 'text-fg-faint/60 hover:text-fg'
+        : 'text-fg-dim hover:text-fg',
+  )
+
+/**
+ * Kind and ★ narrow the current Project; they stack with it rather than
+ * replace it. Pressing the active toggle again lets it go.
+ */
+function FilterToggles({
+  filter,
+  counts,
+  onFilterChange,
+}: {
+  filter: PromptLibraryFilter
+  counts: PromptLibraryFacets['here']
+  onFilterChange: (patch: Partial<PromptLibraryFilter>) => void
+}) {
+  return (
+    <div
+      aria-label="Narrow the list"
+      className="flex flex-wrap items-center gap-x-[0.5ch] gap-y-1 text-[12px]"
+      role="toolbar"
+    >
+      <button
+        aria-pressed={filter.kind === null}
+        className={toggleClass(filter.kind === null, false)}
+        onClick={() => onFilterChange({ kind: null })}
+        type="button"
+      >
+        all <span className="font-normal text-fg-faint">{counts.total}</span>
+      </button>
+      {PROMPT_KINDS.map((kind) => {
+        const active = filter.kind === kind
+
+        return (
+          <button
+            aria-label={`${PROMPT_KIND_DEFINITIONS[kind].plural} (${counts.kinds[kind]})`}
+            aria-pressed={active}
+            className={toggleClass(active, counts.kinds[kind] === 0)}
+            key={kind}
+            onClick={() => onFilterChange({ kind: active ? null : kind })}
+            title={PROMPT_KIND_DEFINITIONS[kind].plural}
+            type="button"
+          >
+            <span className={KIND_TEXT_CLASS[kind]}>{KIND_GLYPHS[kind]}</span>
+            <span className={active ? undefined : 'sr-only'}>
+              {PROMPT_KIND_DEFINITIONS[kind].plural.toLowerCase()}
+            </span>
+            <span className="font-normal text-fg-faint">{counts.kinds[kind]}</span>
+          </button>
+        )
+      })}
+      <button
+        aria-label={`Pinned (${counts.pinned})`}
+        aria-pressed={filter.pinned}
+        className={toggleClass(filter.pinned, counts.pinned === 0)}
+        onClick={() => onFilterChange({ pinned: !filter.pinned })}
+        type="button"
+      >
+        <span className="text-accent">★</span>
+        <span className="font-normal text-fg-faint">{counts.pinned}</span>
+      </button>
+      {filter.tag ? (
+        <button
+          aria-label={`Stop filtering by #${filter.tag}`}
+          className="ml-auto inline-flex items-center gap-[0.5ch] rounded-sm bg-bg-sel px-[0.75ch] text-magenta hover:text-fg"
+          onClick={() => onFilterChange({ tag: null })}
+          type="button"
+        >
+          #{filter.tag}
+          <X aria-hidden="true" className="size-3" />
+        </button>
+      ) : null}
     </div>
   )
 }

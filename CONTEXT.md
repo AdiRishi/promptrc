@@ -64,17 +64,21 @@ _Avoid_: View, open, select
 The number of **Prompt Uses** recorded for a **Prompt**.
 _Avoid_: View count, popularity score
 
-**Category**:
-The single primary grouping that places a **Prompt** in the library tree.
-_Avoid_: Folder, directory, collection
+**Project**:
+The single primary home of a **Prompt** — usually the piece of work it came from. Projects are where you navigate; everything else narrows within one. Two names that differ only in case, spacing or punctuation ("Render MD", "render-md") are the same Project. Stored on the record and in D1 as `category`.
+_Avoid_: Category (in the interface), folder, collection, workspace
 
-**Category Order**:
-The predictable order in which **Categories** appear in the library tree.
-_Avoid_: Folder order, directory order, recency order
+**Project Order**:
+The predictable order in which **Projects** appear in the library tree: alphabetical.
+_Avoid_: Recency order
+
+**Library Filter**:
+What the list shows: an optional **Project**, narrowed by an optional **Kind**, **Pin**, and **Tag**. The parts stack; changing one keeps the others.
+_Avoid_: View, folder, scope
 
 **Tag**:
-A lightweight label that makes a **Prompt** easier to find across categories.
-_Avoid_: Category, folder
+A lightweight label that makes a **Prompt** easier to find across **Projects**.
+_Avoid_: Project, folder
 
 **Starter Prompt**:
 A real **Prompt** automatically added once to a fresh **Prompt Library** to demonstrate useful ways to use promptrc.
@@ -101,10 +105,12 @@ _Avoid_: Onboarding branch, migration flow, empty-state setup
 - A **Benchmark** has zero or more **Runs**; each **Run** has exactly one **Verdict**
 - **Variables** belong to the **Prompt Body**; values typed into them are a per-device convenience, not part of the **Prompt**
 - Pinning or logging a **Run** is a user action that ends a **Fresh Prompt Library**
-- A **Prompt** belongs to exactly one **Category**
-- **Category Order** is independent of when a **Prompt** was created, edited, or used
+- A **Prompt** belongs to exactly one **Project**
+- **Project Order** is independent of when a **Prompt** was created, edited, or used
+- A **Library Filter** has at most one **Project**, one **Kind**, one **Tag**, and whether only **Pinned** Prompts show
+- Saving a **Prompt** into a name that matches an existing **Project** files it under that Project's spelling
 - A **Prompt** may have zero or more **Tags**
-- A **Tag** may describe prompts across many **Categories**
+- A **Tag** may describe prompts across many **Projects**
 - A **Prompt Use** belongs to exactly one **Prompt**
 - A **Use Count** is derived from the **Prompt Uses** recorded for one **Prompt**
 - A **Starter Prompt** is a **Prompt** once it has been added to a user's **Prompt Library**
@@ -124,19 +130,22 @@ _Avoid_: Onboarding branch, migration flow, empty-state setup
 > **Dev:** "When a user presses copy on a **Prompt**, should we record a **Prompt Use**?"
 > **Domain expert:** "Yes. A **Prompt Use** means the **Prompt Body** was copied for reuse elsewhere. Merely selecting or opening the **Prompt** should not affect the **Use Count**."
 
-> **Dev:** "Can a **Prompt** live in multiple **Categories**?"
-> **Domain expert:** "No. A **Category** is the Prompt's single primary home in the tree. Use **Tags** when the same Prompt needs to be found through multiple cross-cutting labels."
+> **Dev:** "Can a **Prompt** live in multiple **Projects**?"
+> **Domain expert:** "No. A **Project** is the Prompt's single primary home in the tree. Use **Tags** when the same Prompt needs to be found through multiple cross-cutting labels."
 
-> **Dev:** "Should editing a **Prompt** make its **Category** jump to the top of the library tree?"
-> **Domain expert:** "No. **Category Order** should stay predictable while the Prompt's recency changes."
+> **Dev:** "Should editing a **Prompt** make its **Project** jump to the top of the library tree?"
+> **Domain expert:** "No. **Project Order** should stay predictable while the Prompt's recency changes."
+
+> **Dev:** "Are **Kinds** another way of grouping, like **Projects**?"
+> **Domain expert:** "No. A Project is where something lives; a Kind is what shape it is. You go to a Project, then narrow to its Sequences — the two stack."
 
 ## Flagged ambiguities
 
 - "entry", "file", and "snippet" may appear in UI metaphors, but the domain term for a saved reusable instruction is **Prompt**.
-- "folder" and "directory" are no longer used in the interface; the domain term for primary prompt grouping is **Category**, and the interface says Category too.
+- The primary grouping was called **Category** until it became **Project**. Code and D1 still say `category` (`PromptRecord.category`, the `category` column); the interface, filters and commands say project. `:cd` is the interface's word for going to a Project, so "directory" survives only as terminal metaphor.
 - The kind named `prompt` shares its name with the domain term **Prompt**. In the interface it is labelled "Prompt" under Kinds; everywhere else "Prompt" means any saved item of any **Kind**.
 - "blank" is the interface word for a **Variable**; code should say Variable.
-- "recent", "latest", and "updated" may describe Prompt metadata, but they must not define **Category Order**.
+- "recent", "latest", and "updated" may describe Prompt metadata, but they must not define **Project Order**.
 - A **Fresh Prompt Library** is not the same as an empty **Prompt Library**; deleting all **Prompts** after a real user action must not make the library fresh again.
 - "mock data", "sample prompt", and "seeded prompt" may describe onboarding ideas, but the domain term for a prompt added once to a fresh library is **Starter Prompt**.
 - A **First-Sign-In Copy** is not a general sync or merge feature; it only applies when an empty remote **Prompt Library** would otherwise hide local **Prompts** during sign-in.

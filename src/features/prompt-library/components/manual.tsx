@@ -126,7 +126,9 @@ export function Manual({ open, onOpenChange }: ManualProps) {
                   ) : null}
                 </Row>
               ))}
-              <Row term={<span className="text-fg">:prompts :sequences …</span>}>list one kind</Row>
+              <Row term={<span className="text-fg">:prompts :sequences …</span>}>
+                show one kind here
+              </Row>
             </dl>
           </Section>
 

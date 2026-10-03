@@ -4,12 +4,8 @@ import { FaGithub } from 'react-icons/fa'
 
 import { Kbd, KeyCombo } from '@/components/ui/kbd'
 import { Pane } from '@/components/ui/pane'
-import { KIND_GLYPHS, KIND_TEXT_CLASS } from '@/features/prompt-library/components/kind-mark'
-import { PROMPT_KIND_DEFINITIONS, PROMPT_KINDS } from '@/features/prompt-library/model/prompt-kinds'
-import {
-  type PromptLibraryFacets,
-  isSamePromptLibraryFilter,
-} from '@/features/prompt-library/selectors/prompt-library-selectors'
+import { isSameProject } from '@/features/prompt-library/model/prompt-projects'
+import { type PromptLibraryFacets } from '@/features/prompt-library/selectors/prompt-library-selectors'
 import {
   type PromptLibraryFilter,
   type PromptSyncMode,
@@ -25,7 +21,8 @@ type LibraryPaneProps = {
   syncMode: PromptSyncMode
   syncStatus: PromptSyncStatus
   className?: string
-  onFilterChange: (filter: PromptLibraryFilter) => void
+  /** Changes some parts of the filter; the rest stay. */
+  onFilterChange: (patch: Partial<PromptLibraryFilter>) => void
   onCapture: () => void
   onOpenFinder: () => void
   onOpenCommandLine: () => void
@@ -58,69 +55,45 @@ export function LibraryPane({
   onOpenCommandLine,
   onOpenHelp,
 }: LibraryPaneProps) {
-  const isActive = (candidate: PromptLibraryFilter) => isSamePromptLibraryFilter(filter, candidate)
   const colorScheme = useColorScheme()
+  const tags = facets.here.tags.slice(0, MAX_TAGS)
 
   return (
     <Pane className={cn('h-full', className)} index={1} title="~/.promptrc">
       <nav
-        aria-label="Library"
+        aria-label="Projects"
         className="scrollbar-term min-h-0 flex-1 overflow-y-auto px-[1ch] pt-3 pb-2"
         data-pane-focus
       >
-        <TreeHeading>library/</TreeHeading>
+        <TreeHeading>projects/</TreeHeading>
         <TreeRow
-          active={isActive({ type: 'all' })}
+          active={filter.project === null}
           count={facets.total}
-          label="all"
-          last={false}
-          onClick={() => onFilterChange({ type: 'all' })}
+          glyph={<span className="text-accent">~</span>}
+          label="everything"
+          last={facets.projects.length === 0}
+          onClick={() => onFilterChange({ project: null, tag: null })}
         />
-        <TreeRow
-          active={isActive({ type: 'pinned' })}
-          count={facets.pinned}
-          glyph={<span className="text-accent">★</span>}
-          label="pinned"
-          last
-          onClick={() => onFilterChange({ type: 'pinned' })}
-        />
-
-        <TreeHeading>kinds/</TreeHeading>
-        {PROMPT_KINDS.map((kind, index) => (
+        {facets.projects.map((project, index) => (
           <TreeRow
-            active={isActive({ type: 'kind', kind })}
-            count={facets.kinds[kind]}
-            glyph={<span className={KIND_TEXT_CLASS[kind]}>{KIND_GLYPHS[kind]}</span>}
-            key={kind}
-            label={PROMPT_KIND_DEFINITIONS[kind].plural.toLowerCase()}
-            last={index === PROMPT_KINDS.length - 1}
-            onClick={() => onFilterChange({ type: 'kind', kind })}
+            active={filter.project !== null && isSameProject(filter.project, project.label)}
+            count={project.count}
+            key={project.key}
+            label={`${project.label}/`}
+            labelClassName="text-blue"
+            last={index === facets.projects.length - 1}
+            onClick={() => onFilterChange({ project: project.label, tag: null })}
           />
         ))}
 
-        {facets.categories.length > 0 ? (
+        {tags.length > 0 ? (
           <>
-            <TreeHeading>categories/</TreeHeading>
-            {facets.categories.map((category, index) => (
-              <TreeRow
-                active={isActive({ type: 'category', category: category.key })}
-                count={category.count}
-                key={category.key}
-                label={`${category.label.toLowerCase()}/`}
-                labelClassName="text-blue"
-                last={index === facets.categories.length - 1}
-                onClick={() => onFilterChange({ type: 'category', category: category.key })}
-              />
-            ))}
-          </>
-        ) : null}
-
-        {facets.tags.length > 0 ? (
-          <>
-            <TreeHeading>tags/</TreeHeading>
+            <TreeHeading>
+              {filter.project === null ? 'tags/' : `tags in ${filter.project}/`}
+            </TreeHeading>
             <div className="flex flex-wrap gap-x-[1ch] gap-y-0.5 pl-[1ch] text-[12px]">
-              {facets.tags.slice(0, MAX_TAGS).map((tag) => {
-                const active = isActive({ type: 'tag', tag: tag.key })
+              {tags.map((tag) => {
+                const active = filter.tag === tag.key
 
                 return (
                   <button
@@ -130,9 +103,7 @@ export function LibraryPane({
                       active ? 'bg-accent text-accent-fg' : 'text-magenta hover:bg-bg-hover',
                     )}
                     key={tag.key}
-                    onClick={() =>
-                      onFilterChange(active ? { type: 'all' } : { type: 'tag', tag: tag.key })
-                    }
+                    onClick={() => onFilterChange({ tag: active ? null : tag.key })}
                     type="button"
                   >
                     #{tag.label}

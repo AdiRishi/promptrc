@@ -384,28 +384,39 @@ const parsePersistedComposer = (value: unknown): ComposerState => {
   }
 }
 
+const EMPTY_FILTER: PromptLibraryFilter = { project: null, kind: null, pinned: false, tag: null }
+
+const nonEmptyString = (value: unknown) =>
+  typeof value === 'string' && value.trim() ? value.trim() : null
+
 const parsePersistedFilter = (value: unknown): PromptLibraryFilter => {
   if (!value || typeof value !== 'object') {
-    return { type: 'all' }
+    return EMPTY_FILTER
   }
 
   const filter = value as Record<string, unknown>
 
-  switch (filter.type) {
-    case 'pinned':
-      return { type: 'pinned' }
-    case 'kind':
-      return isPromptKind(filter.kind) ? { type: 'kind', kind: filter.kind } : { type: 'all' }
-    case 'category':
-      return typeof filter.category === 'string' && filter.category
-        ? { type: 'category', category: filter.category }
-        : { type: 'all' }
-    case 'tag':
-      return typeof filter.tag === 'string' && filter.tag
-        ? { type: 'tag', tag: filter.tag }
-        : { type: 'all' }
-    default:
-      return { type: 'all' }
+  // Earlier builds stored one filter at a time: `{ type: 'kind', kind }` and so on.
+  if (typeof filter.type === 'string') {
+    switch (filter.type) {
+      case 'pinned':
+        return { ...EMPTY_FILTER, pinned: true }
+      case 'kind':
+        return { ...EMPTY_FILTER, kind: isPromptKind(filter.kind) ? filter.kind : null }
+      case 'category':
+        return { ...EMPTY_FILTER, project: nonEmptyString(filter.category) }
+      case 'tag':
+        return { ...EMPTY_FILTER, tag: nonEmptyString(filter.tag) }
+      default:
+        return EMPTY_FILTER
+    }
+  }
+
+  return {
+    project: nonEmptyString(filter.project),
+    kind: isPromptKind(filter.kind) ? filter.kind : null,
+    pinned: filter.pinned === true,
+    tag: nonEmptyString(filter.tag),
   }
 }
 

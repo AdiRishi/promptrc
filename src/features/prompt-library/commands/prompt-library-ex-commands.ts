@@ -1,4 +1,5 @@
 import { PROMPT_KINDS, isPromptKind } from '@/features/prompt-library/model/prompt-kinds'
+import { projectKey } from '@/features/prompt-library/model/prompt-projects'
 import { isPromptRunVerdict } from '@/features/prompt-library/model/prompt-runs'
 import {
   type PromptKind,
@@ -25,7 +26,8 @@ export type ExAction =
   | { type: 'delete'; force: boolean }
   | { type: 'copy'; step?: number }
   | { type: 'find'; query: string }
-  | { type: 'filter'; filter: PromptLibraryFilter }
+  /** Parts of the filter to change; the rest stay as they are. */
+  | { type: 'filter'; patch: Partial<PromptLibraryFilter> }
   | { type: 'search'; query: string }
   | { type: 'sort'; sort: PromptLibrarySort }
   | { type: 'colorscheme'; scheme: ColorSchemePreference }
@@ -100,13 +102,18 @@ export const EX_COMMANDS: readonly ExCommandDefinition[] = [
   {
     name: 'kind',
     usage: 'kind <prompt|fragment|sequence|benchmark>',
-    summary: 'list one kind',
+    summary: 'show one kind here (no kind: any)',
     complete: () => PROMPT_KINDS,
   },
-  { name: 'all', aliases: ['ls'], usage: 'all', summary: 'list everything' },
-  { name: 'pinned', usage: 'pinned', summary: 'list pinned entries' },
-  { name: 'category', aliases: ['cd', 'cat'], usage: 'cd <category>', summary: 'list a category' },
-  { name: 'tag', usage: 'tag <tag>', summary: 'list entries with a tag' },
+  { name: 'all', aliases: ['ls'], usage: 'all', summary: 'drop the kind, ★ and tag filters' },
+  { name: 'pinned', usage: 'pinned', summary: 'only pinned entries' },
+  {
+    name: 'cd',
+    aliases: ['project', 'category', 'cat'],
+    usage: 'cd <project>',
+    summary: 'go to a project (cd ~ for everything)',
+  },
+  { name: 'tag', usage: 'tag <tag>', summary: 'only entries with a tag (no tag: any)' },
   { name: 'grep', aliases: ['search'], usage: 'grep <words>', summary: 'filter the list' },
   {
     name: 'sort',
@@ -158,7 +165,7 @@ export const parseExCommand = (input: string): ExParseResult => {
   const pluralKind = KIND_PLURALS[word]
 
   if (pluralKind) {
-    return { ok: true, action: { type: 'filter', filter: { type: 'kind', kind: pluralKind } } }
+    return { ok: true, action: { type: 'filter', patch: { kind: pluralKind } } }
   }
 
   const command = findCommand(word)
@@ -215,26 +222,40 @@ export const parseExCommand = (input: string): ExParseResult => {
     case 'find':
       return { ok: true, action: { type: 'find', query: rest } }
     case 'kind': {
+      if (!arg || arg === 'all' || arg === 'any') {
+        return { ok: true, action: { type: 'filter', patch: { kind: null } } }
+      }
+
       const kind = KIND_PLURALS[arg] ?? arg
 
       return isPromptKind(kind)
-        ? { ok: true, action: { type: 'filter', filter: { type: 'kind', kind } } }
-        : { ok: false, error: `E475: Invalid kind: ${firstArg || '(none)'}` }
+        ? { ok: true, action: { type: 'filter', patch: { kind } } }
+        : { ok: false, error: `E475: Invalid kind: ${firstArg}` }
     }
     case 'all':
-      return { ok: true, action: { type: 'filter', filter: { type: 'all' } } }
+      return {
+        ok: true,
+        action: { type: 'filter', patch: { kind: null, pinned: false, tag: null } },
+      }
     case 'pinned':
-      return { ok: true, action: { type: 'filter', filter: { type: 'pinned' } } }
-    case 'category':
-      return rest && rest !== '~' && rest !== '/'
-        ? { ok: true, action: { type: 'filter', filter: { type: 'category', category: rest } } }
-        : { ok: true, action: { type: 'filter', filter: { type: 'all' } } }
+      return { ok: true, action: { type: 'filter', patch: { pinned: true } } }
+    case 'cd':
+      // `:cd`, `:cd ~`, `:cd ..` and `:cd /` all go back to everything.
+      return {
+        ok: true,
+        action: {
+          type: 'filter',
+          patch: {
+            project:
+              rest && !['~', '/', '..', '-'].includes(rest) ? rest.replace(/\/+$/, '') : null,
+            tag: null,
+          },
+        },
+      }
     case 'tag': {
       const tag = arg.replace(/^#/, '')
 
-      return tag
-        ? { ok: true, action: { type: 'filter', filter: { type: 'tag', tag } } }
-        : { ok: false, error: 'E471: Argument required: tag' }
+      return { ok: true, action: { type: 'filter', patch: { tag: tag || null } } }
     }
     case 'grep':
       return { ok: true, action: { type: 'search', query: rest } }
@@ -297,7 +318,7 @@ export type ExCompletion = {
 }
 
 type ExCompletionContext = {
-  categories?: readonly string[]
+  projects?: readonly string[]
   tags?: readonly string[]
 }
 
@@ -334,18 +355,25 @@ export const completeExCommand = (
   }
 
   const values =
-    command.name === 'category'
-      ? (context.categories ?? [])
+    command.name === 'cd'
+      ? (context.projects ?? [])
       : command.name === 'tag'
         ? (context.tags ?? [])
         : (command.complete?.() ?? [])
 
-  return values
-    .filter((value) => value.toLowerCase().startsWith(argument.replace(/^#/, '')))
-    .slice(0, 12)
-    .map((value) => ({
-      value: `${command.name} ${value}`,
-      label: value,
-      detail: command.summary,
-    }))
+  // Projects match ignoring case and punctuation ("rend" finds "Render MD"),
+  // anywhere in the name, with prefix matches first.
+  const typed = command.name === 'cd' ? projectKey(argument) : argument.replace(/^#/, '')
+  const keyOf = (value: string) => (command.name === 'cd' ? projectKey(value) : value.toLowerCase())
+  const matches = values.filter((value) => keyOf(value).startsWith(typed))
+  const contains =
+    command.name === 'cd' && typed
+      ? values.filter((value) => !keyOf(value).startsWith(typed) && keyOf(value).includes(typed))
+      : []
+
+  return [...matches, ...contains].slice(0, 12).map((value) => ({
+    value: `${command.name} ${value}`,
+    label: value,
+    detail: command.summary,
+  }))
 }

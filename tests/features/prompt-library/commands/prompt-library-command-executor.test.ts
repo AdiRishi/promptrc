@@ -434,7 +434,7 @@ describe('prompt library command executor: capture, pin, runs, and filled copies
   it('reveals a saved Prompt that the current filter or query would hide', async () => {
     const { commands, store } = setup([createPrompt({ id: 'prompt-alpha', pinned: true })])
 
-    store.getState().actions.setFilter({ type: 'pinned' })
+    store.getState().actions.setFilter({ project: null, kind: null, pinned: true, tag: null })
     store.getState().actions.setQuery('alpha')
     store.getState().actions.startNew('fragment')
     store.getState().actions.updateDraft('title', 'Fresh fragment')
@@ -442,7 +442,12 @@ describe('prompt library command executor: capture, pin, runs, and filled copies
     commands.saveComposer()
     await flushPromises()
 
-    expect(store.getState().filter).toEqual({ type: 'all' })
+    expect(store.getState().filter).toEqual({
+      project: null,
+      kind: null,
+      pinned: false,
+      tag: null,
+    })
     expect(store.getState().query).toBe('')
     expect(
       store.getState().prompts.find((prompt) => prompt.id === store.getState().selectedPromptId)
@@ -476,6 +481,19 @@ describe('prompt library command executor: capture, pin, runs, and filled copies
     expect(store.getState().selectedPromptId).toBe(captured?.id)
     expect(store.getState().isFresh).toBe(false)
     expect(notify).toHaveBeenCalledWith('Captured “Preserve uncertainty as open questions”')
+  })
+
+  it('captures into an existing Project when only the spelling differs', async () => {
+    const { commands } = setup([createPrompt({ id: 'existing', category: 'render-md' })])
+
+    const captured = commands.capturePrompt({
+      kind: 'prompt',
+      body: 'Ask for the smallest reproduction.',
+      category: 'Render MD',
+    })
+    await flushPromises()
+
+    expect(captured?.category).toBe('render-md')
   })
 
   it('prefers an explicit title and falls back to "Untitled" when none can be derived', async () => {

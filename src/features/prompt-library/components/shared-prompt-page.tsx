@@ -136,7 +136,7 @@ export function SharedPromptPage({ shareId }: SharedPromptPageProps) {
           <article className="px-[2ch] pt-5 pb-8 sm:px-[4ch]">
             <div className="mb-2 flex flex-wrap items-center gap-x-[2ch] gap-y-1 text-[12px] text-fg-faint">
               <KindTag kind={prompt.kind} />
-              <span>~/{prompt.category.toLowerCase()}/</span>
+              <span>~/{prompt.category}/</span>
               <span>shared {formatLongDate(shareQuery.data?.createdAt ?? prompt.createdAt)}</span>
             </div>
             <h1

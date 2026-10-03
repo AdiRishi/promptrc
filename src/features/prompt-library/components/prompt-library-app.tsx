@@ -44,11 +44,19 @@ import {
   sanitizePromptImageFileName,
 } from '@/features/prompt-library/model/prompt-images'
 import { DEFAULT_PROMPT_KIND } from '@/features/prompt-library/model/prompt-kinds'
+import {
+  findNearProject,
+  findProject,
+  suggestProjects,
+} from '@/features/prompt-library/model/prompt-projects'
 import { splitSequenceSteps } from '@/features/prompt-library/model/prompt-sequences'
 import { extractFillablePromptVariables } from '@/features/prompt-library/model/prompt-templates'
 import {
+  EMPTY_PROMPT_LIBRARY_FILTER,
   getCatalogNumbers,
-  matchesPromptFilter,
+  getFilterShowingPrompt,
+  isPromptLibraryFilterEmpty,
+  isSamePromptLibraryFilter,
   selectPromptLibraryVisibleState,
 } from '@/features/prompt-library/selectors/prompt-library-selectors'
 import {
@@ -85,7 +93,7 @@ const FINDER_COMMAND_IDS = [
   'delete-prompt',
 ] as const satisfies readonly PromptLibraryCommandId[]
 
-/** Matches a typed category or tag to its facet key, ignoring case. */
+/** Matches a typed tag to its facet key, ignoring case. */
 const findFacetKey = (facets: ReadonlyArray<{ key: string; label: string }>, wanted: string) => {
   const lower = wanted.toLowerCase().replace(/\/$/, '')
 
@@ -194,8 +202,19 @@ function PromptLibraryScreen() {
     setActivePane(3)
   }
 
-  const changeFilter = (nextFilter: PromptLibraryFilter) => {
-    actions.setFilter(nextFilter)
+  /** Changes some parts of the filter; the rest stay. Moving Project clears the grep. */
+  const changeFilter = (patch: Partial<PromptLibraryFilter>) => {
+    actions.setFilter({ ...filter, ...patch })
+
+    if ('project' in patch && !isSamePromptLibraryFilter({ ...filter, ...patch }, filter)) {
+      actions.clearQuery()
+    }
+
+    setActivePane(2)
+  }
+
+  const resetFilter = () => {
+    actions.setFilter(EMPTY_PROMPT_LIBRARY_FILTER)
     actions.clearQuery()
     setActivePane(2)
   }
@@ -311,9 +330,7 @@ function PromptLibraryScreen() {
     }
 
     // Make sure the new entry is visible in the list it lands in.
-    if (filter.type !== 'all' && !matchesPromptFilter(prompt, filter)) {
-      actions.setFilter({ type: 'all' })
-    }
+    actions.setFilter(getFilterShowingPrompt(prompt, filter))
 
     actions.clearQuery()
     setActivePane(3)
@@ -463,8 +480,8 @@ function PromptLibraryScreen() {
           return
         }
 
-        if (filter.type !== 'all' || query) {
-          changeFilter({ type: 'all' })
+        if (!isPromptLibraryFilterEmpty(filter) || query) {
+          resetFilter()
           return
         }
 
@@ -535,33 +552,40 @@ function PromptLibraryScreen() {
         openFinder(action.query)
         return
       case 'filter': {
-        const nextFilter = action.filter
+        const patch = { ...action.patch }
 
-        if (nextFilter.type === 'category') {
-          const key = findFacetKey(visibleState.facets.categories, nextFilter.category)
+        if (patch.project) {
+          // An exact match, or the only Project the letters could mean ("rendr" → render-md).
+          const matches = suggestProjects(patch.project, visibleState.facets.projects, 2)
+          const project =
+            findProject(patch.project, visibleState.facets.projects) ??
+            (matches.length === 1 ? matches[0] : null)
 
-          if (!key) {
-            echo(`E344: Can’t find directory “${nextFilter.category}”`)
+          if (!project) {
+            const near = findNearProject(patch.project, visibleState.facets.projects)
+
+            echo(
+              `E344: Can’t find project “${patch.project}”${near ? ` — did you mean ${near.label}?` : ''}`,
+              'error',
+            )
             return
           }
 
-          changeFilter({ type: 'category', category: key })
-          return
+          patch.project = project.label
         }
 
-        if (nextFilter.type === 'tag') {
-          const key = findFacetKey(visibleState.facets.tags, nextFilter.tag)
+        if (patch.tag) {
+          const key = findFacetKey(visibleState.facets.tags, patch.tag)
 
           if (!key) {
-            echo(`E486: Pattern not found: #${nextFilter.tag}`)
+            echo(`E486: Pattern not found: #${patch.tag}`)
             return
           }
 
-          changeFilter({ type: 'tag', tag: key })
-          return
+          patch.tag = key
         }
 
-        changeFilter(nextFilter)
+        changeFilter(patch)
         return
       }
       case 'search':
@@ -814,7 +838,13 @@ function PromptLibraryScreen() {
             filter={filter}
             isLoading={isLoading}
             onCapture={openCapture}
-            onClearFilter={() => changeFilter({ type: 'all' })}
+            counts={visibleState.facets.here}
+            onClearFilter={() =>
+              filter.kind || filter.pinned || filter.tag
+                ? changeFilter({ kind: null, pinned: false, tag: null })
+                : changeFilter({ project: null })
+            }
+            onFilterChange={changeFilter}
             onOpenLibrary={() => focusPane(1)}
             onQueryChange={actions.setQuery}
             onSelect={selectPrompt}
@@ -836,7 +866,7 @@ function PromptLibraryScreen() {
         >
           {isEditing ? (
             <PromptEditor
-              categories={visibleState.categories}
+              projects={visibleState.facets.projects}
               composer={composer}
               // Fresh editor state for every editing session.
               key={composer.mode === 'new' ? 'new' : `edit-${selectedPromptId ?? ''}`}
@@ -867,8 +897,8 @@ function PromptLibraryScreen() {
               onRemoveRun={commands.removeRunFromActivePrompt}
               onResetVariables={blanks.reset}
               onRevokeShare={revokePromptShare}
-              onSelectCategory={(category) => changeFilter({ type: 'category', category })}
-              onSelectTag={(tag) => changeFilter({ type: 'tag', tag })}
+              onSelectCategory={(category) => changeFilter({ project: category, tag: null })}
+              onSelectTag={(tag) => changeFilter({ tag })}
               onShare={sharePrompt}
               onTogglePin={commands.togglePinActivePrompt}
               onVariableChange={blanks.setValue}
@@ -899,7 +929,7 @@ function PromptLibraryScreen() {
         total={visibleState.orderedPromptIds.length}
       />
       <CommandLine
-        categories={visibleState.facets.categories.map((category) => category.label.toLowerCase())}
+        projects={visibleState.facets.projects.map((project) => project.label)}
         onClose={closeCommandLine}
         onOpen={openCommandLine}
         onSubmit={submitCommandLine}
@@ -908,9 +938,10 @@ function PromptLibraryScreen() {
       />
 
       <QuickCaptureDialog
-        defaultCategory={filter.type === 'category' ? filter.category : ''}
-        defaultKind={filter.type === 'kind' ? filter.kind : DEFAULT_PROMPT_KIND}
-        defaultTags={filter.type === 'tag' ? `#${filter.tag}` : ''}
+        defaultCategory={filter.project ?? ''}
+        defaultKind={filter.kind ?? DEFAULT_PROMPT_KIND}
+        defaultTags={filter.tag ? `#${filter.tag}` : ''}
+        projects={visibleState.facets.projects}
         onCapture={capture}
         onOpenChange={setIsCaptureOpen}
         open={isCaptureOpen}
@@ -935,7 +966,7 @@ function PromptLibraryScreen() {
           }
 
           if (!visibleState.orderedPromptIds.includes(promptId)) {
-            actions.setFilter({ type: 'all' })
+            actions.setFilter(EMPTY_PROMPT_LIBRARY_FILTER)
             actions.clearQuery()
           }
 

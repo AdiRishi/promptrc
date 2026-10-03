@@ -35,14 +35,23 @@ type FinderProps = {
   facets: PromptLibraryFacets
   actions: FinderAction[]
   onSelectPrompt: (promptId: string) => void
-  onFilter: (filter: PromptLibraryFilter) => void
+  /** Changes some parts of the filter; the rest stay. */
+  onFilter: (patch: Partial<PromptLibraryFilter>) => void
   onColorScheme: (scheme: ColorSchemePreference) => void
 }
 
 type FinderItem =
   | { kind: 'entry'; prompt: PromptRecord }
   | { kind: 'action'; action: FinderAction }
-  | { kind: 'filter'; label: string; filter: PromptLibraryFilter; count: number; glyph?: ReactNode }
+  | {
+      kind: 'filter'
+      label: string
+      /** The `:` command that does the same, shown in the preview. */
+      command: string
+      patch: Partial<PromptLibraryFilter>
+      count: number
+      glyph?: ReactNode
+    }
   | { kind: 'scheme'; id: ColorSchemePreference; description: string }
 
 const itemClass =
@@ -89,26 +98,44 @@ function FinderBody({
     callback()
   }
 
+  // Projects move you; kinds, ★ and tags narrow wherever you are.
   const filters: Array<Extract<FinderItem, { kind: 'filter' }>> = [
-    { kind: 'filter', label: '~/.promptrc', filter: { type: 'all' }, count: facets.total },
-    { kind: 'filter', label: '★ pinned', filter: { type: 'pinned' }, count: facets.pinned },
+    {
+      kind: 'filter',
+      label: '~ everything',
+      command: 'cd ~',
+      patch: { project: null, kind: null, pinned: false, tag: null },
+      count: facets.total,
+      glyph: <span className="text-accent">~</span>,
+    },
+    ...facets.projects.map((project) => ({
+      kind: 'filter' as const,
+      label: `@${project.label}/`,
+      command: `cd ${project.label}`,
+      patch: { project: project.label, tag: null },
+      count: project.count,
+    })),
     ...PROMPT_KINDS.map((kind) => ({
       kind: 'filter' as const,
       label: PROMPT_KIND_DEFINITIONS[kind].plural.toLowerCase(),
-      filter: { type: 'kind' as const, kind },
-      count: facets.kinds[kind],
+      command: PROMPT_KIND_DEFINITIONS[kind].plural.toLowerCase(),
+      patch: { kind },
+      count: facets.here.kinds[kind],
       glyph: <span className={KIND_TEXT_CLASS[kind]}>{KIND_GLYPHS[kind]}</span>,
     })),
-    ...facets.categories.map((category) => ({
-      kind: 'filter' as const,
-      label: `@${category.label.toLowerCase()}/`,
-      filter: { type: 'category' as const, category: category.key },
-      count: category.count,
-    })),
+    {
+      kind: 'filter',
+      label: '★ pinned',
+      command: 'pinned',
+      patch: { pinned: true },
+      count: facets.here.pinned,
+      glyph: <span className="text-accent">★</span>,
+    },
     ...facets.tags.map((tag) => ({
       kind: 'filter' as const,
       label: `#${tag.label}`,
-      filter: { type: 'tag' as const, tag: tag.key },
+      command: `tag ${tag.label}`,
+      patch: { tag: tag.key },
       count: tag.count,
     })),
   ]
@@ -185,7 +212,7 @@ function FinderBody({
           autoFocus
           className="min-w-0 flex-1 bg-transparent text-[14px] text-fg outline-none placeholder:text-fg-faint"
           onValueChange={setSearch}
-          placeholder="entries · #tags · @categories · >commands"
+          placeholder="entries · @projects · #tags · >commands"
           value={search}
         />
         <KeyCombo keys={['Esc']} />
@@ -205,7 +232,7 @@ function FinderBody({
                 <Command.Item
                   className={itemClass}
                   key={item.label}
-                  onSelect={run(() => onFilter(item.filter))}
+                  onSelect={run(() => onFilter(item.patch))}
                   value={filterValue(item.label)}
                 >
                   <span className="w-[1ch]">
@@ -295,7 +322,8 @@ function FinderPreview({ item }: { item: FinderItem | undefined }) {
     return (
       <div className="px-[2ch] pt-4 text-[12.5px] leading-[1.8] text-fg-dim">
         <p>
-          <span className="text-fg-faint">$</span> cd {item.label}
+          <span className="text-accent">:</span>
+          {item.command}
         </p>
         <p className="text-fg-faint">{item.count} entries</p>
       </div>

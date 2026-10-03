@@ -10,7 +10,7 @@ Keep the prompts, phrasings, sequences and benchmarks that worked — before the
 
 [**promptrc.app**](https://promptrc.app) · [Report a bug](https://github.com/AdiRishi/promptrc/issues)
 
-<img src="docs/screenshots/library.jpg" alt="promptrc as a three-pane terminal UI: a ~/.promptrc tree of kinds, categories and tags, an fzf-style list of entries, and the Bug Hunt prompt open with one fill-in blank completed, above a vim-style status line" width="100%" />
+<img src="docs/screenshots/library.jpg" alt="promptrc as a three-pane terminal UI: a ~/.promptrc tree of projects and tags, an fzf-style list of entries, and the Bug Hunt prompt open with one fill-in blank completed, above a vim-style status line" width="100%" />
 
 </div>
 
@@ -27,11 +27,17 @@ promptrc is your `~/.promptrc`: a keyboard-driven library for the moments when w
 | »   | **Sequence**  | An ordered chain of instructions  | Numbered steps, each yanked on its own (`:y2`), with progress as you go   |
 | ◆   | **Benchmark** | A reproducible test               | The expected result, a test-runner log of runs per model, and a pass rate |
 
-Every entry can carry **notes** (why it works, what good looks like), a **category**, **tags**, pasted **images**, and a **pin**.
+Every entry lives in a **project** and can carry **notes** (why it works, what good looks like), **tags**, pasted **images**, and a **pin**.
 
 <table>
   <tr>
-    <td width="50%"><img src="docs/screenshots/command-line.jpg" alt="The vim-style command line open at the bottom of the screen, with a wildmenu completing :colorscheme" /></td>
+    <td colspan="2"><img src="docs/screenshots/projects.jpg" alt="The render-md project with the sequences toggle on: the path reads ~/.promptrc/render-md/sequences, the projects tree is on the left and kind toggles with counts sit above the list" /></td>
+  </tr>
+  <tr>
+    <td colspan="2" align="center"><sub>Projects first: <kbd>:cd render-md</kbd>, then <kbd>:sequences</kbd> — they stack</sub></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="docs/screenshots/command-line.jpg" alt="The vim-style command line open at the bottom of the screen, with a wildmenu completing :cd with project names" /></td>
     <td width="50%"><img src="docs/screenshots/finder.jpg" alt="The Telescope-style finder: results on the left, a line-numbered preview of the highlighted sequence on the right" /></td>
   </tr>
   <tr>
@@ -39,11 +45,11 @@ Every entry can carry **notes** (why it works, what good looks like), a **catego
     <td align="center"><sub><kbd>⌘</kbd><kbd>K</kbd> — find anything, with a live preview</sub></td>
   </tr>
   <tr>
-    <td width="50%"><img src="docs/screenshots/capture-phosphor.jpg" alt="Quick capture floating over the library in the amber phosphor colorscheme, with scanlines" /></td>
+    <td width="50%"><img src="docs/screenshots/capture-phosphor.jpg" alt="Quick capture in the amber phosphor colorscheme; the project field asks did you mean render-md? for a typo" /></td>
     <td width="50%"><img src="docs/screenshots/sequence-raw.jpg" alt="A sequence in raw view with line numbers, in the tokyo-night colorscheme" /></td>
   </tr>
   <tr>
-    <td align="center"><sub><kbd>c</kbd> — capture from anywhere (phosphor)</sub></td>
+    <td align="center"><sub><kbd>c</kbd> — capture, and the project picker catching a typo (phosphor)</sub></td>
     <td align="center"><sub><kbd>r</kbd> — raw source with line numbers (tokyo-night)</sub></td>
   </tr>
 </table>
@@ -51,7 +57,9 @@ Every entry can carry **notes** (why it works, what good looks like), a **catego
 ## Highlights
 
 - **It drives like a terminal** — three lazygit-style panes (<kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd>), a vim status line that shows the mode, and an echo line instead of toasts.
-- **A real command line** — <kbd>:</kbd> takes ex commands with <kbd>⇥</kbd> completion and <kbd>↑</kbd> history: `:sequences`, `:cd engineering`, `:new benchmark`, `:y2`, `:rm!`, `:w`, `:q`.
+- **Projects first** — the tree is your projects; kinds, ★ and tags narrow whichever one you're in, and they stack: `:cd render-md` then `:sequences` is `~/.promptrc/render-md/sequences`.
+- **No near-duplicate projects** — picking a project suggests existing ones as you type, asks "did you mean render-md?" for a typo, and files "Render MD" under an existing `render-md`. A new project is always an explicit choice.
+- **A real command line** — <kbd>:</kbd> takes ex commands with <kbd>⇥</kbd> completion and <kbd>↑</kbd> history: `:cd render-md`, `:sequences`, `:new benchmark`, `:y2`, `:rm!`, `:w`, `:q`.
 - **Capture in seconds** — <kbd>c</kbd> floats a capture shell over whatever you're doing. Paste, pick a kind, <kbd>⌘</kbd><kbd>↵</kbd>. The title comes from the first line if you skip it.
 - **Fill-in blanks** — write `{{audience}}` or `{{tone | calm}}`; the viewer turns them into slots you type straight into, and remembers what you typed per entry.
 - **glow and bat** — read entries rendered, or press <kbd>r</kbd> for the raw markdown with line numbers and syntax colour.
@@ -63,21 +71,23 @@ Every entry can carry **notes** (why it works, what good looks like), a **catego
 
 ## Keys
 
-| Action                         | Keys                                                         |
-| ------------------------------ | ------------------------------------------------------------ |
-| Quick capture                  | <kbd>c</kbd>                                                 |
-| New, in the full editor        | <kbd>n</kbd> (or `:new [kind]`)                              |
-| Command line                   | <kbd>:</kbd>                                                 |
-| Find anything                  | <kbd>⌘</kbd> <kbd>K</kbd>                                    |
-| Focus a pane                   | <kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd>                       |
-| Grep the list                  | <kbd>/</kbd>                                                 |
-| Next · previous                | <kbd>j</kbd> · <kbd>k</kbd> (or arrows in the list)          |
-| Yank (with filled blanks)      | <kbd>y</kbd> or <kbd>⌘</kbd> <kbd>C</kbd>                    |
-| Rendered ⇄ raw                 | <kbd>r</kbd>                                                 |
-| Edit · pin · duplicate · share | <kbd>e</kbd> · <kbd>p</kbd> · <kbd>d</kbd> · <kbd>s</kbd>    |
-| Delete                         | <kbd>x</kbd> twice, or `:rm!`                                |
-| Save · cancel while editing    | <kbd>⌘</kbd> <kbd>↵</kbd> · <kbd>Esc</kbd> (or `:w` · `:q!`) |
-| The manual                     | <kbd>?</kbd> (or `:help`)                                    |
+| Action                         | Keys                                                             |
+| ------------------------------ | ---------------------------------------------------------------- |
+| Quick capture                  | <kbd>c</kbd>                                                     |
+| New, in the full editor        | <kbd>n</kbd> (or `:new [kind]`)                                  |
+| Command line                   | <kbd>:</kbd>                                                     |
+| Find anything                  | <kbd>⌘</kbd> <kbd>K</kbd>                                        |
+| Focus a pane                   | <kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd>                           |
+| Go to a project                | `:cd <project>` (<kbd>⇥</kbd> completes), `:cd ~` for everything |
+| Narrow to a kind · ★           | `:sequences` … · `:pinned`, or the toggles above the list        |
+| Grep the list                  | <kbd>/</kbd>                                                     |
+| Next · previous                | <kbd>j</kbd> · <kbd>k</kbd> (or arrows in the list)              |
+| Yank (with filled blanks)      | <kbd>y</kbd> or <kbd>⌘</kbd> <kbd>C</kbd>                        |
+| Rendered ⇄ raw                 | <kbd>r</kbd>                                                     |
+| Edit · pin · duplicate · share | <kbd>e</kbd> · <kbd>p</kbd> · <kbd>d</kbd> · <kbd>s</kbd>        |
+| Delete                         | <kbd>x</kbd> twice, or `:rm!`                                    |
+| Save · cancel while editing    | <kbd>⌘</kbd> <kbd>↵</kbd> · <kbd>Esc</kbd> (or `:w` · `:q!`)     |
+| The manual                     | <kbd>?</kbd> (or `:help`)                                        |
 
 ---
 
