@@ -1,131 +1,257 @@
 @import 'tailwindcss';
 @import '@clerk/ui/themes/shadcn.css';
 @import 'tw-animate-css';
-@import '@fontsource-variable/geist';
-@import '@fontsource-variable/geist-mono';
-@import '@fontsource-variable/newsreader/opsz.css';
-@import '@fontsource-variable/newsreader/opsz-italic.css';
+@import '@fontsource-variable/recursive/full.css';
 
 /*
- * promptrc — a commonplace book for working with AI.
+ * promptrc is a terminal application. Everything sits on a monospace grid,
+ * panes are framed like a TUI, and colour comes from a terminal colorscheme.
  *
- * Light is warm paper and iron-gall ink; dark is a darkroom with the same ink
- * glowing back. Vermilion is the editor's red pencil: it marks what matters
- * (the selection, the primary action, the fill-in blanks) and nothing else.
- * Each kind of entry has its own ink, keyed to a printer's mark.
+ * Text is Recursive with its MONO axis at 1. Box-drawing, block, arrow and
+ * symbol glyphs come from a JetBrains Mono subset (same 0.6em advance), so
+ * borders, trees and sparklines line up with the text around them.
  */
-
-@custom-variant dark (&:where(.dark, .dark *));
-
-:root {
-    color-scheme: light;
-
-    --paper: #f4f0e8;
-    --paper-raised: #fbf9f4;
-    --paper-sunken: #ece6da;
-    --ink: #1d1b17;
-    --ink-soft: #3c3830;
-    --ink-muted: #6f685c;
-    --ink-faint: #9a9284;
-    --rule: #ddd5c6;
-    --rule-strong: #c9bfac;
-
-    --vermilion: #d9381e;
-    --vermilion-ink: #b72c14;
-    --vermilion-wash: #f7dfd6;
-
-    --kind-prompt: #d9381e;
-    --kind-fragment: #3f4fc4;
-    --kind-sequence: #1f7a63;
-    --kind-benchmark: #b57a0c;
-
-    --verdict-pass: #1f7a63;
-    --verdict-mixed: #b57a0c;
-    --verdict-fail: #c22f1b;
-
-    --grain-opacity: 0.35;
-    --shadow-card: 0 1px 0 rgb(29 27 23 / 0.04), 0 12px 32px -18px rgb(29 27 23 / 0.28);
-    --shadow-float: 0 1px 0 rgb(29 27 23 / 0.05), 0 28px 80px -24px rgb(29 27 23 / 0.45);
-
-    /* shadcn-compatible tokens: Base UI primitives and Clerk's shadcn theme read these. */
-    --background: var(--paper);
-    --foreground: var(--ink);
-    --card: var(--paper-raised);
-    --card-foreground: var(--ink);
-    --popover: var(--paper-raised);
-    --popover-foreground: var(--ink);
-    --primary: var(--vermilion);
-    --primary-foreground: #fff8f4;
-    --secondary: var(--paper-sunken);
-    --secondary-foreground: var(--ink);
-    --muted: var(--paper-sunken);
-    --muted-foreground: var(--ink-muted);
-    --accent: var(--paper-sunken);
-    --accent-foreground: var(--ink);
-    --destructive: var(--verdict-fail);
-    --border: var(--rule);
-    --input: var(--rule-strong);
-    --ring: var(--vermilion);
-    --radius: 0.625rem;
+@font-face {
+    font-family: 'Terminal Symbols';
+    font-style: normal;
+    font-display: block;
+    font-weight: 100 900;
+    src: url('./fonts/terminal-symbols.woff2') format('woff2-variations');
+    unicode-range:
+        U+2022, U+03BB, U+2190-21FF, U+2300-23FF, U+2500-257F, U+2580-259F, U+25A0-25FF, U+2700-27BF;
 }
 
-.dark {
+@custom-variant dark (&:where(.dark, .dark *));
+@custom-variant crt (&:where([data-crt], [data-crt] *));
+
+/* ── colorschemes ──────────────────────────────────────────────────────────
+ * Each scheme sets the terminal palette; everything else derives from it.
+ * The default follows the system: `promptrc` when dark, `daylight` when light.
+ */
+:root,
+[data-scheme='promptrc'] {
     color-scheme: dark;
+    --bg: #0b0c0e;
+    --bg-raised: #0f1013;
+    --bg-sunken: #07080a;
+    --bg-hover: #15161a;
+    --bg-sel: #221d14;
+    --fg: #e8e6e3;
+    --fg-dim: #a29d96;
+    --fg-faint: #67635d;
+    --line: #24262b;
+    --line-strong: #34363d;
+    --accent: #ffb454;
+    --accent-fg: #1a1305;
+    --red: #ff6b6b;
+    --green: #7acc8e;
+    --yellow: #ffb454;
+    --blue: #7eb6f2;
+    --magenta: #c0a4ff;
+    --cyan: #6cc4d9;
+    --scanline-opacity: 0.018;
+    --glow: 0;
+}
 
-    --paper: #121110;
-    --paper-raised: #1a1917;
-    --paper-sunken: #0d0c0b;
-    --ink: #ece6da;
-    --ink-soft: #cfc7b8;
-    --ink-muted: #948c7e;
-    --ink-faint: #6a6357;
-    --rule: #2b2925;
-    --rule-strong: #3b3832;
+[data-scheme='daylight'] {
+    color-scheme: light;
+    --bg: #f5f2ea;
+    --bg-raised: #fbf9f4;
+    --bg-sunken: #ebe6da;
+    --bg-hover: #ede7db;
+    --bg-sel: #f3dfbd;
+    --fg: #22201c;
+    --fg-dim: #5c564d;
+    --fg-faint: #958e82;
+    --line: #d9d1c2;
+    --line-strong: #c4baa7;
+    --accent: #b4520a;
+    --accent-fg: #fff8ef;
+    --red: #c0392b;
+    --green: #2e7a4d;
+    --yellow: #9a6500;
+    --blue: #2a62ad;
+    --magenta: #8b43b0;
+    --cyan: #1d7688;
+    --scanline-opacity: 0;
+    --glow: 0;
+}
 
-    --vermilion: #ff6b4a;
-    --vermilion-ink: #ff8a6e;
-    --vermilion-wash: #3a1d15;
+[data-scheme='phosphor'] {
+    color-scheme: dark;
+    --bg: #100902;
+    --bg-raised: #140b02;
+    --bg-sunken: #0b0601;
+    --bg-hover: #1e1304;
+    --bg-sel: #3b2507;
+    --fg: #ffb000;
+    --fg-dim: #c98a00;
+    --fg-faint: #7c5400;
+    --line: #3d2805;
+    --line-strong: #5c3c07;
+    --accent: #ffd04a;
+    --accent-fg: #100902;
+    --red: #ff8640;
+    --green: #ffcf3d;
+    --yellow: #ffd866;
+    --blue: #ffb000;
+    --magenta: #ffa033;
+    --cyan: #ffd75c;
+    --scanline-opacity: 0.09;
+    --glow: 1;
+}
 
-    --kind-prompt: #ff6b4a;
-    --kind-fragment: #8f9cff;
-    --kind-sequence: #4fc7a4;
-    --kind-benchmark: #e8b34a;
+[data-scheme='green-screen'] {
+    color-scheme: dark;
+    --bg: #020e05;
+    --bg-raised: #031208;
+    --bg-sunken: #010903;
+    --bg-hover: #071c0d;
+    --bg-sel: #0b3416;
+    --fg: #3cff70;
+    --fg-dim: #25c250;
+    --fg-faint: #137833;
+    --line: #0c3d1a;
+    --line-strong: #135a27;
+    --accent: #8dffae;
+    --accent-fg: #020e05;
+    --red: #c4ff57;
+    --green: #3cff70;
+    --yellow: #d4ff6e;
+    --blue: #3dffd0;
+    --magenta: #6dffc2;
+    --cyan: #3dffd0;
+    --scanline-opacity: 0.09;
+    --glow: 1;
+}
 
-    --verdict-pass: #4fc7a4;
-    --verdict-mixed: #e8b34a;
-    --verdict-fail: #ff6b4a;
+[data-scheme='tokyo-night'] {
+    color-scheme: dark;
+    --bg: #1a1b26;
+    --bg-raised: #1d1e2b;
+    --bg-sunken: #16161e;
+    --bg-hover: #222436;
+    --bg-sel: #283457;
+    --fg: #c0caf5;
+    --fg-dim: #a9b1d6;
+    --fg-faint: #565f89;
+    --line: #292e42;
+    --line-strong: #3b4261;
+    --accent: #7aa2f7;
+    --accent-fg: #16161e;
+    --red: #f7768e;
+    --green: #9ece6a;
+    --yellow: #e0af68;
+    --blue: #7aa2f7;
+    --magenta: #bb9af7;
+    --cyan: #7dcfff;
+    --scanline-opacity: 0;
+    --glow: 0;
+}
 
-    --grain-opacity: 0.5;
-    --shadow-card: 0 1px 0 rgb(255 255 255 / 0.03), 0 16px 40px -20px rgb(0 0 0 / 0.8);
-    --shadow-float: 0 1px 0 rgb(255 255 255 / 0.04), 0 32px 90px -24px rgb(0 0 0 / 0.9);
+[data-scheme='catppuccin'] {
+    color-scheme: dark;
+    --bg: #1e1e2e;
+    --bg-raised: #222234;
+    --bg-sunken: #181825;
+    --bg-hover: #29293d;
+    --bg-sel: #313244;
+    --fg: #cdd6f4;
+    --fg-dim: #a6adc8;
+    --fg-faint: #6c7086;
+    --line: #313244;
+    --line-strong: #45475a;
+    --accent: #cba6f7;
+    --accent-fg: #11111b;
+    --red: #f38ba8;
+    --green: #a6e3a1;
+    --yellow: #f9e2af;
+    --blue: #89b4fa;
+    --magenta: #f5c2e7;
+    --cyan: #94e2d5;
+    --scanline-opacity: 0;
+    --glow: 0;
+}
 
-    --primary-foreground: #1c0b06;
+[data-scheme='gruvbox'] {
+    color-scheme: dark;
+    --bg: #282828;
+    --bg-raised: #2c2c2b;
+    --bg-sunken: #1d2021;
+    --bg-hover: #32302f;
+    --bg-sel: #3c3836;
+    --fg: #ebdbb2;
+    --fg-dim: #bdae93;
+    --fg-faint: #7c6f64;
+    --line: #3c3836;
+    --line-strong: #504945;
+    --accent: #fe8019;
+    --accent-fg: #1d2021;
+    --red: #fb4934;
+    --green: #b8bb26;
+    --yellow: #fabd2f;
+    --blue: #83a598;
+    --magenta: #d3869b;
+    --cyan: #8ec07c;
+    --scanline-opacity: 0;
+    --glow: 0;
+}
+
+/* shadcn-compatible names: Base UI primitives and Clerk's shadcn theme read these. */
+:root,
+[data-scheme] {
+    --background: var(--bg);
+    --foreground: var(--fg);
+    --card: var(--bg-raised);
+    --card-foreground: var(--fg);
+    --popover: var(--bg-raised);
+    --popover-foreground: var(--fg);
+    --primary: var(--accent);
+    --primary-foreground: var(--accent-fg);
+    --secondary: var(--bg-hover);
+    --secondary-foreground: var(--fg);
+    --muted: var(--bg-sunken);
+    --muted-foreground: var(--fg-dim);
+    --accent-shadcn: var(--bg-hover);
+    --destructive: var(--red);
+    --border: var(--line);
+    --input: var(--line-strong);
+    --ring: var(--accent);
+    --radius: 0.375rem;
+
+    --kind-prompt: var(--yellow);
+    --kind-fragment: var(--magenta);
+    --kind-sequence: var(--green);
+    --kind-benchmark: var(--cyan);
 }
 
 @theme inline {
-    --font-sans: 'Geist Variable', ui-sans-serif, system-ui, sans-serif;
-    --font-serif: 'Newsreader Variable', 'Iowan Old Style', Georgia, serif;
-    --font-mono: 'Geist Mono Variable', ui-monospace, 'SFMono-Regular', monospace;
+    --font-mono:
+        'Terminal Symbols', 'Recursive Variable', ui-monospace, 'SFMono-Regular', Menlo, monospace;
+    --font-sans: var(--font-mono);
 
-    --color-paper: var(--paper);
-    --color-paper-raised: var(--paper-raised);
-    --color-paper-sunken: var(--paper-sunken);
-    --color-ink: var(--ink);
-    --color-ink-soft: var(--ink-soft);
-    --color-ink-muted: var(--ink-muted);
-    --color-ink-faint: var(--ink-faint);
-    --color-rule: var(--rule);
-    --color-rule-strong: var(--rule-strong);
-    --color-vermilion: var(--vermilion);
-    --color-vermilion-ink: var(--vermilion-ink);
-    --color-vermilion-wash: var(--vermilion-wash);
+    --color-bg: var(--bg);
+    --color-bg-raised: var(--bg-raised);
+    --color-bg-sunken: var(--bg-sunken);
+    --color-bg-hover: var(--bg-hover);
+    --color-bg-sel: var(--bg-sel);
+    --color-fg: var(--fg);
+    --color-fg-dim: var(--fg-dim);
+    --color-fg-faint: var(--fg-faint);
+    --color-line: var(--line);
+    --color-line-strong: var(--line-strong);
+    --color-accent: var(--accent);
+    --color-accent-fg: var(--accent-fg);
+    --color-red: var(--red);
+    --color-green: var(--green);
+    --color-yellow: var(--yellow);
+    --color-blue: var(--blue);
+    --color-magenta: var(--magenta);
+    --color-cyan: var(--cyan);
     --color-kind-prompt: var(--kind-prompt);
     --color-kind-fragment: var(--kind-fragment);
     --color-kind-sequence: var(--kind-sequence);
     --color-kind-benchmark: var(--kind-benchmark);
-    --color-verdict-pass: var(--verdict-pass);
-    --color-verdict-mixed: var(--verdict-mixed);
-    --color-verdict-fail: var(--verdict-fail);
 
     --color-background: var(--background);
     --color-foreground: var(--foreground);
@@ -139,70 +265,80 @@
     --color-secondary-foreground: var(--secondary-foreground);
     --color-muted: var(--muted);
     --color-muted-foreground: var(--muted-foreground);
-    --color-accent: var(--accent);
-    --color-accent-foreground: var(--accent-foreground);
     --color-destructive: var(--destructive);
     --color-border: var(--border);
     --color-input: var(--input);
     --color-ring: var(--ring);
 
-    --radius-sm: calc(var(--radius) - 4px);
-    --radius-md: calc(var(--radius) - 2px);
-    --radius-lg: var(--radius);
-    --radius-xl: calc(var(--radius) + 4px);
-    --radius-2xl: calc(var(--radius) + 8px);
+    --radius-sm: 0.25rem;
+    --radius-md: 0.375rem;
+    --radius-lg: 0.5rem;
 
-    --shadow-card: var(--shadow-card);
-    --shadow-float: var(--shadow-float);
-
-    --ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);
-
-    --animate-rise: rise 0.42s var(--ease-out-quint) both;
-    --animate-fade: fade 0.24s ease both;
-    --animate-stamp: stamp 0.36s var(--ease-out-quint) both;
+    --animate-blink: blink 1.06s steps(1) infinite;
+    --animate-type-in: type-in 0.28s steps(8) both;
+    --animate-boot: boot-line 0.18s steps(2) both;
+    --animate-pop: pop 0.14s ease-out both;
 }
 
 @layer base {
     * {
-        @apply border-border outline-ring/60;
+        @apply border-line outline-accent/70;
     }
 
     html {
-        @apply bg-paper font-sans text-ink;
-        font-synthesis-weight: none;
-        text-rendering: optimizeLegibility;
+        @apply bg-bg font-mono text-fg;
+        font-variation-settings:
+            'MONO' 1,
+            'CASL' 0,
+            'CRSV' 0;
+        font-synthesis: none;
         -webkit-tap-highlight-color: transparent;
     }
 
     body {
-        @apply min-h-dvh bg-paper text-[14px] leading-normal text-ink antialiased;
-        font-feature-settings: 'ss01', 'cv11';
+        @apply min-h-dvh bg-bg text-[13.5px] leading-[1.6] text-fg antialiased;
+        text-shadow: 0 0 calc(var(--glow) * 6px) color-mix(in oklab, var(--fg) 55%, transparent);
     }
 
-    /* Paper grain: a fixed, low-contrast noise layer under everything. */
-    body::before {
+    /* Scanlines: barely there on the default scheme, unmistakable on the CRTs. */
+    body::after {
         content: '';
         position: fixed;
         inset: 0;
-        z-index: 0;
+        z-index: 100;
         pointer-events: none;
-        opacity: var(--grain-opacity);
-        mix-blend-mode: multiply;
-        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.45 0 0 0 0 0.4 0 0 0 0 0.33 0 0 0 0.09 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+        background: repeating-linear-gradient(
+            to bottom,
+            rgb(255 255 255 / var(--scanline-opacity)) 0,
+            rgb(255 255 255 / var(--scanline-opacity)) 1px,
+            transparent 1px,
+            transparent 3px
+        );
     }
 
-    .dark body::before {
-        mix-blend-mode: screen;
-        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 0.95 0 0 0 0 0.85 0 0 0 0.035 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    [data-crt] body::before {
+        content: '';
+        position: fixed;
+        inset: 0;
+        z-index: 100;
+        pointer-events: none;
+        background: radial-gradient(ellipse at center, transparent 55%, rgb(0 0 0 / 0.55) 100%);
     }
 
     ::selection {
-        background: color-mix(in oklab, var(--vermilion) 22%, transparent);
+        background: var(--accent);
+        color: var(--accent-fg);
+        text-shadow: none;
     }
 
     :focus-visible {
-        outline: 2px solid var(--ring);
-        outline-offset: 2px;
+        outline: 1px solid var(--accent);
+        outline-offset: 1px;
+    }
+
+    input,
+    textarea {
+        caret-color: var(--accent);
     }
 
     @media (prefers-reduced-motion: reduce) {
@@ -217,79 +353,99 @@
 }
 
 @layer components {
-    /* Small caps-style labels: catalog numbers, section heads, metadata keys. */
-    .label-caps {
-        @apply font-mono text-[10.5px] font-medium tracking-[0.14em] text-ink-muted uppercase;
+    /* The handwritten-mono voice for annotations: Recursive's casual axis + slant. */
+    .voice-note {
+        font-variation-settings:
+            'MONO' 1,
+            'CASL' 1,
+            'CRSV' 1,
+            'slnt' -9;
     }
 
-    .font-display {
-        font-family: var(--font-serif);
-        font-optical-sizing: auto;
-        font-variation-settings: 'opsz' 48;
-        letter-spacing: -0.012em;
+    /* Heavy, slightly casual display weight for titles — a figlet without the ASCII. */
+    .voice-title {
+        font-weight: 800;
+        font-variation-settings:
+            'MONO' 1,
+            'CASL' 0.35,
+            'CRSV' 0;
+        letter-spacing: -0.02em;
     }
 
-    .font-reading {
-        font-family: var(--font-serif);
-        font-optical-sizing: auto;
-        font-variation-settings: 'opsz' 16;
+    /* A TUI pane: rounded single-line frame with its title set into the border. */
+    .pane {
+        @apply relative rounded-md border border-line bg-bg-raised;
     }
 
-    .hairline-x {
-        background-image: linear-gradient(to right, var(--rule) 50%, transparent 50%);
-        background-size: 6px 1px;
-        background-repeat: repeat-x;
+    .pane:focus-within {
+        @apply border-accent/70;
     }
 
-    /* Ruled index-card lines, used behind quick capture. */
-    .ruled {
-        background-image: linear-gradient(
-            to bottom,
-            transparent calc(2rem - 1px),
-            color-mix(in oklab, var(--rule) 70%, transparent) calc(2rem - 1px),
-            color-mix(in oklab, var(--rule) 70%, transparent) 2rem
-        );
-        background-size: 100% 2rem;
-        background-attachment: local;
+    .pane-title {
+        @apply absolute -top-[0.72em] left-2.5 z-10 flex max-w-[calc(100%-1.25rem)] items-center gap-1.5 bg-bg-raised px-1.5 text-[12px] leading-[1.4] text-fg-dim;
     }
 
-    .scrollbar-quiet {
+    .pane:focus-within > .pane-title {
+        @apply text-accent;
+    }
+
+    .pane-title-right {
+        @apply absolute -top-[0.72em] right-2.5 z-10 flex items-center gap-1.5 bg-bg-raised px-1.5 text-[12px] leading-[1.4] text-fg-faint;
+    }
+
+    .cursor-block::after {
+        content: '';
+        display: inline-block;
+        width: 0.6em;
+        height: 1.15em;
+        margin-left: 1px;
+        vertical-align: -0.2em;
+        background: var(--accent);
+        animation: var(--animate-blink);
+    }
+
+    .scrollbar-term {
         scrollbar-width: thin;
-        scrollbar-color: var(--rule-strong) transparent;
+        scrollbar-color: var(--line-strong) transparent;
     }
 }
 
-@keyframes rise {
+@keyframes blink {
+    0%,
+    50% {
+        opacity: 1;
+    }
+    50.01%,
+    100% {
+        opacity: 0;
+    }
+}
+
+@keyframes type-in {
+    from {
+        clip-path: inset(0 100% 0 0);
+    }
+    to {
+        clip-path: inset(0 0 0 0);
+    }
+}
+
+@keyframes boot-line {
     from {
         opacity: 0;
-        transform: translateY(8px);
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes pop {
+    from {
+        opacity: 0;
+        transform: translateY(4px);
     }
     to {
         opacity: 1;
         transform: translateY(0);
-    }
-}
-
-@keyframes fade {
-    from {
-        opacity: 0;
-    }
-    to {
-        opacity: 1;
-    }
-}
-
-@keyframes stamp {
-    0% {
-        opacity: 0;
-        transform: scale(1.35) rotate(-8deg);
-    }
-    60% {
-        opacity: 1;
-        transform: scale(0.96) rotate(-3deg);
-    }
-    100% {
-        opacity: 1;
-        transform: scale(1) rotate(-3deg);
     }
 }

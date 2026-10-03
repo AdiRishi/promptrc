@@ -37,6 +37,7 @@ const renderReader = (prompt: PromptRecord, overrides: Record<string, unknown> =
     onResetVariables: vi.fn(),
     onSelectTag: vi.fn(),
     onSelectCategory: vi.fn(),
+    onViewModeChange: vi.fn(),
   }
 
   render(
@@ -48,6 +49,7 @@ const renderReader = (prompt: PromptRecord, overrides: Record<string, unknown> =
       knownModels={['claude-opus-5-5']}
       prompt={prompt}
       variableValues={{}}
+      viewMode="rendered"
       {...handlers}
       {...overrides}
     />,
@@ -85,7 +87,7 @@ describe('PromptReader', () => {
       }),
     )
 
-    expect(screen.getByText('Step 2 of 3')).toBeTruthy()
+    expect(screen.getByText(/Step 2 of 3/)).toBeTruthy()
 
     fireEvent.click(screen.getByRole('button', { name: 'Copy step 2' }))
 
@@ -111,10 +113,10 @@ describe('PromptReader', () => {
     )
 
     expect(screen.getByText('Pass when the decision leads.')).toBeTruthy()
-    expect(screen.getByText('100%')).toBeTruthy()
+    expect(screen.getByText(/100% pass rate/)).toBeTruthy()
 
     fireEvent.click(screen.getByLabelText('Fail'))
-    fireEvent.change(screen.getByPlaceholderText(/What happened/), {
+    fireEvent.change(screen.getByPlaceholderText(/what happened/i), {
       target: { value: 'Buried the decision' },
     })
     fireEvent.submit(screen.getByRole('form', { name: 'Log a run' }))
@@ -124,6 +126,14 @@ describe('PromptReader', () => {
       verdict: 'fail',
       note: 'Buried the decision',
     })
+  })
+
+  it('shows the source with line numbers in raw view', () => {
+    renderReader(createPrompt({ body: '# Heading\n\nReview {{file}}.' }), { viewMode: 'raw' })
+
+    expect(screen.getByText('Heading')).toBeTruthy()
+    expect(screen.queryByRole('heading', { name: 'Heading' })).toBeNull()
+    expect(screen.getByLabelText('file')).toBeTruthy()
   })
 
   it('asks for a second press before deleting', () => {

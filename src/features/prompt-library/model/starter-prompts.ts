@@ -23,18 +23,23 @@ const STARTER_PROMPT_DEFINITIONS = [
     category: 'Onboarding',
     tags: ['onboarding', 'promptrc'],
     pinned: true,
-    body: `promptrc is a commonplace book for working with AI — somewhere to keep the things that worked before they slip away.
+    body: `promptrc is a place for the prompts that worked — the things worth keeping from working with AI, before they slip away.
 
 Four kinds of things are worth keeping:
 
-- **Prompts** — reusable instructions. Write \`{{variables}}\` for the parts that change, like {{your_name | friend}}, and fill them in before copying.
+- **Prompts** — reusable instructions. Write \`{{variables}}\` for the parts that change, like {{your_name | friend}}, and fill them in before you yank.
 - **Fragments** — a turn of phrase that landed exactly right.
-- **Sequences** — an ordered chain of instructions, copied one step at a time.
+- **Sequences** — an ordered chain of instructions, yanked one step at a time.
 - **Benchmarks** — a reproducible test with an expected result and a log of runs.
 
-Press **c** anywhere to capture a thought in seconds, **⌘K** to search or run any command, and **?** to see every key.`,
+It drives like a terminal:
+
+- **c** captures a thought in seconds, **y** yanks the selection to your clipboard, **r** flips between rendered and raw.
+- **j** / **k** move, **1** **2** **3** jump between panes, **⌘K** finds anything.
+- **:** opens the command line — try \`:sequences\`, \`:colorscheme phosphor\` or \`:new benchmark\`.
+- **?** opens the manual.`,
     notes:
-      'Pinned so it stays at the top. Unpin it with p, or delete it with x pressed twice — it is yours now.',
+      'Pinned so it stays at the top. Unpin it with p, or delete it with x pressed twice (or :rm!) — it is yours now.',
   },
   {
     kind: 'prompt',

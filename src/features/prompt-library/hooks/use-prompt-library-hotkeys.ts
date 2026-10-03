@@ -19,6 +19,8 @@ type UsePromptLibraryHotkeysOptions = {
   onRunCommand: (commandId: PromptLibraryCommandId) => void
   onToggleHelp: () => void
   onTogglePalette: () => void
+  onOpenCommandLine: () => void
+  onFocusPane: (pane: 1 | 2 | 3) => void
 }
 
 const isTypingTarget = (target: EventTarget | null): target is HTMLElement => {
@@ -59,6 +61,8 @@ export function usePromptLibraryHotkeys({
   onRunCommand,
   onToggleHelp,
   onTogglePalette,
+  onOpenCommandLine,
+  onFocusPane,
 }: UsePromptLibraryHotkeysOptions) {
   const onKeyDown = useEffectEvent((event: KeyboardEvent) => {
     if (event.defaultPrevented || event.isComposing) {
@@ -74,7 +78,7 @@ export function usePromptLibraryHotkeys({
       return
     }
 
-    if (isHelpOpen && event.key === '?') {
+    if (isHelpOpen && (event.key === '?' || event.key === 'q')) {
       event.preventDefault()
       onToggleHelp()
       return
@@ -86,6 +90,14 @@ export function usePromptLibraryHotkeys({
 
     const target = event.target
     const isTyping = isTypingTarget(target)
+
+    // `:` opens the command line from anywhere you aren't typing — in the
+    // editor too, so `:w` and `:q` work once focus leaves the fields.
+    if (event.key === ':' && !isTyping && !isMod && !event.altKey) {
+      event.preventDefault()
+      onOpenCommandLine()
+      return
+    }
 
     if (composerMode !== 'view') {
       if (event.key === 'Escape') {
@@ -129,6 +141,12 @@ export function usePromptLibraryHotkeys({
     if (event.key === '?') {
       event.preventDefault()
       onToggleHelp()
+      return
+    }
+
+    if (event.key === '1' || event.key === '2' || event.key === '3') {
+      event.preventDefault()
+      onFocusPane(Number(event.key) as 1 | 2 | 3)
       return
     }
 

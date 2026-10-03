@@ -29,11 +29,7 @@ export function PromptVariableSlot({ name, fallback, raw }: PromptVariableSlotPr
   const id = useId()
 
   if (!context) {
-    return (
-      <span className="rounded-[4px] bg-vermilion-wash px-1 font-mono text-[0.86em] text-vermilion-ink">
-        {raw}
-      </span>
-    )
+    return <span className="rounded-sm bg-accent/12 px-[0.5ch] text-accent">{raw}</span>
   }
 
   const value = context.values[name] ?? ''
@@ -47,15 +43,15 @@ export function PromptVariableSlot({ name, fallback, raw }: PromptVariableSlotPr
       <input
         autoComplete="off"
         className={cn(
-          'peer mx-[0.1em] [field-sizing:content] max-w-[min(32ch,100%)] min-w-[3ch] rounded-[5px] px-[0.35em] py-0 align-baseline font-sans text-[0.88em] leading-[1.5] transition-[background-color,box-shadow] outline-none',
+          'mx-[0.25ch] [field-sizing:content] max-w-[min(40ch,100%)] min-w-[4ch] rounded-sm border-b px-[0.5ch] py-0 align-baseline font-mono text-[0.95em] leading-[1.45] transition-colors outline-none',
           value
-            ? 'bg-transparent text-ink shadow-[inset_0_-1.5px_0_var(--vermilion)] focus:bg-vermilion-wash/60'
-            : 'bg-vermilion-wash text-vermilion-ink shadow-[inset_0_0_0_1px_color-mix(in_oklab,var(--vermilion)_35%,transparent)] placeholder:font-mono placeholder:text-[0.92em] placeholder:text-vermilion-ink/80 focus:shadow-[inset_0_0_0_1.5px_var(--vermilion)]',
+            ? 'border-accent bg-accent/10 font-semibold text-accent focus:bg-accent/20'
+            : 'border-dashed border-accent/70 bg-accent/12 text-accent placeholder:text-accent/75 focus:border-solid focus:bg-accent/20',
         )}
         data-prompt-variable={name}
         id={id}
         onChange={(event) => context.onChange(name, event.target.value)}
-        placeholder={fallback ? `${name} · ${fallback}` : name}
+        placeholder={fallback ? `‹${name}=${fallback}›` : `‹${name}›`}
         spellCheck={false}
         type="text"
         value={value}

@@ -9,7 +9,7 @@ import {
 import appCss from '@/global-styles/tailwind.css?url'
 import { AppProviders } from '@/lib/app-providers'
 import { SITE_AUTHOR, SITE_THEME_COLOR, SITE_THEME_COLOR_DARK } from '@/lib/site-config'
-import { THEME_INIT_SCRIPT } from '@/lib/theme'
+import { COLOR_SCHEME_INIT_SCRIPT } from '@/lib/theme'
 
 const GA_ID = 'G-07N4HEE4SJ'
 
@@ -93,11 +93,11 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 
 function RootDocument({ children }: { children: React.ReactNode }) {
   return (
-    // The theme class is applied before hydration by THEME_INIT_SCRIPT.
+    // The colorscheme is applied before hydration by COLOR_SCHEME_INIT_SCRIPT.
     <html lang="en" suppressHydrationWarning>
       <head>
-        {/* Runs before first paint so the page never flashes the wrong theme. */}
-        <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
+        {/* Runs before first paint so the page never flashes the wrong colorscheme. */}
+        <script dangerouslySetInnerHTML={{ __html: COLOR_SCHEME_INIT_SCRIPT }} />
         <HeadContent />
         <ClientOnly fallback={null}>
           <GoogleAnalytics />

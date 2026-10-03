@@ -1,9 +1,9 @@
 export const SITE_NAME = 'promptrc'
 export const SITE_AUTHOR = SITE_NAME
-export const SITE_APP_HEADING = 'promptrc — a commonplace book for working with AI'
-export const SITE_DEFAULT_TITLE = 'promptrc | a commonplace book for working with AI'
+export const SITE_APP_HEADING = 'promptrc — a terminal for the prompts that worked'
+export const SITE_DEFAULT_TITLE = 'promptrc | a terminal for the prompts that worked'
 export const SITE_DESCRIPTION =
-  'A local-first commonplace book for working with AI: capture reusable prompts with fill-in variables, phrasing that landed, multi-step sequences, and reproducible benchmarks — then find and reuse them in seconds.'
+  'A keyboard-driven, local-first terminal for the prompts that worked: reusable prompts with fill-in variables, phrasing that landed, multi-step sequences, and reproducible benchmarks — captured in seconds, found with a keystroke.'
 export const SITE_KEYWORD_LIST = [
   'promptrc',
   'AI prompt manager',
@@ -23,14 +23,14 @@ export const SITE_ALTERNATE_NAMES = [
 ] as const
 export const SITE_AUDIENCE =
   'AI power users, developers, writers, product managers, and operators who reuse prompts across ChatGPT, Claude, and other AI tools.'
-export const SITE_THEME_COLOR = '#f4f0e8'
-export const SITE_THEME_COLOR_DARK = '#121110'
-export const SITE_BACKGROUND_COLOR = '#f4f0e8'
+export const SITE_THEME_COLOR = '#f5f2ea'
+export const SITE_THEME_COLOR_DARK = '#0b0c0e'
+export const SITE_BACKGROUND_COLOR = '#0b0c0e'
 export const SITE_IN_LANGUAGE = 'en'
 export const SITE_OG_LOCALE = 'en_US'
 export const SITE_SOCIAL_IMAGE_PATH = '/og-preview.png'
 export const SITE_SOCIAL_IMAGE_ALT =
-  'promptrc interface showing a searchable AI prompt manager with categories, tags, and copy actions'
+  'A terminal pane reading “Keep the words that worked, before they slip away.” above the four promptrc kinds: prompts, fragments, sequences and benchmarks'
 export const SITE_LOGO_PATH = '/logo512.png'
 export const SITE_URL_ENV_KEY = 'VITE_SITE_URL'
 export const DEFAULT_SITE_URL = 'http://localhost:8080'

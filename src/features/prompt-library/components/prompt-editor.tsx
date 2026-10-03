@@ -1,22 +1,18 @@
-import { ArrowDown, ArrowUp, ImageIcon, Plus, X } from 'lucide-react'
-import { useId, useState } from 'react'
+import { type ReactNode, useId, useState } from 'react'
 
-import { Button } from '@/components/ui/button'
+import { Choice, ChoiceGroup } from '@/components/ui/choice'
 import { KeyCombo } from '@/components/ui/kbd'
+import { Pane } from '@/components/ui/pane'
 import { KIND_GLYPHS, KIND_TEXT_CLASS } from '@/features/prompt-library/components/kind-mark'
+import { promptPath } from '@/features/prompt-library/components/prompt-reader'
 import { hasPendingPromptImageUploads } from '@/features/prompt-library/model/prompt-images'
-import {
-  PROMPT_KIND_DEFINITIONS,
-  PROMPT_KINDS,
-  getPromptKindDefinition,
-} from '@/features/prompt-library/model/prompt-kinds'
+import { PROMPT_KINDS, getPromptKindDefinition } from '@/features/prompt-library/model/prompt-kinds'
 import {
   joinSequenceStepsForEditing,
   splitSequenceStepsForEditing,
 } from '@/features/prompt-library/model/prompt-sequences'
 import { extractPromptVariables } from '@/features/prompt-library/model/prompt-templates'
 import { formatImageSize } from '@/features/prompt-library/rendering/prompt-body-markdown'
-import { formatCatalogNumber } from '@/features/prompt-library/rendering/prompt-library-formatting'
 import {
   type ComposerState,
   type PromptDraft,
@@ -38,7 +34,6 @@ type DraftChangeHandler = <TFieldName extends keyof PromptDraft>(
 type PromptEditorProps = {
   composer: ComposerState
   categories: string[]
-  catalogNumber: number | undefined
   titleInputRef: React.RefObject<HTMLInputElement | null>
   onCancel: () => void
   onSave: () => void
@@ -46,13 +41,12 @@ type PromptEditorProps = {
   onPasteImages: (request: PromptImagePasteRequest) => void
 }
 
-const fieldShell =
-  'rounded-xl bg-paper-raised shadow-[inset_0_0_0_1px_var(--rule-strong)] transition-shadow focus-within:shadow-[inset_0_0_0_1.5px_var(--vermilion)]'
+const textareaClass =
+  'block w-full resize-none bg-transparent text-[13px] leading-[1.65] text-fg outline-none [field-sizing:content] placeholder:text-fg-faint'
 
 export function PromptEditor({
   composer,
   categories,
-  catalogNumber,
   titleInputRef,
   onCancel,
   onSave,
@@ -66,10 +60,15 @@ export function PromptEditor({
   // The step editor owns its own array while editing so that empty steps and
   // trailing whitespace survive; the draft body is always the joined result.
   const [steps, setSteps] = useState(() => splitSequenceStepsForEditing(draft.body))
-
   // Uploads resolve by rewriting the draft body; changing kind mid-upload would
   // let the step editor's copy of the body resurrect the pending marker.
   const isUploading = hasPendingPromptImageUploads(draft.body)
+  const path =
+    composer.mode === 'new'
+      ? draft.title.trim()
+        ? promptPath({ category: draft.category || 'personal', title: draft.title })
+        : '[No Name]'
+      : promptPath({ category: draft.category || 'personal', title: draft.title || 'untitled' })
 
   const changeKind = (kind: PromptKind) => {
     if (kind === draft.kind || isUploading) {
@@ -109,151 +108,129 @@ export function PromptEditor({
   }
 
   return (
-    <form
-      aria-label={composer.mode === 'new' ? 'New entry' : `Editing ${draft.title || 'entry'}`}
-      className="flex h-full min-h-0 flex-col"
-      onSubmit={(event) => {
-        event.preventDefault()
-        onSave()
-      }}
-    >
-      <div className="sticky top-0 z-20 flex h-14 shrink-0 items-center gap-2 border-b border-rule bg-paper/85 px-3 backdrop-blur-md md:px-5">
-        <span className="font-display text-[18px] text-ink italic">
-          {composer.mode === 'new' ? 'New entry' : 'Editing'}
+    <Pane
+      aside={<span className="font-bold text-green">-- INSERT --</span>}
+      className="h-full"
+      index={3}
+      title={
+        <span>
+          {path} <span className="text-accent">[+]</span>
         </span>
-        {composer.mode === 'edit' ? (
-          <span className="font-mono text-[10.5px] text-ink-faint">
-            {formatCatalogNumber(catalogNumber)}
+      }
+    >
+      <form
+        aria-label={composer.mode === 'new' ? 'New entry' : `Editing ${draft.title || 'entry'}`}
+        className="flex min-h-0 flex-1 flex-col"
+        onSubmit={(event) => {
+          event.preventDefault()
+          onSave()
+        }}
+      >
+        <div className="flex flex-wrap items-center gap-x-[2ch] gap-y-1 border-b border-line bg-bg-sunken/60 px-[2ch] pt-3 pb-1.5 text-[12.5px]">
+          <button
+            className="inline-flex items-center gap-[1ch] rounded-sm bg-accent px-[1ch] font-bold text-accent-fg hover:brightness-110"
+            type="submit"
+          >
+            :w {composer.mode === 'new' ? 'keep it' : 'save'}
+          </button>
+          <button className="text-fg-dim hover:text-fg" onClick={onCancel} type="button">
+            :q cancel
+          </button>
+          <span className="ml-auto hidden items-center gap-[1ch] text-fg-faint lg:flex">
+            <KeyCombo keys={['Mod', 'Enter']} /> save
+            <KeyCombo keys={['Esc']} /> cancel
           </span>
-        ) : null}
-        <div className="ml-auto flex items-center gap-1.5">
-          <Button onClick={onCancel} size="sm" type="button" variant="ghost">
-            Cancel
-            <KeyCombo className="hidden lg:inline-flex" keys={['Esc']} />
-          </Button>
-          <Button size="sm" type="submit">
-            {composer.mode === 'new' ? 'Keep it' : 'Save'}
-            <KeyCombo
-              className="hidden lg:inline-flex [&_kbd]:bg-white/15 [&_kbd]:text-primary-foreground [&_kbd]:shadow-none"
-              keys={['Mod', 'Enter']}
-            />
-          </Button>
         </div>
-      </div>
 
-      <div className="scrollbar-quiet min-h-0 flex-1 overflow-y-auto">
-        <div className="mx-auto flex w-full max-w-[46rem] animate-rise flex-col gap-7 px-6 pt-8 pb-28 md:px-10 md:pt-10">
-          <fieldset>
-            <legend className="label-caps mb-2.5">What is it?</legend>
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+        <div className="scrollbar-term min-h-0 flex-1 overflow-y-auto px-[2ch] pt-3 pb-6 text-[13px]">
+          <p className="text-fg-faint">---</p>
+          <FrontmatterRow label="kind">
+            <ChoiceGroup className="flex flex-wrap items-center gap-x-[1ch] gap-y-1" label="Kind">
               {PROMPT_KINDS.map((kind) => {
                 const selected = draft.kind === kind
 
                 return (
-                  // The visible name is dynamic text; the radio carries an aria-label.
-                  // oxlint-disable-next-line jsx-a11y/label-has-associated-control
-                  <label
+                  <Choice
+                    checked={selected}
                     className={cn(
-                      'group relative flex cursor-pointer flex-col gap-1 rounded-xl px-3 py-2.5 transition-[background-color,box-shadow] has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring/60',
+                      'rounded-sm px-[0.75ch] transition-colors',
                       selected
-                        ? 'bg-paper-raised shadow-[inset_0_0_0_1.5px_currentColor]'
-                        : 'shadow-[inset_0_0_0_1px_var(--rule)] hover:bg-paper-raised',
-                      selected ? KIND_TEXT_CLASS[kind] : 'text-ink-muted',
+                        ? cn('bg-bg-sel font-bold', KIND_TEXT_CLASS[kind])
+                        : 'text-fg-faint hover:text-fg',
+                      isUploading && !selected && 'pointer-events-none opacity-40',
                     )}
                     key={kind}
+                    label={getPromptKindDefinition(kind).label}
+                    name={`${id}-kind`}
+                    onSelect={changeKind}
+                    title={getPromptKindDefinition(kind).description}
+                    value={kind}
                   >
-                    <input
-                      aria-label={PROMPT_KIND_DEFINITIONS[kind].label}
-                      checked={selected}
-                      className="sr-only"
-                      disabled={isUploading && !selected}
-                      name={`${id}-kind`}
-                      onChange={() => changeKind(kind)}
-                      type="radio"
-                      value={kind}
-                    />
-                    <span className="flex items-center gap-2">
-                      <span
-                        aria-hidden="true"
-                        className={cn(
-                          'font-display text-[20px] leading-none',
-                          KIND_TEXT_CLASS[kind],
-                        )}
-                      >
-                        {KIND_GLYPHS[kind]}
-                      </span>
-                      <span
-                        className={cn(
-                          'text-[13px] font-medium',
-                          selected ? 'text-ink' : 'text-ink-soft',
-                        )}
-                      >
-                        {PROMPT_KIND_DEFINITIONS[kind].label}
-                      </span>
-                    </span>
-                  </label>
+                    <span className={KIND_TEXT_CLASS[kind]}>{KIND_GLYPHS[kind]}</span> {kind}
+                  </Choice>
                 )
               })}
-            </div>
-            <p className="mt-2 text-[12.5px] text-ink-muted">
-              {isUploading
-                ? 'Images are still uploading — the kind can change once they finish.'
-                : definition.description}
-            </p>
-          </fieldset>
-
-          <div>
-            <label className="sr-only" htmlFor={`${id}-title`}>
-              Title
-            </label>
+            </ChoiceGroup>
+          </FrontmatterRow>
+          <FrontmatterRow htmlFor={`${id}-title`} label="title">
             <input
               autoComplete="off"
               className={cn(
-                'font-display w-full bg-transparent text-[clamp(1.9rem,4vw,2.6rem)] leading-[1.1] text-ink outline-none placeholder:text-ink-faint/70',
-                draft.kind === 'fragment' && 'italic',
+                'voice-title w-full bg-transparent text-[18px] leading-[1.4] text-fg outline-none placeholder:font-normal placeholder:text-fg-faint',
+                draft.kind === 'fragment' && 'voice-note',
               )}
               id={`${id}-title`}
               onChange={(event) => onDraftChange('title', event.target.value)}
-              placeholder="Give it a name"
+              placeholder="give it a name"
               ref={titleInputRef}
               value={draft.title}
             />
-            <div className="mt-4 grid gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)]">
-              <label className={cn(fieldShell, 'flex h-10 items-center gap-2 px-3')}>
-                <span className="label-caps text-[9.5px]">Category</span>
-                <input
-                  autoComplete="off"
-                  className="min-w-0 flex-1 bg-transparent text-[13.5px] text-ink outline-none placeholder:text-ink-faint"
-                  list={`${id}-categories`}
-                  onChange={(event) => onDraftChange('category', event.target.value)}
-                  placeholder="Personal"
-                  value={draft.category}
-                />
-              </label>
-              <datalist id={`${id}-categories`}>
-                {categories.map((category) => (
-                  <option key={category} value={category} />
-                ))}
-              </datalist>
-              <label className={cn(fieldShell, 'flex h-10 items-center gap-2 px-3')}>
-                <span className="label-caps text-[9.5px]">Tags</span>
-                <input
-                  autoComplete="off"
-                  className="min-w-0 flex-1 bg-transparent font-mono text-[12.5px] text-ink outline-none placeholder:text-ink-faint"
-                  onChange={(event) => onDraftChange('tagsInput', event.target.value)}
-                  placeholder="#writing #review"
-                  spellCheck={false}
-                  value={draft.tagsInput}
-                />
-              </label>
-            </div>
-          </div>
+          </FrontmatterRow>
+          <FrontmatterRow htmlFor={`${id}-category`} label="category">
+            <input
+              autoComplete="off"
+              className="w-full bg-transparent text-blue outline-none placeholder:text-fg-faint"
+              id={`${id}-category`}
+              list={`${id}-categories`}
+              onChange={(event) => onDraftChange('category', event.target.value)}
+              placeholder="personal"
+              value={draft.category}
+            />
+            <datalist id={`${id}-categories`}>
+              {categories.map((category) => (
+                <option key={category} value={category} />
+              ))}
+            </datalist>
+          </FrontmatterRow>
+          <FrontmatterRow htmlFor={`${id}-tags`} label="tags">
+            <input
+              autoComplete="off"
+              className="w-full bg-transparent text-magenta outline-none placeholder:text-fg-faint"
+              id={`${id}-tags`}
+              onChange={(event) => onDraftChange('tagsInput', event.target.value)}
+              placeholder="#writing #review"
+              spellCheck={false}
+              value={draft.tagsInput}
+            />
+          </FrontmatterRow>
+          <p className="text-fg-faint">---</p>
+          <p className="mt-1 text-[12px] text-fg-faint">
+            #{' '}
+            {isUploading
+              ? 'images are still uploading — the kind can change once they finish'
+              : definition.description}
+          </p>
 
-          <div>
-            <div className="mb-2 flex items-baseline justify-between gap-3">
-              <span className="label-caps">{definition.bodyLabel}</span>
-              <span className="text-[11.5px] text-ink-faint">
-                Markdown · <code className="font-mono">{'{{name}}'}</code> makes a blank
+          <div className="mt-4">
+            <div className="mb-1 flex items-baseline justify-between gap-[2ch] text-[12px]">
+              <label
+                className="text-cyan"
+                htmlFor={draft.kind === 'sequence' ? undefined : `${id}-body`}
+              >
+                ## {definition.bodyLabel.toLowerCase()}
+              </label>
+              <span className="text-fg-faint">
+                markdown · <span className="text-accent">{'{{name}}'}</span> makes a blank
               </span>
             </div>
 
@@ -264,74 +241,95 @@ export function PromptEditor({
                 steps={steps}
               />
             ) : (
-              <div className={fieldShell}>
-                <label className="sr-only" htmlFor={`${id}-body`}>
-                  {definition.bodyLabel}
-                </label>
-                <textarea
-                  className="block [field-sizing:content] min-h-[16rem] w-full resize-none bg-transparent px-4 py-3.5 font-mono text-[13.5px] leading-[1.7] text-ink outline-none placeholder:text-ink-faint"
-                  id={`${id}-body`}
-                  onChange={(event) => onDraftChange('body', event.target.value)}
-                  onPaste={handleBodyPaste}
-                  placeholder={definition.bodyPlaceholder}
-                  spellCheck
-                  value={draft.body}
-                />
-              </div>
+              <textarea
+                className={cn(
+                  textareaClass,
+                  'min-h-[12rem] border-l-2 border-line pl-[1.5ch] focus:border-accent',
+                )}
+                id={`${id}-body`}
+                onChange={(event) => onDraftChange('body', event.target.value)}
+                onPaste={handleBodyPaste}
+                placeholder={definition.bodyPlaceholder}
+                spellCheck
+                value={draft.body}
+              />
             )}
 
             {variables.length > 0 ? (
-              <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
-                <span className="label-caps mr-1 text-[9.5px]">Blanks</span>
-                {variables.map((variable) => (
-                  <span
-                    className="rounded-md bg-vermilion-wash px-1.5 py-0.5 font-mono text-[11.5px] text-vermilion-ink"
-                    key={variable.name}
-                  >
-                    {variable.name}
-                    {variable.fallback ? (
-                      <span className="opacity-60"> · {variable.fallback}</span>
-                    ) : null}
+              <p className="mt-2 text-[12px] text-fg-faint">
+                # blanks:{' '}
+                {variables.map((variable, index) => (
+                  <span key={variable.name}>
+                    <span className="text-accent">
+                      ‹{variable.name}
+                      {variable.fallback ? `=${variable.fallback}` : ''}›
+                    </span>
+                    {index < variables.length - 1 ? ' ' : ''}
                   </span>
                 ))}
-              </div>
+              </p>
             ) : null}
 
             {draft.images.length > 0 ? (
-              <div aria-label="Attached images" className="mt-3 grid gap-2 sm:grid-cols-2">
+              <ul aria-label="Attached images" className="mt-2 text-[12px] text-fg-dim">
                 {draft.images.map((image) => (
-                  <div
-                    className="flex items-center gap-2 rounded-lg bg-paper-raised px-3 py-2 text-[12.5px] shadow-[inset_0_0_0_1px_var(--rule)]"
-                    key={image.id}
-                  >
-                    <ImageIcon aria-hidden="true" className="size-3.5 text-ink-muted" />
-                    <span className="min-w-0 flex-1 truncate text-ink">{image.fileName}</span>
-                    <span className="font-mono text-[11px] text-ink-faint">
-                      {formatImageSize(image.size)}
-                    </span>
-                  </div>
+                  <li key={image.id}>
+                    <span className="text-fg-faint"># attached </span>
+                    {image.fileName}{' '}
+                    <span className="text-fg-faint">({formatImageSize(image.size)})</span>
+                  </li>
                 ))}
-              </div>
+              </ul>
             ) : null}
           </div>
 
-          <div>
-            <label className="label-caps mb-2 block" htmlFor={`${id}-notes`}>
-              {definition.notesLabel}
+          <div className="mt-6">
+            <label className="mb-1 block text-[12px] text-cyan" htmlFor={`${id}-notes`}>
+              ## {definition.notesLabel.toLowerCase()}
             </label>
-            <div className={fieldShell}>
-              <textarea
-                className="font-reading block [field-sizing:content] min-h-[5.5rem] w-full resize-none bg-transparent px-4 py-3 text-[15.5px] leading-[1.6] text-ink-soft italic outline-none placeholder:text-ink-faint"
-                id={`${id}-notes`}
-                onChange={(event) => onDraftChange('notes', event.target.value)}
-                placeholder={definition.notesPlaceholder}
-                value={draft.notes}
-              />
-            </div>
+            <textarea
+              className={cn(
+                textareaClass,
+                'voice-note min-h-[4.5rem] border-l-2 border-line pl-[1.5ch] text-fg-dim focus:border-accent',
+              )}
+              id={`${id}-notes`}
+              onChange={(event) => onDraftChange('notes', event.target.value)}
+              placeholder={definition.notesPlaceholder}
+              value={draft.notes}
+            />
+          </div>
+
+          <div aria-hidden="true" className="mt-4 text-blue/60">
+            {Array.from({ length: 4 }, (_, index) => (
+              <p key={index}>~</p>
+            ))}
           </div>
         </div>
-      </div>
-    </form>
+      </form>
+    </Pane>
+  )
+}
+
+function FrontmatterRow({
+  label,
+  htmlFor,
+  children,
+}: {
+  label: string
+  htmlFor?: string
+  children: ReactNode
+}) {
+  return (
+    <div className="grid grid-cols-[10ch_minmax(0,1fr)] items-baseline gap-x-[1ch] py-0.5">
+      {htmlFor ? (
+        <label className="text-yellow" htmlFor={htmlFor}>
+          {label}:
+        </label>
+      ) : (
+        <span className="text-yellow">{label}:</span>
+      )}
+      <div className="min-w-0">{children}</div>
+    </div>
   )
 }
 
@@ -361,73 +359,90 @@ function SequenceStepsEditor({
   }
 
   return (
-    <ol className="flex flex-col gap-2.5">
+    <ol className="flex flex-col gap-3">
       {steps.map((step, index) => (
         // Steps have no identity beyond their position while being edited.
         // oxlint-disable-next-line react/no-array-index-key
-        <li className="group grid grid-cols-[1.9rem_minmax(0,1fr)] gap-2.5" key={index}>
-          <span className="font-display pt-3 text-right text-[17px] text-kind-sequence italic">
-            {index + 1}.
-          </span>
-          <div className={cn(fieldShell, 'relative')}>
-            <label className="sr-only" htmlFor={`${id}-step-${index}`}>
-              Step {index + 1}
+        <li key={index}>
+          <div className="mb-0.5 flex items-center gap-[1ch] text-[12px]">
+            <label className="font-semibold text-green" htmlFor={`${id}-step-${index}`}>
+              » step {index + 1}
             </label>
-            <textarea
-              className="block [field-sizing:content] min-h-[5.5rem] w-full resize-none bg-transparent py-3 pr-12 pl-4 font-mono text-[13.5px] leading-[1.7] text-ink outline-none placeholder:text-ink-faint"
-              id={`${id}-step-${index}`}
-              onChange={(event) =>
-                onChange(
-                  steps.map((current, stepIndex) =>
-                    stepIndex === index ? event.target.value : current,
-                  ),
-                )
-              }
-              placeholder={index === 0 ? placeholder : 'Then…'}
-              value={step}
-            />
-            <div className="absolute top-2 right-2 flex flex-col gap-0.5 opacity-60 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100">
-              <Button
-                aria-label={`Move step ${index + 1} up`}
-                disabled={index === 0}
-                onClick={() => move(index, -1)}
-                size="icon-xs"
-                type="button"
-                variant="ghost"
-              >
-                <ArrowUp aria-hidden="true" className="size-3.5" />
-              </Button>
-              <Button
-                aria-label={`Move step ${index + 1} down`}
-                disabled={index === steps.length - 1}
-                onClick={() => move(index, 1)}
-                size="icon-xs"
-                type="button"
-                variant="ghost"
-              >
-                <ArrowDown aria-hidden="true" className="size-3.5" />
-              </Button>
-              <Button
-                aria-label={`Remove step ${index + 1}`}
-                disabled={steps.length === 1}
-                onClick={() => onChange(steps.filter((_, stepIndex) => stepIndex !== index))}
-                size="icon-xs"
-                type="button"
-                variant="ghost"
-              >
-                <X aria-hidden="true" className="size-3.5" />
-              </Button>
-            </div>
+            <span aria-hidden="true" className="h-0 flex-1 border-t border-dashed border-line" />
+            <StepButton
+              disabled={index === 0}
+              label={`Move step ${index + 1} up`}
+              onClick={() => move(index, -1)}
+            >
+              ↑
+            </StepButton>
+            <StepButton
+              disabled={index === steps.length - 1}
+              label={`Move step ${index + 1} down`}
+              onClick={() => move(index, 1)}
+            >
+              ↓
+            </StepButton>
+            <StepButton
+              disabled={steps.length === 1}
+              label={`Remove step ${index + 1}`}
+              onClick={() => onChange(steps.filter((_, stepIndex) => stepIndex !== index))}
+            >
+              rm
+            </StepButton>
           </div>
+          <textarea
+            className={cn(
+              textareaClass,
+              'min-h-[4.5rem] border-l-2 border-green/50 pl-[1.5ch] focus:border-accent',
+            )}
+            id={`${id}-step-${index}`}
+            onChange={(event) =>
+              onChange(
+                steps.map((current, stepIndex) =>
+                  stepIndex === index ? event.target.value : current,
+                ),
+              )
+            }
+            placeholder={index === 0 ? placeholder : 'then…'}
+            value={step}
+          />
         </li>
       ))}
-      <li className="pl-[2.525rem]">
-        <Button onClick={() => onChange([...steps, ''])} size="sm" type="button" variant="outline">
-          <Plus aria-hidden="true" />
-          Add a step
-        </Button>
+      <li>
+        <button
+          className="text-[12.5px] text-green hover:underline"
+          onClick={() => onChange([...steps, ''])}
+          type="button"
+        >
+          + add a step
+        </button>
       </li>
     </ol>
+  )
+}
+
+function StepButton({
+  label,
+  disabled,
+  onClick,
+  children,
+}: {
+  label: string
+  disabled: boolean
+  onClick: () => void
+  children: ReactNode
+}) {
+  return (
+    <button
+      aria-label={label}
+      className="rounded-sm px-[0.5ch] text-fg-faint transition-colors hover:bg-bg-hover hover:text-fg disabled:opacity-30"
+      disabled={disabled}
+      onClick={onClick}
+      type="button"
+    >
+      {children}
+    </button>
   )
 }
 

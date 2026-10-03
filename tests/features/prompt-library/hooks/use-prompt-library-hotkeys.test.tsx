@@ -12,6 +12,8 @@ type HotkeyHarnessProps = {
   onTogglePalette?: () => void
   onSaveComposer?: () => void
   onCancelComposer?: () => void
+  onOpenCommandLine?: () => void
+  onFocusPane?: (pane: 1 | 2 | 3) => void
 }
 
 function HotkeyHarness({
@@ -21,6 +23,8 @@ function HotkeyHarness({
   onTogglePalette = vi.fn(),
   onSaveComposer = vi.fn(),
   onCancelComposer = vi.fn(),
+  onOpenCommandLine = vi.fn(),
+  onFocusPane = vi.fn(),
 }: HotkeyHarnessProps) {
   usePromptLibraryHotkeys({
     commandState: {
@@ -36,6 +40,8 @@ function HotkeyHarness({
     onSaveComposer,
     onToggleHelp: vi.fn(),
     onTogglePalette,
+    onOpenCommandLine,
+    onFocusPane,
   })
 
   return (
@@ -168,5 +174,28 @@ describe('usePromptLibraryHotkeys', () => {
     expect(onSaveComposer).toHaveBeenCalledOnce()
     expect(onCancelComposer).toHaveBeenCalledOnce()
     expect(onRunCommand).not.toHaveBeenCalled()
+  })
+
+  it('opens the command line with : and focuses panes with digits', () => {
+    const onOpenCommandLine = vi.fn()
+    const onFocusPane = vi.fn()
+    render(<HotkeyHarness onFocusPane={onFocusPane} onOpenCommandLine={onOpenCommandLine} />)
+
+    keydown(window, { key: ':' })
+    keydown(window, { key: '3' })
+    keydown(screen.getByLabelText('Filter entries'), { key: '2' })
+
+    expect(onOpenCommandLine).toHaveBeenCalledOnce()
+    expect(onFocusPane).toHaveBeenCalledExactlyOnceWith(3)
+  })
+
+  it('still opens the command line while composing, outside the fields', () => {
+    const onOpenCommandLine = vi.fn()
+    render(<HotkeyHarness composerMode="new" onOpenCommandLine={onOpenCommandLine} />)
+
+    keydown(screen.getByLabelText('Filter entries'), { key: ':' })
+    keydown(window, { key: ':' })
+
+    expect(onOpenCommandLine).toHaveBeenCalledOnce()
   })
 })

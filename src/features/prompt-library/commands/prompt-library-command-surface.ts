@@ -12,6 +12,7 @@ export type PromptLibraryCommandId =
   | 'previous-prompt'
   | 'share-prompt'
   | 'toggle-pin'
+  | 'toggle-view'
 
 type PromptLibraryCommand = {
   disabledWhileComposing?: boolean
@@ -44,8 +45,8 @@ export const PROMPT_LIBRARY_COMMANDS: Record<PromptLibraryCommandId, PromptLibra
   'copy-prompt-body': {
     disabledWhileComposing: true,
     group: 'edit',
-    keys: ['Mod', 'C'],
-    label: 'Copy Prompt Body',
+    keys: ['y'],
+    label: 'Yank (copy) Prompt Body',
     requiresPrompt: true,
   },
   'edit-prompt': {
@@ -84,6 +85,13 @@ export const PROMPT_LIBRARY_COMMANDS: Record<PromptLibraryCommandId, PromptLibra
     label: 'Delete (press twice)',
     requiresPrompt: true,
   },
+  'toggle-view': {
+    disabledWhileComposing: true,
+    group: 'navigate',
+    keys: ['r'],
+    label: 'Raw source / rendered',
+    requiresPrompt: true,
+  },
   'focus-search': {
     disabledWhileComposing: true,
     group: 'navigate',
@@ -119,6 +127,7 @@ export const PROMPT_LIBRARY_SHORTCUT_COMMAND_IDS = [
   'focus-search',
   'next-prompt',
   'previous-prompt',
+  'toggle-view',
 ] satisfies PromptLibraryCommandId[]
 
 export const PROMPT_LIBRARY_HELP_GROUPS = [
@@ -128,8 +137,12 @@ export const PROMPT_LIBRARY_HELP_GROUPS = [
   },
   {
     heading: 'Navigate',
-    commandIds: ['next-prompt', 'previous-prompt', 'focus-search'],
-    rows: [{ keys: ['Mod', 'K'], label: 'Command palette' }],
+    commandIds: ['next-prompt', 'previous-prompt', 'focus-search', 'toggle-view'],
+    rows: [
+      { keys: ['Mod', 'K'], label: 'Find anything' },
+      { keys: [':'], label: 'Command line' },
+      { keys: ['1', '2', '3'], label: 'Focus a pane' },
+    ],
   },
   {
     heading: 'Act on the selection',
@@ -141,6 +154,7 @@ export const PROMPT_LIBRARY_HELP_GROUPS = [
       'share-prompt',
       'delete-prompt',
     ],
+    rows: [{ keys: ['Mod', 'C'], label: 'Copy, with nothing selected' }],
   },
   {
     heading: 'While editing',

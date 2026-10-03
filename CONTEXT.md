@@ -1,6 +1,6 @@
 # promptrc
 
-promptrc is a commonplace book for working with AI: a personal library for capturing, finding, and reusing the prompts, phrasings, instruction sequences, and benchmarks that worked. Its domain is personal prompt retrieval: keeping what worked close at hand without turning the library into a heavy content-management system.
+promptrc is a terminal-style personal library for capturing, finding, and reusing the prompts, phrasings, instruction sequences, and benchmarks that worked. Its domain is personal prompt retrieval: keeping what worked close at hand without turning the library into a heavy content-management system.
 
 ## Language
 

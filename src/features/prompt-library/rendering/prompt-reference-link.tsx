@@ -47,8 +47,8 @@ export function PromptReferenceLink({ token }: { token: PromptReferenceToken }) 
     <span
       aria-label={`${token.kind}: ${token.label}`}
       className={cn(
-        'mx-[0.08em] inline-flex max-w-full translate-y-[-0.06em] cursor-default items-center gap-1.5 rounded-md bg-paper-sunken px-1.5 py-[0.18em] align-middle font-sans text-[0.8em] leading-none font-medium text-ink shadow-[inset_0_0_0_1px_var(--rule)]',
-        isIntegration && 'text-ink-muted',
+        'mx-[0.08em] inline-flex max-w-full translate-y-[-0.06em] cursor-default items-center gap-1.5 rounded-sm border border-line bg-bg-sunken px-[0.75ch] py-[0.18em] align-middle text-[0.85em] leading-none text-cyan',
+        isIntegration && 'text-fg-dim',
         token.visual?.textColor && 'text-current',
       )}
       style={referenceStyle}

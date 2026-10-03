@@ -15,8 +15,8 @@ describe('prompt library command surface', () => {
 
     expect(helpCommandIds).toEqual(expect.arrayContaining([...PROMPT_LIBRARY_SHORTCUT_COMMAND_IDS]))
     expect(getPromptLibraryCommand('copy-prompt-body')).toMatchObject({
-      keys: ['Mod', 'C'],
-      label: 'Copy Prompt Body',
+      keys: ['y'],
+      label: 'Yank (copy) Prompt Body',
     })
   })
 

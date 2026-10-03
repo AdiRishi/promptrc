@@ -3,14 +3,15 @@ import { type PromptKind } from '@/features/prompt-library/types'
 import { cn } from '@/lib/utils'
 
 /**
- * Each kind is marked with a printer's sign rather than an icon — the library
- * reads like a well-kept book, not a dashboard.
+ * Each kind gets a glyph and an ANSI colour, the way `ls --color` marks file
+ * types: ❯ a prompt you run, “ a fragment you quote, » a sequence you step
+ * through, ◆ a benchmark you test against.
  */
 export const KIND_GLYPHS: Record<PromptKind, string> = {
-  prompt: '¶',
+  prompt: '❯',
   fragment: '“',
-  sequence: '§',
-  benchmark: '※',
+  sequence: '»',
+  benchmark: '◆',
 }
 
 export const KIND_TEXT_CLASS: Record<PromptKind, string> = {
@@ -30,7 +31,7 @@ export const KIND_BG_CLASS: Record<PromptKind, string> = {
 type KindMarkProps = {
   kind: PromptKind
   className?: string
-  /** Visually hidden label for assistive tech. Defaults to the kind's name. */
+  /** Accessible label. Defaults to the kind's name; `false` hides it from assistive tech. */
   label?: string | false
 }
 
@@ -43,7 +44,7 @@ export function KindMark({ kind, className, label }: KindMarkProps) {
       aria-hidden={accessibleLabel ? undefined : true}
       aria-label={accessibleLabel}
       className={cn(
-        'inline-block font-serif leading-none font-medium not-italic',
+        'inline-block w-[1ch] text-center leading-none',
         KIND_TEXT_CLASS[kind],
         className,
       )}
@@ -54,19 +55,18 @@ export function KindMark({ kind, className, label }: KindMarkProps) {
   )
 }
 
-/** Small pill: mark + kind name, used in metadata rows. */
-export function KindBadge({ kind, className }: { kind: PromptKind; className?: string }) {
+/** `❯ prompt` in the kind's colour — used in headers and status lines. */
+export function KindTag({ kind, className }: { kind: PromptKind; className?: string }) {
   return (
     <span
       className={cn(
-        'inline-flex h-6 items-center gap-1.5 rounded-full pr-2.5 pl-2 font-mono text-[10.5px] font-medium tracking-[0.12em] uppercase',
-        'bg-[color-mix(in_oklab,currentColor_10%,transparent)]',
+        'inline-flex items-center gap-[1ch] whitespace-nowrap',
         KIND_TEXT_CLASS[kind],
         className,
       )}
     >
-      <KindMark className="text-[14px]" kind={kind} label={false} />
-      {PROMPT_KIND_DEFINITIONS[kind].label}
+      <KindMark kind={kind} label={false} />
+      {kind}
     </span>
   )
 }

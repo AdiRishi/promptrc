@@ -1,17 +1,18 @@
 import { useQuery } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
 import { useServerFn } from '@tanstack/react-start'
-import { ArrowUpRight, Copy } from 'lucide-react'
-import { useState } from 'react'
-import { toast } from 'sonner'
+import { useEffect, useEffectEvent, useState } from 'react'
 
-import { Button } from '@/components/ui/button'
-import { KindBadge } from '@/features/prompt-library/components/kind-mark'
-import { Wordmark } from '@/features/prompt-library/components/library-sidebar'
+import { Pane } from '@/components/ui/pane'
+import { type PromptViewMode } from '@/features/prompt-library/commands/prompt-library-ex-commands'
+import { EchoLine } from '@/features/prompt-library/components/command-line'
+import { KindTag } from '@/features/prompt-library/components/kind-mark'
+import { Wordmark } from '@/features/prompt-library/components/library-pane'
 import {
   BlanksHint,
-  Ornament,
   PromptBody,
+  ViewModeToggle,
+  promptPath,
 } from '@/features/prompt-library/components/prompt-reader'
 import { getPromptCopyText } from '@/features/prompt-library/model/prompt-copy'
 import { appendPromptImageCacheKey } from '@/features/prompt-library/model/prompt-images'
@@ -23,6 +24,7 @@ import {
 import { formatLongDate } from '@/features/prompt-library/rendering/prompt-library-formatting'
 import { PromptVariableProvider } from '@/features/prompt-library/rendering/prompt-variable-slot'
 import { getPublicRemotePromptShare } from '@/features/prompt-library/server/prompt-library-functions'
+import { echo } from '@/lib/echo'
 import { cn } from '@/lib/utils'
 
 type SharedPromptPageProps = {
@@ -31,10 +33,11 @@ type SharedPromptPageProps = {
 
 const getPromptShareQueryKey = (shareId: string) => ['prompt-share', shareId] as const
 
-/** A shared entry, presented like a single card lifted out of someone's book. */
+/** A shared entry, printed as if someone ran `cat` on it in their own terminal. */
 export function SharedPromptPage({ shareId }: SharedPromptPageProps) {
   const getSharedPrompt = useServerFn(getPublicRemotePromptShare)
   const [values, setValues] = useState<Record<string, string>>({})
+  const [viewMode, setViewMode] = useState<PromptViewMode>('rendered')
   const imageUrlFor: PromptImageUrlResolver = (imageId, image) =>
     appendPromptImageCacheKey(
       `/api/shared-prompt-images/${encodeURIComponent(shareId)}/${encodeURIComponent(imageId)}`,
@@ -48,6 +51,7 @@ export function SharedPromptPage({ shareId }: SharedPromptPageProps) {
   const prompt = shareQuery.data?.prompt ?? null
   const variables = prompt ? extractFillablePromptVariables(prompt.body) : []
   const filledCount = variables.filter((variable) => values[variable.name]?.trim()).length
+  const isMissing = shareQuery.isError || shareQuery.data === null
 
   const copy = async (request: { stepIndex?: number } = {}) => {
     if (!prompt) {
@@ -56,84 +60,103 @@ export function SharedPromptPage({ shareId }: SharedPromptPageProps) {
 
     try {
       await navigator.clipboard.writeText(getPromptCopyText(prompt, { ...request, values }))
-      toast(
+      echo(
         request.stepIndex === undefined
-          ? `Copied “${prompt.title}”`
-          : `Copied step ${request.stepIndex + 1}`,
+          ? `Yanked “${prompt.title}” to the clipboard`
+          : `Yanked step ${request.stepIndex + 1}`,
+        'ok',
       )
     } catch {
-      toast('Clipboard access is unavailable')
+      echo('Clipboard access is unavailable')
     }
   }
 
+  // `y` yanks here too, as in the app.
+  const onKeyDown = useEffectEvent((event: KeyboardEvent) => {
+    const target = event.target as HTMLElement | null
+
+    if (
+      event.key !== 'y' ||
+      event.metaKey ||
+      event.ctrlKey ||
+      event.altKey ||
+      target?.closest('input, textarea, [contenteditable]')
+    ) {
+      return
+    }
+
+    event.preventDefault()
+    void copy()
+  })
+
+  useEffect(() => {
+    window.addEventListener('keydown', onKeyDown)
+
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [])
+
   return (
-    <div className="relative z-10 min-h-dvh">
-      <header className="mx-auto flex max-w-[52rem] items-center justify-between px-6 pt-6">
-        <Link className="rounded-md" to="/">
-          <Wordmark className="text-[22px]" />
+    <div className="relative z-10 mx-auto flex min-h-dvh max-w-[60rem] flex-col px-2 pt-2 sm:px-4">
+      <header className="flex h-7 items-center justify-between text-[12px]">
+        <Link className="rounded-sm" to="/">
+          <Wordmark className="text-[13px]" />
         </Link>
-        <span className="label-caps text-[9.5px]">Shared entry</span>
+        <span className="text-fg-faint">read-only · shared entry</span>
       </header>
 
-      <main className="mx-auto max-w-[52rem] px-4 pt-8 pb-20 sm:px-6 sm:pt-12">
-        {shareQuery.isPending ? (
-          <div className="animate-pulse rounded-3xl bg-paper-raised p-10 shadow-card ring-1 ring-rule">
-            <div className="mb-6 h-6 w-28 rounded-full bg-rule" />
-            <div className="mb-3 h-10 w-3/4 rounded-full bg-rule" />
-            <div className="h-4 w-full rounded-full bg-rule/70" />
-          </div>
-        ) : null}
+      <p className="mt-3 mb-4 text-[12.5px] text-fg-dim">
+        <span className="text-green">guest@promptrc</span>
+        <span className="text-fg-faint">:</span>
+        <span className="text-blue">~/shared</span>
+        <span className="text-fg-faint">$</span> cat {prompt ? promptPath(prompt) : shareId}
+        {shareQuery.isPending ? <span className="cursor-block" /> : null}
+      </p>
 
-        {shareQuery.isError || shareQuery.data === null ? (
-          <div className="rounded-3xl bg-paper-raised px-8 py-14 text-center shadow-card ring-1 ring-rule">
-            <p
-              aria-hidden="true"
-              className="font-display text-[72px] leading-none text-rule-strong"
-            >
-              ※
-            </p>
-            <h1 className="font-display mt-4 text-[28px] text-ink">This page has been taken out</h1>
-            <p className="mx-auto mt-2 max-w-[40ch] text-[14px] leading-relaxed text-ink-muted">
-              The link was revoked by its owner, or never existed.
-            </p>
-            <Link
-              className="mt-6 inline-flex h-9 items-center rounded-lg bg-ink px-4 text-[13px] font-medium text-paper"
-              to="/"
-            >
-              Start your own commonplace book
+      {isMissing ? (
+        <div className="text-[13px] leading-[1.8]">
+          <p className="text-red">cat: {shareId}: No such file or directory</p>
+          <p className="text-fg-faint"># the link was revoked by its owner, or never existed</p>
+          <p className="mt-4">
+            <span className="text-fg-faint">$</span>{' '}
+            <Link className="text-accent underline underline-offset-2" to="/">
+              promptrc --start-your-own
             </Link>
-          </div>
-        ) : null}
+            <span className="cursor-block" />
+          </p>
+        </div>
+      ) : null}
 
-        {prompt ? (
-          <article
-            aria-labelledby="shared-prompt-title"
-            className="animate-rise rounded-3xl bg-paper-raised px-6 py-10 shadow-card ring-1 ring-rule sm:px-12 sm:py-14"
-          >
-            <div className="mb-5 flex flex-wrap items-center gap-3">
-              <KindBadge kind={prompt.kind} />
-              <span className="label-caps text-[10px]">
-                Shared {formatLongDate(shareQuery.data?.createdAt ?? prompt.createdAt)}
-              </span>
+      {prompt ? (
+        <Pane
+          aria-labelledby="shared-prompt-title"
+          aside={<ViewModeToggle mode={viewMode} onChange={setViewMode} />}
+          className="mb-2 flex-1 animate-boot"
+          title={promptPath(prompt)}
+        >
+          <article className="px-[2ch] pt-5 pb-8 sm:px-[4ch]">
+            <div className="mb-2 flex flex-wrap items-center gap-x-[2ch] gap-y-1 text-[12px] text-fg-faint">
+              <KindTag kind={prompt.kind} />
+              <span>~/{prompt.category.toLowerCase()}/</span>
+              <span>shared {formatLongDate(shareQuery.data?.createdAt ?? prompt.createdAt)}</span>
             </div>
             <h1
               className={cn(
-                'font-display text-[clamp(2rem,5vw,3rem)] leading-[1.04] text-balance text-ink',
-                prompt.kind === 'fragment' && 'italic',
+                'voice-title animate-type-in text-[clamp(1.5rem,4vw,2.2rem)] leading-[1.12] text-balance text-fg',
+                prompt.kind === 'fragment' && 'voice-note font-semibold',
               )}
               id="shared-prompt-title"
             >
               {prompt.title}
             </h1>
             {prompt.tags.length > 0 ? (
-              <p className="mt-4 flex flex-wrap gap-x-3 font-mono text-[11.5px] text-ink-muted">
+              <p className="mt-2 flex flex-wrap gap-x-[2ch] text-[12px] text-magenta">
                 {prompt.tags.map((tag) => (
                   <span key={tag}>#{tag}</span>
                 ))}
               </p>
             ) : null}
 
-            <Ornament />
+            <div className="my-5 border-t border-dashed border-line" />
 
             <PromptVariableProvider
               value={{
@@ -148,27 +171,35 @@ export function SharedPromptPage({ shareId }: SharedPromptPageProps) {
                   total={variables.length}
                 />
               ) : null}
-              <PromptBody imageUrlFor={imageUrlFor} onCopy={copy} prompt={prompt} />
+              <PromptBody
+                imageUrlFor={imageUrlFor}
+                onCopy={copy}
+                prompt={prompt}
+                viewMode={viewMode}
+              />
             </PromptVariableProvider>
 
             <PromptImageAttachments imageUrlFor={imageUrlFor} images={prompt.images} />
 
-            <div className="mt-12 flex flex-wrap items-center gap-2 border-t border-rule pt-6">
-              <Button onClick={() => void copy()}>
-                <Copy aria-hidden="true" />
-                {filledCount > 0 ? 'Copy with your blanks' : 'Copy'}
-              </Button>
-              <Link
-                className="inline-flex h-9 items-center gap-1.5 rounded-lg px-3.5 text-[13px] font-medium text-ink-muted transition-colors hover:bg-ink/5 hover:text-ink"
-                to="/"
+            <div className="mt-10 flex flex-wrap items-center gap-x-[2ch] gap-y-2 border-t border-line pt-4 text-[13px]">
+              <button
+                className="rounded-sm bg-accent px-[1ch] py-0.5 font-bold text-accent-fg transition hover:brightness-110"
+                onClick={() => void copy()}
+                type="button"
               >
-                Keep your own in promptrc
-                <ArrowUpRight aria-hidden="true" className="size-4" />
+                y {filledCount > 0 ? 'yank with your blanks' : 'yank'}
+              </button>
+              <Link className="text-fg-dim hover:text-accent" to="/">
+                ❯ keep your own in promptrc
               </Link>
             </div>
           </article>
-        ) : null}
-      </main>
+        </Pane>
+      ) : null}
+
+      <div className="sticky bottom-0 mt-auto bg-bg">
+        <EchoLine />
+      </div>
     </div>
   )
 }

@@ -1,5 +1,4 @@
 import { useMemo } from 'react'
-import { toast } from 'sonner'
 
 import { createPromptLibraryCommandExecutor } from '@/features/prompt-library/commands/prompt-library-command-executor'
 import {
@@ -7,6 +6,7 @@ import {
   usePromptLibraryMeta,
   usePromptLibraryStoreApi,
 } from '@/features/prompt-library/components/prompt-library-provider'
+import { echo } from '@/lib/echo'
 
 export function usePromptLibraryCommands() {
   const library = usePromptLibraryClient()
@@ -22,7 +22,7 @@ export function usePromptLibraryCommands() {
         focusTitleInput: () => titleInputRef.current?.focus(),
         getShareUrl: (shareId) => new URL(`/share/${shareId}`, window.location.origin).toString(),
         library,
-        notify: toast,
+        notify: echo,
         store,
       }),
     [library, store, titleInputRef],

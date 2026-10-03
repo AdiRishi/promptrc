@@ -47,7 +47,7 @@ export function Choice<TValue extends string>({
   return (
     <label
       className={cn(
-        'cursor-pointer has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring/60 has-[:focus-visible]:ring-offset-1 has-[:focus-visible]:ring-offset-paper',
+        'cursor-pointer has-[:focus-visible]:outline has-[:focus-visible]:outline-1 has-[:focus-visible]:outline-accent',
         className,
       )}
       title={title}

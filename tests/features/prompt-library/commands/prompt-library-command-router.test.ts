@@ -20,6 +20,9 @@ const createRouter = (overrides: Partial<PromptLibraryCommandRouter> = {}) => {
     togglePin: () => {
       events.push('toggle-pin')
     },
+    toggleView: () => {
+      events.push('toggle-view')
+    },
     copyActivePrompt: () => {
       events.push('copy-active-prompt')
     },

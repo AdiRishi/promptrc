@@ -1,44 +1,36 @@
-import { X } from 'lucide-react'
 import { type FormEvent, useId, useState } from 'react'
 
-import { Button } from '@/components/ui/button'
 import { Choice, ChoiceGroup } from '@/components/ui/choice'
-import { Input } from '@/components/ui/input'
 import { type PromptRunRequest } from '@/features/prompt-library/commands/prompt-library-command-executor'
 import {
-  PROMPT_RUN_VERDICT_LABELS,
   PROMPT_RUN_VERDICTS,
   summarizePromptRuns,
 } from '@/features/prompt-library/model/prompt-runs'
-import {
-  formatLongDate,
-  pluralize,
-} from '@/features/prompt-library/rendering/prompt-library-formatting'
 import { type PromptRun, type PromptRunVerdict } from '@/features/prompt-library/types'
 import { cn } from '@/lib/utils'
 
-const VERDICT_TEXT: Record<PromptRunVerdict, string> = {
-  pass: 'text-verdict-pass',
-  mixed: 'text-verdict-mixed',
-  fail: 'text-verdict-fail',
+const VERDICT_STYLE: Record<PromptRunVerdict, { mark: string; text: string; label: string }> = {
+  pass: { mark: '✓', text: 'text-green', label: 'PASS' },
+  mixed: { mark: '~', text: 'text-yellow', label: 'MIXED' },
+  fail: { mark: '✗', text: 'text-red', label: 'FAIL' },
 }
 
-const VERDICT_BG: Record<PromptRunVerdict, string> = {
-  pass: 'bg-verdict-pass',
-  mixed: 'bg-verdict-mixed',
-  fail: 'bg-verdict-fail',
+const SPARK_HEIGHT: Record<PromptRunVerdict, string> = {
+  pass: '█',
+  mixed: '▄',
+  fail: '▁',
 }
 
 type BenchmarkLedgerProps = {
   expected: string
   runs: PromptRun[]
   knownModels?: string[]
-  /** Without handlers the ledger is read-only (shared pages). */
+  /** Without handlers the ledger is read-only. */
   onLogRun?: (request: PromptRunRequest) => boolean
   onRemoveRun?: (runId: string) => void
 }
 
-/** The lab sheet under a benchmark: what good looks like, and what actually happened. */
+/** A benchmark reads like test-runner output: the spec, the runs, the tally. */
 export function BenchmarkLedger({
   expected,
   runs,
@@ -47,102 +39,90 @@ export function BenchmarkLedger({
   onRemoveRun,
 }: BenchmarkLedgerProps) {
   const summary = summarizePromptRuns(runs)
+  const sparkline = [...runs].reverse().slice(-32)
 
   return (
-    <section aria-label="Benchmark" className="mt-12 flex flex-col gap-8">
-      <div className="rounded-2xl bg-paper-raised p-5 shadow-[inset_0_0_0_1px_var(--rule)]">
-        <p className="label-caps mb-2 text-kind-benchmark">Expected result</p>
-        {expected ? (
-          <p className="font-reading text-[15.5px] leading-[1.65] whitespace-pre-line text-ink-soft">
-            {expected}
-          </p>
-        ) : (
-          <p className="text-[13px] text-ink-muted">
-            No rubric yet. Edit this benchmark and describe what a pass looks like, so every run is
-            judged the same way.
-          </p>
-        )}
-      </div>
-
-      <div>
-        <div className="mb-4 flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <p className="label-caps mb-1">Run log</p>
-            <p className="font-display text-[34px] leading-none text-ink tabular-nums">
-              {summary.passRate === null ? '—' : `${Math.round(summary.passRate * 100)}%`}
-              <span className="ml-2 font-sans text-[13px] text-ink-muted">
-                {summary.total
-                  ? `passing across ${pluralize(summary.total, 'run')}`
-                  : 'no runs yet'}
-              </span>
-            </p>
-          </div>
-          {summary.total > 0 ? (
-            <div aria-hidden="true" className="flex h-8 items-end gap-[3px]">
-              {[...runs]
-                .reverse()
-                .slice(-24)
-                .map((run) => (
-                  <span
-                    className={cn(
-                      'w-[6px] rounded-full',
-                      VERDICT_BG[run.verdict],
-                      run.verdict === 'pass' ? 'h-8' : run.verdict === 'mixed' ? 'h-5' : 'h-2.5',
-                    )}
-                    key={run.id}
-                    title={`${run.model}: ${run.verdict}`}
-                  />
-                ))}
-            </div>
-          ) : null}
+    <section aria-label="Benchmark" className="mt-8 text-[13px]">
+      <p className="mb-1 text-[12px] text-cyan">## expected</p>
+      {expected ? (
+        <div className="border-l-2 border-cyan/60 pl-[2ch] whitespace-pre-line text-fg">
+          {expected}
         </div>
+      ) : (
+        <p className="text-fg-faint">
+          # no rubric yet — <span className="text-accent">e</span>dit and describe what a pass looks
+          like
+        </p>
+      )}
 
-        {onLogRun ? <LogRunForm knownModels={knownModels} onLogRun={onLogRun} /> : null}
-
-        {runs.length > 0 ? (
-          <ol aria-label="Runs" className="mt-4 divide-y divide-rule border-t border-rule">
-            {runs.map((run) => (
-              <li
-                className="group grid grid-cols-[4.5rem_minmax(0,1fr)_auto] items-start gap-3 py-3"
+      <p className="mt-6 mb-1 text-[12px] text-cyan">## runs</p>
+      <div className="flex flex-wrap items-baseline gap-x-[2ch] gap-y-1">
+        <span className="font-bold">
+          {summary.total ? (
+            <>
+              <span className="text-green">{summary.pass} passed</span>
+              {summary.mixed ? <span className="text-yellow"> | {summary.mixed} mixed</span> : null}
+              {summary.fail ? <span className="text-red"> | {summary.fail} failed</span> : null}
+              <span className="font-normal text-fg-faint"> ({summary.total})</span>
+            </>
+          ) : (
+            <span className="font-normal text-fg-faint">no runs yet</span>
+          )}
+        </span>
+        {summary.passRate !== null ? (
+          <span className="text-fg-dim">{Math.round(summary.passRate * 100)}% pass rate</span>
+        ) : null}
+        {sparkline.length > 0 ? (
+          <span aria-hidden="true">
+            {sparkline.map((run) => (
+              <span
+                className={VERDICT_STYLE[run.verdict].text}
                 key={run.id}
+                title={`${run.model}: ${run.verdict}`}
               >
-                <span
-                  className={cn(
-                    'mt-0.5 inline-flex h-6 animate-stamp items-center justify-center rounded-[5px] font-mono text-[10px] font-semibold tracking-[0.16em] uppercase shadow-[inset_0_0_0_1.5px_currentColor]',
-                    VERDICT_TEXT[run.verdict],
-                  )}
-                >
-                  {run.verdict}
-                </span>
-                <div className="min-w-0">
-                  <p className="truncate text-[13.5px] font-medium text-ink">{run.model}</p>
-                  {run.note ? (
-                    <p className="mt-0.5 text-[13px] leading-relaxed whitespace-pre-line text-ink-muted">
-                      {run.note}
-                    </p>
-                  ) : null}
-                </div>
-                <div className="flex items-center gap-1">
-                  <time className="font-mono text-[10.5px] text-ink-faint" dateTime={run.ranAt}>
-                    {formatLongDate(run.ranAt)}
-                  </time>
-                  {onRemoveRun ? (
-                    <Button
-                      aria-label={`Remove the ${run.model} run`}
-                      className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
-                      onClick={() => onRemoveRun(run.id)}
-                      size="icon-xs"
-                      variant="ghost"
-                    >
-                      <X aria-hidden="true" className="size-3.5" />
-                    </Button>
-                  ) : null}
-                </div>
-              </li>
+                {SPARK_HEIGHT[run.verdict]}
+              </span>
             ))}
-          </ol>
+          </span>
         ) : null}
       </div>
+
+      {runs.length > 0 ? (
+        <ol aria-label="Runs" className="mt-2">
+          {runs.map((run) => {
+            const style = VERDICT_STYLE[run.verdict]
+
+            return (
+              <li
+                className="group grid grid-cols-[2ch_6ch_minmax(0,1fr)_auto] gap-x-[1ch] py-0.5"
+                key={run.id}
+              >
+                <span className={style.text}>{style.mark}</span>
+                <span className={cn('font-bold', style.text)}>{style.label}</span>
+                <span className="min-w-0">
+                  <span className="text-fg">{run.model}</span>
+                  {run.note ? <span className="text-fg-dim"> — {run.note}</span> : null}
+                </span>
+                <span className="flex items-center gap-[1ch] text-[11.5px] text-fg-faint">
+                  <time dateTime={run.ranAt}>{run.ranAt.slice(0, 10)}</time>
+                  {onRemoveRun ? (
+                    <button
+                      aria-label={`Remove the ${run.model} run`}
+                      className="opacity-0 group-hover:opacity-100 hover:text-red focus-visible:opacity-100"
+                      onClick={() => onRemoveRun(run.id)}
+                      type="button"
+                    >
+                      rm
+                    </button>
+                  ) : null}
+                </span>
+              </li>
+            )
+          })}
+        </ol>
+      ) : null}
+
+      {onLogRun ? <LogRunForm knownModels={knownModels} onLogRun={onLogRun} /> : null}
     </section>
   )
 }
@@ -170,17 +150,21 @@ function LogRunForm({
   return (
     <form
       aria-label="Log a run"
-      className="grid gap-2 rounded-2xl bg-paper-sunken/70 p-3 shadow-[inset_0_0_0_1px_var(--rule)] sm:grid-cols-[minmax(0,11rem)_auto_minmax(0,1fr)_auto]"
+      className="mt-3 flex flex-wrap items-center gap-x-[1.5ch] gap-y-2 rounded-sm border border-dashed border-line-strong px-[1.5ch] py-2 text-[12.5px]"
       onSubmit={submit}
     >
+      <span className="text-accent">❯ log</span>
       <label className="sr-only" htmlFor={`${id}-model`}>
         Model
       </label>
-      <Input
+      <input
+        autoComplete="off"
+        className="w-[22ch] border-b border-line-strong bg-transparent text-fg outline-none placeholder:text-fg-faint focus:border-accent"
         id={`${id}-model`}
         list={`${id}-models`}
         onChange={(event) => setModel(event.target.value)}
-        placeholder="Model, e.g. claude-opus-5-5"
+        placeholder="model"
+        spellCheck={false}
         value={model}
       />
       <datalist id={`${id}-models`}>
@@ -189,26 +173,23 @@ function LogRunForm({
         ))}
       </datalist>
 
-      <ChoiceGroup
-        className="flex h-9 items-center gap-0.5 rounded-lg bg-paper-raised p-0.5 shadow-[inset_0_0_0_1px_var(--rule-strong)]"
-        label="Verdict"
-      >
+      <ChoiceGroup className="flex items-center gap-[0.5ch]" label="Verdict">
         {PROMPT_RUN_VERDICTS.map((option) => (
           <Choice
             checked={verdict === option}
             className={cn(
-              'inline-flex h-full items-center rounded-md px-2.5 text-[12px] font-medium transition-colors',
+              'rounded-sm px-[0.75ch] transition-colors',
               verdict === option
-                ? cn(VERDICT_BG[option], 'text-paper')
-                : 'text-ink-muted hover:text-ink',
+                ? cn('bg-bg-hover font-bold', VERDICT_STYLE[option].text)
+                : 'text-fg-faint hover:text-fg',
             )}
             key={option}
-            label={PROMPT_RUN_VERDICT_LABELS[option]}
+            label={`${option[0]?.toUpperCase() ?? ''}${option.slice(1)}`}
             name={`${id}-verdict`}
             onSelect={setVerdict}
             value={option}
           >
-            {PROMPT_RUN_VERDICT_LABELS[option]}
+            {VERDICT_STYLE[option].mark} {option}
           </Choice>
         ))}
       </ChoiceGroup>
@@ -216,15 +197,20 @@ function LogRunForm({
       <label className="sr-only" htmlFor={`${id}-note`}>
         Note
       </label>
-      <Input
+      <input
+        autoComplete="off"
+        className="min-w-[16ch] flex-1 border-b border-line-strong bg-transparent text-fg outline-none placeholder:text-fg-faint focus:border-accent"
         id={`${id}-note`}
         onChange={(event) => setNote(event.target.value)}
-        placeholder="What happened? (optional)"
+        placeholder="what happened? (optional)"
         value={note}
       />
-      <Button type="submit" variant="ink">
-        Log run
-      </Button>
+      <button
+        className="rounded-sm border border-line-strong px-[1ch] text-fg-dim transition-colors hover:border-accent hover:text-accent"
+        type="submit"
+      >
+        ⏎ Log run
+      </button>
     </form>
   )
 }
