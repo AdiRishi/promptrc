@@ -20,6 +20,14 @@ export default defineConfig(({ mode }) => {
         external: ['cloudflare:workers'],
       },
     },
+    optimizeDeps: {
+      // The D1 binding is loaded with a dynamic `import('cloudflare:workers')`.
+      // Without this the dependency scan aborts, pre-bundling is skipped, and the
+      // workerd dev runner ends up evaluating raw CommonJS (react/index.js).
+      rolldownOptions: {
+        external: ['cloudflare:workers'],
+      },
+    },
     plugins: [
       nitro(),
       tailwindcss(),

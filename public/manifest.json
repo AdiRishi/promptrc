@@ -2,8 +2,8 @@
   "$schema": "https://json.schemastore.org/web-manifest-combined.json",
   "id": "/",
   "short_name": "promptrc",
-  "name": "promptrc - terminal-inspired AI prompt manager",
-  "description": "A terminal-inspired, local-first prompt library for storing, organizing, searching, and reusing AI prompts across ChatGPT, Claude, coding, writing, and product workflows.",
+  "name": "promptrc \u2014 a commonplace book for working with AI",
+  "description": "Capture reusable prompts with fill-in variables, phrasing that landed, multi-step sequences, and reproducible benchmarks \u2014 then find and reuse them in seconds.",
   "icons": [
     {
       "src": "favicon.ico",
@@ -29,7 +29,7 @@
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
-  "theme_color": "#0b0c0e",
-  "background_color": "#0b0c0e",
+  "theme_color": "#f4f0e8",
+  "background_color": "#f4f0e8",
   "categories": ["productivity", "developer tools", "utilities"]
 }

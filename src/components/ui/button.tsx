@@ -4,32 +4,28 @@ import { type VariantProps, cva } from 'class-variance-authority'
 import { cn } from '@/lib/utils'
 
 const buttonVariants = cva(
-  "group/button inline-flex shrink-0 items-center justify-center whitespace-nowrap rounded-[2px] border text-[12px] font-medium transition-colors outline-none select-none disabled:pointer-events-none disabled:opacity-45 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+  "group/button relative inline-flex shrink-0 items-center justify-center rounded-lg font-medium whitespace-nowrap transition-[background-color,color,box-shadow,transform] duration-150 outline-none select-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-offset-2 focus-visible:ring-offset-paper active:translate-y-px disabled:pointer-events-none disabled:opacity-40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
   {
     variants: {
       variant: {
         default:
-          'border-primary bg-primary text-primary-foreground hover:border-[var(--primary-hover)] hover:bg-[var(--primary-hover)] focus-visible:border-primary',
+          'bg-vermilion text-primary-foreground shadow-[inset_0_1px_0_rgb(255_255_255/0.18),0_1px_2px_rgb(0_0_0/0.18)] hover:bg-vermilion-ink',
+        ink: 'bg-ink text-paper shadow-[inset_0_1px_0_rgb(255_255_255/0.12)] hover:bg-ink-soft',
         outline:
-          'border-border bg-transparent text-foreground hover:border-primary hover:text-primary focus-visible:border-primary',
-        secondary:
-          'border-border bg-card text-muted-foreground hover:border-primary hover:text-foreground focus-visible:border-primary',
-        ghost:
-          'border-transparent bg-transparent text-muted-foreground hover:text-primary focus-visible:border-primary',
+          'bg-paper-raised text-ink shadow-[inset_0_0_0_1px_var(--rule-strong)] hover:bg-paper-sunken',
+        ghost: 'text-ink-muted hover:bg-ink/[0.06] hover:text-ink',
         destructive:
-          'border-destructive bg-destructive/12 text-destructive hover:bg-destructive/20 focus-visible:border-destructive',
-        link: 'border-transparent px-0 text-primary underline-offset-4 hover:underline',
+          'bg-verdict-fail/10 text-verdict-fail shadow-[inset_0_0_0_1px_color-mix(in_oklab,var(--verdict-fail)_40%,transparent)] hover:bg-verdict-fail/15',
+        link: 'px-0 text-vermilion underline-offset-4 hover:underline',
       },
       size: {
-        default:
-          'h-10 gap-2 px-4 has-data-[icon=inline-end]:pr-3 has-data-[icon=inline-start]:pl-3',
-        xs: 'h-7 gap-1.5 px-2.5 text-[11px]',
-        sm: 'h-9 gap-2 px-3.5',
-        lg: 'h-11 gap-2 px-5 text-[13px]',
-        icon: 'size-10',
-        'icon-xs': 'size-7',
-        'icon-sm': 'size-9',
-        'icon-lg': 'size-11',
+        default: 'h-9 gap-2 px-3.5 text-[13px]',
+        xs: 'h-7 gap-1.5 rounded-md px-2 text-[12px]',
+        sm: 'h-8 gap-1.5 px-3 text-[12.5px]',
+        lg: 'h-11 gap-2 px-5 text-[14px]',
+        icon: 'size-9',
+        'icon-xs': 'size-7 rounded-md',
+        'icon-sm': 'size-8',
       },
     },
     defaultVariants: {

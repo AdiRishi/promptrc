@@ -30,18 +30,18 @@ export function FirstSignInCopyDialog() {
   const acceptCopy = useCallback(async () => {
     try {
       await library.acceptFirstSignInCopy()
-      toast(`copied ${promptCount} ${promptCount === 1 ? 'prompt' : 'prompts'} to cloud`)
+      toast(`Copied ${promptCount} ${promptCount === 1 ? 'entry' : 'entries'} into your account`)
     } catch (error) {
-      toast(`copy failed - ${library.reportError(error)}`)
+      toast(`Couldn’t copy — ${library.reportError(error)}`)
     }
   }, [library, promptCount])
 
   const declineCopy = useCallback(async () => {
     try {
       await library.declineFirstSignInCopy()
-      toast('cloud library started empty')
+      toast('Your synced library starts empty')
     } catch (error) {
-      toast(`choice failed - ${library.reportError(error)}`)
+      toast(`Couldn’t save that choice — ${library.reportError(error)}`)
     }
   }, [library])
 
@@ -51,35 +51,32 @@ export function FirstSignInCopyDialog() {
 
   return (
     <Dialog open={isOpen}>
-      <DialogContent
-        className="gap-5 rounded-[4px] border border-border bg-card p-0 shadow-xl sm:max-w-[460px]"
-        showCloseButton={false}
-      >
-        <DialogHeader className="border-b border-border px-5 py-4">
-          <DialogTitle className="text-[15px] text-foreground">
-            Copy local Prompt Library?
-          </DialogTitle>
-          <DialogDescription className="text-[13px] leading-6">
-            You have {promptCount} local {promptCount === 1 ? 'Prompt' : 'Prompts'}. Copy them into
-            your cloud Prompt Library, or start cloud empty.
+      <DialogContent className="gap-5 sm:max-w-[460px]" showCloseButton={false}>
+        <DialogHeader>
+          <p className="label-caps text-vermilion">First sign-in</p>
+          <DialogTitle>Bring your book with you?</DialogTitle>
+          <DialogDescription>
+            This browser holds {promptCount} {promptCount === 1 ? 'entry' : 'entries'} that aren’t
+            in your account yet. Copy them in to have them everywhere, or start your synced library
+            empty.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="px-5 text-[12px] leading-6 text-muted-foreground">
-          Local Prompts stay on this browser either way.
+        <div className="text-[12.5px] leading-relaxed text-ink-muted">
+          Nothing on this device is removed either way.
           {firstSignInCopy.error ? (
-            <div className="mt-3 border border-destructive/40 bg-destructive/10 px-3 py-2 text-destructive">
+            <div className="mt-3 rounded-lg bg-verdict-fail/10 px-3 py-2 text-verdict-fail">
               {firstSignInCopy.error}
             </div>
           ) : null}
         </div>
 
-        <DialogFooter className="border-t border-border px-5 py-4">
-          <Button disabled={isBusy} onClick={declineCopy} size="sm" type="button" variant="outline">
-            Continue empty
+        <DialogFooter>
+          <Button disabled={isBusy} onClick={declineCopy} type="button" variant="ghost">
+            Start empty
           </Button>
-          <Button disabled={isBusy} onClick={acceptCopy} size="sm" type="button">
-            {isBusy ? 'Copying...' : 'Copy local Prompts'}
+          <Button disabled={isBusy} onClick={acceptCopy} type="button">
+            {isBusy ? 'Copying…' : `Copy ${promptCount === 1 ? 'it' : `all ${promptCount}`}`}
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -56,6 +56,8 @@ export const hydratePromptLibrary = async (
   await makePromptLibraryReady(storage, store)
 }
 
+const noopFirstSignInCopyDecision = () => Promise.resolve()
+
 export const createPromptLibraryClient = (
   storage: PromptLibraryStorage,
   store: PromptLibraryStoreApi,
@@ -98,8 +100,6 @@ export const createPromptLibraryClient = (
     await hydratePromptLibrary(storage, store)
     markSyncReady()
   }
-
-  const noopFirstSignInCopyDecision = () => Promise.resolve()
 
   if (storage.mode === 'local') {
     const localShareUnavailable = () =>

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  extractFillablePromptVariables,
   extractPromptVariables,
   fillPromptVariables,
   hasPromptVariables,
@@ -157,5 +158,15 @@ describe('prompt templates', () => {
         raw: '{{topic | }}',
       })
     })
+  })
+})
+
+describe('extractFillablePromptVariables', () => {
+  it('ignores variables inside inline code and fenced blocks', () => {
+    expect(
+      extractFillablePromptVariables(
+        'Use `{{example}}` syntax.\n\n```\n{{also_code}}\n```\n\nHello {{name}}',
+      ).map((variable) => variable.name),
+    ).toEqual(['name'])
   })
 })

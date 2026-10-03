@@ -8,7 +8,8 @@ import {
 
 import appCss from '@/global-styles/tailwind.css?url'
 import { AppProviders } from '@/lib/app-providers'
-import { SITE_AUTHOR, SITE_THEME_COLOR } from '@/lib/site-config'
+import { SITE_AUTHOR, SITE_THEME_COLOR, SITE_THEME_COLOR_DARK } from '@/lib/site-config'
+import { THEME_INIT_SCRIPT } from '@/lib/theme'
 
 const GA_ID = 'G-07N4HEE4SJ'
 
@@ -35,6 +36,12 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       {
         name: 'theme-color',
         content: SITE_THEME_COLOR,
+        media: '(prefers-color-scheme: light)',
+      },
+      {
+        name: 'theme-color',
+        content: SITE_THEME_COLOR_DARK,
+        media: '(prefers-color-scheme: dark)',
       },
       {
         name: 'author',
@@ -86,8 +93,11 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 
 function RootDocument({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    // The theme class is applied before hydration by THEME_INIT_SCRIPT.
+    <html lang="en" suppressHydrationWarning>
       <head>
+        {/* Runs before first paint so the page never flashes the wrong theme. */}
+        <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
         <HeadContent />
         <ClientOnly fallback={null}>
           <GoogleAnalytics />

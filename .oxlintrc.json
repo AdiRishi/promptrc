@@ -63,7 +63,8 @@
     "unicorn/no-array-sort": "off",
     "unicorn/no-array-reverse": "off",
     "typescript/no-unsafe-type-assertion": "off",
-    "typescript/consistent-return": "off"
+    "typescript/consistent-return": "off",
+    "jsx-a11y/control-has-associated-label": "off"
   },
   "overrides": [
     {

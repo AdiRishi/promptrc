@@ -32,3 +32,18 @@ export const formatSequenceForCopy = (steps: readonly string[]) => {
 export const stripSequenceMarkers = (body: string) => {
   return splitSequenceSteps(body).join('\n\n')
 }
+
+const EDITING_SEPARATOR = `\n\n${SEQUENCE_STEP_MARKER}\n\n`
+const EDITING_SPLIT_PATTERN = /\n*^[ \t]*<!--\s*step\s*-->[ \t]*$\n*/m
+
+/**
+ * Editing keeps empty steps and the whitespace a person is in the middle of
+ * typing; reading (splitSequenceSteps) trims and drops empties.
+ */
+export const splitSequenceStepsForEditing = (body: string): string[] => {
+  return body.split(EDITING_SPLIT_PATTERN)
+}
+
+export const joinSequenceStepsForEditing = (steps: readonly string[]) => {
+  return steps.join(EDITING_SEPARATOR)
+}

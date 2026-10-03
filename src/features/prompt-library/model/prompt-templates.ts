@@ -37,6 +37,16 @@ export const extractPromptVariables = (body: string): PromptVariable[] => {
   return Array.from(variables.values())
 }
 
+const CODE_PATTERN = /```[\s\S]*?(?:```|$)|`[^`\n]*`/g
+
+/**
+ * Variables a reader can actually fill in: the same as extractPromptVariables,
+ * minus anything inside code spans or fenced blocks, which render verbatim.
+ */
+export const extractFillablePromptVariables = (body: string): PromptVariable[] => {
+  return extractPromptVariables(body.replace(CODE_PATTERN, ''))
+}
+
 export const hasPromptVariables = (body: string) => {
   VARIABLE_PATTERN.lastIndex = 0
   const hasMatch = VARIABLE_PATTERN.test(body)

@@ -11,7 +11,7 @@ function Input({ className, type, ...props }: InputProps) {
       type={type}
       data-slot="input"
       className={cn(
-        'h-10 w-full min-w-0 rounded-[2px] border border-input bg-background px-3 py-2 text-[13px] text-foreground transition-colors outline-none placeholder:text-muted-foreground focus-visible:border-primary disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-45 aria-invalid:border-destructive',
+        'h-9 w-full min-w-0 rounded-lg bg-paper-raised px-3 text-[13.5px] text-ink shadow-[inset_0_0_0_1px_var(--rule-strong)] transition-shadow outline-none placeholder:text-ink-faint focus-visible:shadow-[inset_0_0_0_1.5px_var(--vermilion)] disabled:cursor-not-allowed disabled:opacity-45 aria-invalid:shadow-[inset_0_0_0_1.5px_var(--verdict-fail)]',
         className,
       )}
       {...props}

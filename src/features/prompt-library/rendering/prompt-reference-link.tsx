@@ -9,7 +9,7 @@ import {
   Plug,
   Terminal,
 } from 'lucide-react'
-import { type CSSProperties } from 'react'
+import { type CSSProperties, createElement } from 'react'
 import { FaGithub, FaReact } from 'react-icons/fa'
 import { SiJavascript, SiTypescript } from 'react-icons/si'
 
@@ -37,8 +37,8 @@ const shellFileExtensions = new Set(['bash', 'fish', 'ps1', 'sh', 'zsh'])
 
 export function PromptReferenceLink({ token }: { token: PromptReferenceToken }) {
   const isGitHub = token.label.toLowerCase() === 'github'
-  const Icon = token.visual?.iconSrc ? null : referenceIconForToken(token, isGitHub)
   const label = referenceLabel(token)
+  const isIntegration = (token.kind === 'plugin' || token.kind === 'app') && !isGitHub
   const referenceStyle = token.visual?.textColor
     ? ({ color: token.visual.textColor } satisfies CSSProperties)
     : undefined
@@ -47,43 +47,43 @@ export function PromptReferenceLink({ token }: { token: PromptReferenceToken }) 
     <span
       aria-label={`${token.kind}: ${token.label}`}
       className={cn(
-        'inline-flex max-w-full translate-y-[0.08em] cursor-default items-center gap-1.5 rounded-[3px] align-baseline text-[1em] leading-none font-medium text-[#7eb6f2] no-underline decoration-transparent underline-offset-[3px] transition-colors hover:text-[#9fcbff] hover:decoration-[#9fcbff]/55',
-        (token.kind === 'plugin' || token.kind === 'app') &&
-          !isGitHub &&
-          'text-[#6f7890] hover:text-[#9fcbff]',
-        token.visual?.textColor && 'text-current hover:brightness-125',
+        'mx-[0.08em] inline-flex max-w-full translate-y-[-0.06em] cursor-default items-center gap-1.5 rounded-md bg-paper-sunken px-1.5 py-[0.18em] align-middle font-sans text-[0.8em] leading-none font-medium text-ink shadow-[inset_0_0_0_1px_var(--rule)]',
+        isIntegration && 'text-ink-muted',
+        token.visual?.textColor && 'text-current',
       )}
       style={referenceStyle}
     >
       {token.visual?.iconSrc ? (
         <span
           aria-hidden="true"
-          className="inline-grid size-[1.1em] shrink-0 place-items-center overflow-hidden rounded-[3px] bg-white shadow-[inset_0_0_0_1px_rgba(0,0,0,0.1)]"
+          className="inline-grid size-[1.15em] shrink-0 place-items-center overflow-hidden rounded-[3px] bg-white shadow-[inset_0_0_0_1px_rgba(0,0,0,0.1)]"
         >
           <img
             alt=""
-            className="size-[0.94em] object-contain"
+            className="size-[0.95em] object-contain"
             decoding="async"
             loading="lazy"
             src={token.visual.iconSrc}
           />
         </span>
-      ) : Icon ? (
-        <Icon
-          aria-hidden="true"
-          className={cn(
-            'size-[0.92em] shrink-0',
-            (token.kind === 'skill' || token.kind === 'file' || token.kind === 'directory') &&
-              'text-[#7eb6f2]',
-            (token.kind === 'plugin' || token.kind === 'app') && !isGitHub && 'text-current',
-            isGitHub && 'text-current',
-          )}
-          strokeWidth={token.kind === 'skill' ? 2.2 : 2}
-        />
-      ) : null}
+      ) : (
+        <ReferenceIcon isGitHub={isGitHub} token={token} />
+      )}
       <span className="min-w-0 truncate">{label}</span>
     </span>
   )
+}
+
+function ReferenceIcon({ token, isGitHub }: { token: PromptReferenceToken; isGitHub: boolean }) {
+  return createElement(referenceIconForToken(token, isGitHub), {
+    'aria-hidden': true,
+    className: cn(
+      'size-[1em] shrink-0',
+      (token.kind === 'skill' || token.kind === 'file' || token.kind === 'directory') &&
+        'text-kind-fragment',
+    ),
+    strokeWidth: token.kind === 'skill' ? 2.2 : 2,
+  })
 }
 
 function referenceIconForToken(token: PromptReferenceToken, isGitHub: boolean) {

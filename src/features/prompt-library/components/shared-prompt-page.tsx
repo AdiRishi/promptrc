@@ -1,17 +1,32 @@
-'use client'
-
 import { useQuery } from '@tanstack/react-query'
+import { Link } from '@tanstack/react-router'
 import { useServerFn } from '@tanstack/react-start'
-import { Copy } from 'lucide-react'
-import { useCallback } from 'react'
+import { ArrowUpRight, Copy } from 'lucide-react'
+import { useState } from 'react'
 import { toast } from 'sonner'
 
-import { TerminalChromeBar, TerminalTrafficLights } from '@/components/terminal-chrome'
-import { Button, buttonVariants } from '@/components/ui/button'
-import { PromptNote } from '@/features/prompt-library/components/prompt-note'
+import { Button } from '@/components/ui/button'
+import { BenchmarkSummary } from '@/features/prompt-library/components/benchmark-ledger'
+import { KindBadge } from '@/features/prompt-library/components/kind-mark'
+import { Wordmark } from '@/features/prompt-library/components/library-sidebar'
+import {
+  BlanksHint,
+  Marginalia,
+  Ornament,
+  PromptBody,
+} from '@/features/prompt-library/components/prompt-reader'
+import { getPromptCopyText } from '@/features/prompt-library/model/prompt-copy'
 import { appendPromptImageCacheKey } from '@/features/prompt-library/model/prompt-images'
-import { type PromptImageUrlResolver } from '@/features/prompt-library/rendering/prompt-body-markdown'
+import { getPromptKindDefinition } from '@/features/prompt-library/model/prompt-kinds'
+import { extractFillablePromptVariables } from '@/features/prompt-library/model/prompt-templates'
+import {
+  PromptImageAttachments,
+  type PromptImageUrlResolver,
+} from '@/features/prompt-library/rendering/prompt-body-markdown'
+import { formatLongDate } from '@/features/prompt-library/rendering/prompt-library-formatting'
+import { PromptVariableProvider } from '@/features/prompt-library/rendering/prompt-variable-slot'
 import { getPublicRemotePromptShare } from '@/features/prompt-library/server/prompt-library-functions'
+import { cn } from '@/lib/utils'
 
 type SharedPromptPageProps = {
   shareId: string
@@ -19,89 +34,150 @@ type SharedPromptPageProps = {
 
 const getPromptShareQueryKey = (shareId: string) => ['prompt-share', shareId] as const
 
+/** A shared entry, presented like a single card lifted out of someone's book. */
 export function SharedPromptPage({ shareId }: SharedPromptPageProps) {
   const getSharedPrompt = useServerFn(getPublicRemotePromptShare)
-  const imageUrlFor = useCallback<PromptImageUrlResolver>(
-    (imageId, image) =>
-      appendPromptImageCacheKey(
-        `/api/shared-prompt-images/${encodeURIComponent(shareId)}/${encodeURIComponent(imageId)}`,
-        image,
-      ),
-    [shareId],
-  )
+  const [values, setValues] = useState<Record<string, string>>({})
+  const imageUrlFor: PromptImageUrlResolver = (imageId, image) =>
+    appendPromptImageCacheKey(
+      `/api/shared-prompt-images/${encodeURIComponent(shareId)}/${encodeURIComponent(imageId)}`,
+      image,
+    )
   const shareQuery = useQuery({
     queryKey: getPromptShareQueryKey(shareId),
     queryFn: () => getSharedPrompt({ data: shareId }),
     retry: false,
   })
+  const prompt = shareQuery.data?.prompt ?? null
+  const variables = prompt ? extractFillablePromptVariables(prompt.body) : []
+  const filledCount = variables.filter((variable) => values[variable.name]?.trim()).length
 
-  const copyPromptBody = async () => {
-    const prompt = shareQuery.data?.prompt
-
+  const copy = async (request: { stepIndex?: number } = {}) => {
     if (!prompt) {
       return
     }
 
     try {
-      await navigator.clipboard.writeText(prompt.body)
-      toast(`copied -> ${prompt.title}`)
+      await navigator.clipboard.writeText(getPromptCopyText(prompt, { ...request, values }))
+      toast(
+        request.stepIndex === undefined
+          ? `Copied “${prompt.title}”`
+          : `Copied step ${request.stepIndex + 1}`,
+      )
     } catch {
-      toast('clipboard access is unavailable')
+      toast('Clipboard access is unavailable')
     }
   }
 
   return (
-    <div className="terminal-app min-h-screen bg-background text-foreground">
-      <TerminalChromeBar>
-        <TerminalTrafficLights />
+    <div className="relative z-10 min-h-dvh">
+      <header className="mx-auto flex max-w-[52rem] items-center justify-between px-6 pt-6">
+        <Link className="rounded-md" to="/">
+          <Wordmark className="text-[22px]" />
+        </Link>
+        <span className="label-caps text-[9.5px]">Shared entry</span>
+      </header>
 
-        <div className="ml-[14px] min-w-0 text-[12px] tracking-[0.05em] text-muted-foreground">
-          <span className="font-medium text-foreground">~/.promptrc/share</span>{' '}
-          <span className="text-primary">·</span> public
-        </div>
-
-        <a
-          className="ml-auto hidden h-7 items-center rounded-[2px] border border-border bg-card px-2.5 text-[11px] text-muted-foreground transition-colors hover:border-primary hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none sm:inline-flex"
-          href="/"
-        >
-          open promptrc
-        </a>
-      </TerminalChromeBar>
-
-      <main className="relative z-10 mx-auto flex min-h-[calc(100vh-42px)] w-full max-w-4xl flex-col px-4 py-6 md:px-6 md:py-10">
+      <main className="mx-auto max-w-[52rem] px-4 pt-8 pb-20 sm:px-6 sm:pt-12">
         {shareQuery.isPending ? (
-          <div className="border border-border bg-card px-6 py-5 text-[12px] text-muted-foreground">
-            resolving share link...
+          <div className="animate-pulse rounded-3xl bg-paper-raised p-10 shadow-card ring-1 ring-rule">
+            <div className="mb-6 h-6 w-28 rounded-full bg-rule" />
+            <div className="mb-3 h-10 w-3/4 rounded-full bg-rule" />
+            <div className="h-4 w-full rounded-full bg-rule/70" />
           </div>
         ) : null}
 
         {shareQuery.isError || shareQuery.data === null ? (
-          <div className="border border-border bg-card px-6 py-5">
-            <p className="text-[12px] tracking-[0.12em] text-destructive uppercase">
-              share link unavailable
+          <div className="rounded-3xl bg-paper-raised px-8 py-14 text-center shadow-card ring-1 ring-rule">
+            <p
+              aria-hidden="true"
+              className="font-display text-[72px] leading-none text-rule-strong"
+            >
+              ※
             </p>
-            <p className="mt-3 max-w-[54ch] text-[13px] leading-6 text-muted-foreground">
-              This prompt share was revoked or does not exist.
+            <h1 className="font-display mt-4 text-[28px] text-ink">This page has been taken out</h1>
+            <p className="mx-auto mt-2 max-w-[40ch] text-[14px] leading-relaxed text-ink-muted">
+              The link was revoked by its owner, or never existed.
             </p>
+            <Link
+              className="mt-6 inline-flex h-9 items-center rounded-lg bg-ink px-4 text-[13px] font-medium text-paper"
+              to="/"
+            >
+              Start your own commonplace book
+            </Link>
           </div>
         ) : null}
 
-        {shareQuery.data ? (
-          <PromptNote
-            imageUrlFor={imageUrlFor}
-            prompt={shareQuery.data.prompt}
-            footer={
-              <>
-                <Button onClick={copyPromptBody} size="sm" type="button">
-                  <Copy aria-hidden="true" className="size-3.5" />
-                  Copy Prompt Body
-                </Button>
-                <a className={buttonVariants({ size: 'sm', variant: 'outline' })} href="/">
-                  Open promptrc
-                </a>
-              </>
-            }
-          />
+        {prompt ? (
+          <article
+            aria-labelledby="shared-prompt-title"
+            className="animate-rise rounded-3xl bg-paper-raised px-6 py-10 shadow-card ring-1 ring-rule sm:px-12 sm:py-14"
+          >
+            <div className="mb-5 flex flex-wrap items-center gap-3">
+              <KindBadge kind={prompt.kind} />
+              <span className="label-caps text-[10px]">
+                Shared {formatLongDate(shareQuery.data?.createdAt ?? prompt.createdAt)}
+              </span>
+            </div>
+            <h1
+              className={cn(
+                'font-display text-[clamp(2rem,5vw,3rem)] leading-[1.04] text-balance text-ink',
+                prompt.kind === 'fragment' && 'italic',
+              )}
+              id="shared-prompt-title"
+            >
+              {prompt.title}
+            </h1>
+            {prompt.tags.length > 0 ? (
+              <p className="mt-4 flex flex-wrap gap-x-3 font-mono text-[11.5px] text-ink-muted">
+                {prompt.tags.map((tag) => (
+                  <span key={tag}>#{tag}</span>
+                ))}
+              </p>
+            ) : null}
+
+            <Ornament />
+
+            <PromptVariableProvider
+              value={{
+                values,
+                onChange: (name, value) => setValues((current) => ({ ...current, [name]: value })),
+              }}
+            >
+              {variables.length > 0 ? (
+                <BlanksHint
+                  filledCount={filledCount}
+                  onReset={() => setValues({})}
+                  total={variables.length}
+                />
+              ) : null}
+              <PromptBody imageUrlFor={imageUrlFor} onCopy={copy} prompt={prompt} />
+            </PromptVariableProvider>
+
+            <PromptImageAttachments imageUrlFor={imageUrlFor} images={prompt.images} />
+
+            {prompt.kind === 'benchmark' ? (
+              <BenchmarkSummary expected={prompt.notes} runs={prompt.runs} />
+            ) : prompt.notes ? (
+              <Marginalia label={getPromptKindDefinition(prompt.kind).notesLabel}>
+                {prompt.notes}
+              </Marginalia>
+            ) : null}
+
+            <div className="mt-12 flex flex-wrap items-center gap-2 border-t border-rule pt-6">
+              <Button onClick={() => void copy()}>
+                <Copy aria-hidden="true" />
+                {filledCount > 0 ? 'Copy with your blanks' : 'Copy'}
+              </Button>
+              <Link
+                className="inline-flex h-9 items-center gap-1.5 rounded-lg px-3.5 text-[13px] font-medium text-ink-muted transition-colors hover:bg-ink/5 hover:text-ink"
+                to="/"
+              >
+                Keep your own in promptrc
+                <ArrowUpRight aria-hidden="true" className="size-4" />
+              </Link>
+            </div>
+          </article>
         ) : null}
       </main>
     </div>
