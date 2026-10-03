@@ -79,7 +79,7 @@ export function CommandPalette({
                 // oxlint-disable-next-line jsx-a11y/no-autofocus
                 autoFocus
                 className="h-14 flex-1 bg-transparent text-[16px] text-ink outline-none placeholder:text-ink-faint"
-                placeholder="Search entries, jump to a collection, or run a command…"
+                placeholder="Search entries, jump to a category, or run a command…"
               />
               <KeyCombo keys={['Esc']} />
             </div>
@@ -181,7 +181,7 @@ export function CommandPalette({
                     className={itemClass}
                     key={`category-${category.key}`}
                     onSelect={run(() => onFilter({ type: 'category', category: category.key }))}
-                    value={`go collection ${category.label}`}
+                    value={`go category ${category.label}`}
                   >
                     <span aria-hidden="true" className="grid w-4 place-items-center">
                       <span className="size-[7px] rounded-full bg-current opacity-50" />
@@ -243,7 +243,7 @@ function Count({ value }: { value: number }) {
 }
 
 /**
- * Every typed word must appear somewhere (title, excerpt, tags, kind, collection);
+ * Every typed word must appear somewhere (title, excerpt, tags, kind, category);
  * titles that start with the query rank first.
  */
 function scoreItem(value: string, search: string, keywords: string[] = []) {

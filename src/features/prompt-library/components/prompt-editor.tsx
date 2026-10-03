@@ -210,7 +210,7 @@ export function PromptEditor({
             />
             <div className="mt-4 grid gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)]">
               <label className={cn(fieldShell, 'flex h-10 items-center gap-2 px-3')}>
-                <span className="label-caps text-[9.5px]">Collection</span>
+                <span className="label-caps text-[9.5px]">Category</span>
                 <input
                   autoComplete="off"
                   className="min-w-0 flex-1 bg-transparent text-[13.5px] text-ink outline-none placeholder:text-ink-faint"

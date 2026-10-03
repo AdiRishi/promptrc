@@ -22,7 +22,7 @@ type QuickCaptureDialogProps = {
 }
 
 /**
- * The fastest way in: paste or type, pick what it is, keep it. Title, collection
+ * The fastest way in: paste or type, pick what it is, keep it. Title, category
  * and tags are optional — a title is derived from the first line when blank.
  */
 export function QuickCaptureDialog({ open, onOpenChange, ...props }: QuickCaptureDialogProps) {
@@ -158,7 +158,7 @@ function CaptureCard({
             value={title}
           />
         </CaptureField>
-        <CaptureField label="Collection">
+        <CaptureField label="Category">
           <input
             autoComplete="off"
             className="w-full bg-transparent text-[13px] text-ink outline-none placeholder:text-ink-faint"

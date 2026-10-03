@@ -129,7 +129,7 @@ export function LibrarySidebar({
         </SidebarSection>
 
         {facets.categories.length > 0 ? (
-          <SidebarSection heading="Collections">
+          <SidebarSection heading="Categories">
             {facets.categories.map((category) => (
               <SidebarItem
                 active={isActive({ type: 'category', category: category.key })}

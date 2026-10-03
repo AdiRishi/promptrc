@@ -1,6 +1,6 @@
 # promptrc
 
-promptrc is a terminal-inspired prompt library for storing, finding, and reusing AI prompts. Its domain is personal prompt retrieval: helping a user keep useful prompts close at hand without turning the library into a heavy content-management system.
+promptrc is a commonplace book for working with AI: a personal library for capturing, finding, and reusing the prompts, phrasings, instruction sequences, and benchmarks that worked. Its domain is personal prompt retrieval: keeping what worked close at hand without turning the library into a heavy content-management system.
 
 ## Language
 
@@ -12,12 +12,52 @@ _Avoid_: Workspace, store, database
 A reusable AI instruction saved by a user for later retrieval and reuse.
 _Avoid_: Entry, file, snippet
 
+**Kind**:
+What a **Prompt** is: a plain reusable instruction (`prompt`), a **Fragment**, a **Sequence**, or a **Benchmark**. Every kind is still a **Prompt**; the kind only changes how the **Prompt Body** is presented, copied, and evaluated.
+_Avoid_: Type, template, format
+
+**Fragment**:
+A **Prompt** whose body is a piece of wording worth keeping rather than a complete instruction.
+_Avoid_: Snippet, phrase, quote
+
+**Sequence**:
+A **Prompt** whose body is an ordered list of **Steps**, sent to an AI tool one after another.
+_Avoid_: Chain, workflow, pipeline
+
+**Step**:
+One instruction within a **Sequence**, separated from its neighbours by a `<!-- step -->` marker line in the **Prompt Body**.
+_Avoid_: Stage, part
+
+**Benchmark**:
+A **Prompt** used as a reproducible test: its body is the exact test prompt, its **Notes** describe the expected result, and it keeps a log of **Runs**.
+_Avoid_: Eval, test case
+
+**Run**:
+One recorded attempt of a **Benchmark** against a named model, with a **Verdict** and an optional note.
+_Avoid_: Result, execution, trial
+
+**Verdict**:
+The judgement of a **Run** against the expected result: pass, mixed, or fail.
+_Avoid_: Score, grade, status
+
+**Variable**:
+A `{{name}}` or `{{name | fallback}}` slot in a **Prompt Body** that is filled in before copying. Shown to people as a blank.
+_Avoid_: Placeholder, parameter, field
+
+**Notes**:
+Free text attached to a **Prompt** explaining why it works (or, for a **Benchmark**, what a pass looks like). Notes are not part of the **Prompt Body** and are never copied.
+_Avoid_: Description, comment, metadata
+
+**Pin**:
+A user's mark that keeps a **Prompt** at the top of every list.
+_Avoid_: Favourite, star, bookmark
+
 **Prompt Body**:
 The reusable instruction text copied from a **Prompt** into an AI tool.
 _Avoid_: Content, description
 
 **Prompt Use**:
-An instance of copying a **Prompt Body** for reuse outside promptrc.
+An instance of copying a **Prompt Body** (or one **Step** of a **Sequence**) for reuse outside promptrc, with any filled **Variables** substituted.
 _Avoid_: View, open, select
 
 **Use Count**:
@@ -56,7 +96,11 @@ _Avoid_: Onboarding branch, migration flow, empty-state setup
 
 - A **Prompt Library** contains zero or more **Prompts**
 - A **Fresh Prompt Library** receives **Starter Prompts** once unless an eligible **First-Sign-In Copy** decision is made for that library
-- A **Prompt** has exactly one **Prompt Body**
+- A **Prompt** has exactly one **Kind** and exactly one **Prompt Body**
+- A **Sequence**'s **Steps** live inside its **Prompt Body**; there is no separate step storage
+- A **Benchmark** has zero or more **Runs**; each **Run** has exactly one **Verdict**
+- **Variables** belong to the **Prompt Body**; values typed into them are a per-device convenience, not part of the **Prompt**
+- Pinning or logging a **Run** is a user action that ends a **Fresh Prompt Library**
 - A **Prompt** belongs to exactly one **Category**
 - **Category Order** is independent of when a **Prompt** was created, edited, or used
 - A **Prompt** may have zero or more **Tags**
@@ -71,6 +115,12 @@ _Avoid_: Onboarding branch, migration flow, empty-state setup
 
 ## Example dialogue
 
+> **Dev:** "When someone copies step two of a **Sequence**, is that a **Prompt Use**?"
+> **Domain expert:** "Yes — it is the same reuse, just narrower. Selecting the Sequence or reading its Steps is not."
+
+> **Dev:** "Should a **Run** go in the **Notes**?"
+> **Domain expert:** "No. **Notes** describe what good looks like; a **Run** records what actually happened, against which model, so the two can be compared over time."
+
 > **Dev:** "When a user presses copy on a **Prompt**, should we record a **Prompt Use**?"
 > **Domain expert:** "Yes. A **Prompt Use** means the **Prompt Body** was copied for reuse elsewhere. Merely selecting or opening the **Prompt** should not affect the **Use Count**."
 
@@ -83,7 +133,9 @@ _Avoid_: Onboarding branch, migration flow, empty-state setup
 ## Flagged ambiguities
 
 - "entry", "file", and "snippet" may appear in UI metaphors, but the domain term for a saved reusable instruction is **Prompt**.
-- "folder" and "directory" may appear in terminal-inspired visuals, but the domain term for primary prompt grouping is **Category**.
+- "folder" and "directory" are no longer used in the interface; the domain term for primary prompt grouping is **Category**, and the interface says Category too.
+- The kind named `prompt` shares its name with the domain term **Prompt**. In the interface it is labelled "Prompt" under Kinds; everywhere else "Prompt" means any saved item of any **Kind**.
+- "blank" is the interface word for a **Variable**; code should say Variable.
 - "recent", "latest", and "updated" may describe Prompt metadata, but they must not define **Category Order**.
 - A **Fresh Prompt Library** is not the same as an empty **Prompt Library**; deleting all **Prompts** after a real user action must not make the library fresh again.
 - "mock data", "sample prompt", and "seeded prompt" may describe onboarding ideas, but the domain term for a prompt added once to a fresh library is **Starter Prompt**.
