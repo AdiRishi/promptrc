@@ -97,7 +97,7 @@ Vitest is on v5. `@cloudflare/vitest-plugin@1.3.5` only declares support for Vit
 
 Target: Cloudflare Workers with a D1 binding named `DB` (see `wrangler.jsonc`). `nitro.config.ts` sets the Nitro preset to Cloudflare; retargeting elsewhere is a preset change. `pnpm build` outputs the Worker bundle + `.output/server/wrangler.json`, and `pnpm deploy` runs wrangler against that output directory — never the repo root.
 
-Production routes (`promptrc.app`, `www.promptrc.app`) and the D1 database id are pinned in `wrangler.jsonc`. The Deploy workflow runs `wrangler d1 migrations apply promptrc --remote` before `wrangler deploy`; a manual `pnpm deploy` does **not**, so run that first. PR previews (`versions upload`) share the production D1 database, so a preview of code that needs a new migration only works once the migration has been applied. Fork-to-deploy requires editing those and setting `CLERK_SECRET_KEY` as a Worker secret.
+Production routes (`promptrc.app`, `www.promptrc.app`) and the D1 database id are pinned in `wrangler.jsonc`. Neither the Deploy workflow nor `pnpm deploy` applies D1 migrations: run `pnpx wrangler d1 migrations apply promptrc --remote` by hand before merging (or deploying) code that needs one, and keep migrations additive so the live version keeps working in between. There are no preview databases: PR previews (`versions upload`) bind the production D1 database and R2 bucket, so a preview of code that needs a new migration only works once that migration has been applied to production. Fork-to-deploy requires editing those and setting `CLERK_SECRET_KEY` as a Worker secret.
 
 ## Environment
 
