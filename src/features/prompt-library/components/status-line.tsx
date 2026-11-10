@@ -1,13 +1,13 @@
-import { KIND_GLYPHS, KIND_TEXT_CLASS } from '@/features/prompt-library/components/kind-mark'
+import { KindMark } from '@/features/prompt-library/components/kind-mark'
 import { listPath } from '@/features/prompt-library/components/prompt-list'
 import { promptPath } from '@/features/prompt-library/components/prompt-reader'
+import { SyncMark } from '@/features/prompt-library/components/sync-mark'
 import {
   type PromptLibraryFilter,
   type PromptRecord,
   type PromptSyncMode,
   type PromptSyncStatus,
 } from '@/features/prompt-library/types'
-import { useColorScheme } from '@/lib/theme'
 import { cn } from '@/lib/utils'
 
 export type ScreenMode = 'NORMAL' | 'INSERT' | 'CAPTURE' | 'FIND' | 'COMMAND' | 'HELP'
@@ -50,72 +50,46 @@ export function StatusLine({
   syncMode,
   syncStatus,
 }: StatusLineProps) {
-  const { scheme } = useColorScheme()
-  const percent =
-    total === 0
-      ? 'Top'
-      : position <= 1
-        ? 'Top'
-        : position >= total
-          ? 'Bot'
-          : `${Math.round((position / total) * 100)}%`
-
   return (
     <footer
       aria-label="Status line"
-      className="flex h-6 shrink-0 items-stretch overflow-hidden rounded-sm bg-bg-sunken text-[12px] leading-6 [text-shadow:none]"
+      className="flex h-7 shrink-0 items-stretch overflow-hidden bg-bg-sunken text-meta leading-7 [text-shadow:none]"
     >
-      <span className={cn('shrink-0 px-[1ch] font-bold tracking-wide', MODE_CLASS[mode])}>
+      <span className={cn('shrink-0 px-[1.5ch] font-extrabold tracking-wide', MODE_CLASS[mode])}>
         {mode}
       </span>
-      <span className="hidden shrink-0 items-center gap-[1ch] bg-bg-sel px-[1ch] text-fg-dim sm:flex">
-        <span className="text-accent">▸</span>
+      <span className="hidden shrink-0 items-center bg-bg-hover px-[1.5ch] text-fg-dim sm:flex">
         {listPath(filter)}
-        {query ? <span className="text-yellow">/{query}</span> : null}
+        {query ? <span className="text-fg">/{query}</span> : null}
       </span>
-      <span className="flex min-w-0 flex-1 items-center gap-[1ch] px-[1ch] text-fg-dim">
+      <span className="flex min-w-0 flex-1 items-center gap-[0.5ch] px-[1ch] text-fg-dim">
         {prompt ? (
           <>
-            <span className={KIND_TEXT_CLASS[prompt.kind]}>{KIND_GLYPHS[prompt.kind]}</span>
+            <KindMark kind={prompt.kind} label={false} />
             <span className="min-w-0 truncate">{promptPath(prompt)}</span>
-            {prompt.pinned ? <span className="text-accent">★</span> : null}
+            {prompt.pinned ? <span className="ml-[0.5ch] text-yellow">★</span> : null}
           </>
         ) : (
-          <span className="text-fg-faint">[No Name]</span>
+          <span className="px-[0.5ch] text-fg-faint">[No Name]</span>
         )}
-        {isDirty ? <span className="text-yellow">[+]</span> : null}
+        {isDirty ? <span className="ml-[0.5ch] text-fg">[+]</span> : null}
       </span>
       {blanks.total > 0 ? (
         <span
           className={cn(
             'hidden shrink-0 px-[1ch] md:block',
-            blanks.filled === blanks.total ? 'text-green' : 'text-yellow',
+            blanks.filled === blanks.total ? 'text-green' : 'text-fg-dim',
           )}
         >
-          {'{{'}
-          {blanks.filled}/{blanks.total}
-          {'}}'}
+          {blanks.filled}/{blanks.total} blanks
         </span>
       ) : null}
-      <span className="hidden shrink-0 px-[1ch] text-fg-faint lg:block">{scheme}</span>
-      <span className="hidden shrink-0 items-center gap-[0.75ch] px-[1ch] text-fg-dim md:flex">
-        <span
-          aria-hidden="true"
-          className={cn(
-            syncStatus === 'error'
-              ? 'text-red'
-              : syncStatus === 'loading'
-                ? 'animate-pulse text-yellow'
-                : 'text-green',
-          )}
-        >
-          ●
-        </span>
+      <span className="hidden shrink-0 items-center gap-[1ch] px-[1ch] text-fg-dim md:flex">
+        <SyncMark mode={syncMode} status={syncStatus} />
         {syncStatus === 'error' ? 'sync error' : syncMode === 'remote' ? 'cloud' : 'local'}
       </span>
-      <span className="shrink-0 bg-bg-sel px-[1ch] text-fg-dim tabular-nums">{percent}</span>
-      <span className="shrink-0 bg-accent px-[1ch] font-bold text-accent-fg tabular-nums">
-        {total === 0 ? '0:0' : `${position}:${total}`}
+      <span className="shrink-0 bg-bg-hover px-[1.5ch] text-fg tabular-nums">
+        {position}/{total}
       </span>
     </footer>
   )

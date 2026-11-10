@@ -38,7 +38,6 @@ const shellFileExtensions = new Set(['bash', 'fish', 'ps1', 'sh', 'zsh'])
 export function PromptReferenceLink({ token }: { token: PromptReferenceToken }) {
   const isGitHub = token.label.toLowerCase() === 'github'
   const label = referenceLabel(token)
-  const isIntegration = (token.kind === 'plugin' || token.kind === 'app') && !isGitHub
   const referenceStyle = token.visual?.textColor
     ? ({ color: token.visual.textColor } satisfies CSSProperties)
     : undefined
@@ -47,8 +46,7 @@ export function PromptReferenceLink({ token }: { token: PromptReferenceToken }) 
     <span
       aria-label={`${token.kind}: ${token.label}`}
       className={cn(
-        'mx-[0.08em] inline-flex max-w-full translate-y-[-0.06em] cursor-default items-center gap-1.5 rounded-sm border border-line bg-bg-sunken px-[0.75ch] py-[0.18em] align-middle text-[0.85em] leading-none text-cyan',
-        isIntegration && 'text-fg-dim',
+        'mx-[0.08em] inline-flex max-w-full translate-y-[-0.06em] cursor-default items-center gap-1.5 border border-line bg-bg-sunken px-[0.75ch] py-[0.18em] align-middle text-[0.85em] leading-none text-fg-dim',
         token.visual?.textColor && 'text-current',
       )}
       style={referenceStyle}
@@ -56,7 +54,7 @@ export function PromptReferenceLink({ token }: { token: PromptReferenceToken }) 
       {token.visual?.iconSrc ? (
         <span
           aria-hidden="true"
-          className="inline-grid size-[1.15em] shrink-0 place-items-center overflow-hidden rounded-[3px] bg-white shadow-[inset_0_0_0_1px_rgba(0,0,0,0.1)]"
+          className="inline-grid size-[1.15em] shrink-0 place-items-center overflow-hidden rounded-sm bg-white shadow-[inset_0_0_0_1px_rgba(0,0,0,0.1)]"
         >
           <img
             alt=""

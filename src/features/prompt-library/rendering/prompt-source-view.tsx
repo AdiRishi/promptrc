@@ -51,9 +51,9 @@ export function PromptSourceView({
 
     if (STEP_MARKER_PATTERN.test(line)) {
       step += 1
-      content = <span className="text-green">{`── step ${step} ${'─'.repeat(24)}`}</span>
+      content = <span className="text-kind-sequence">{`── step ${step} ${'─'.repeat(24)}`}</span>
     } else if (isFence || inFence) {
-      tone = isFence ? 'text-fg-faint' : 'text-green'
+      tone = isFence ? 'text-fg-faint' : 'text-fg-dim'
       content = line || ' '
     } else {
       const image = IMAGE_LINE_PATTERN.exec(line)
@@ -66,7 +66,7 @@ export function PromptSourceView({
           {attachment ? (
             <img
               alt={attachment.fileName}
-              className="mt-1 mb-1 block max-h-48 rounded-sm border border-line bg-bg-sunken object-contain"
+              className="mt-1 mb-1 block max-h-48 border border-line bg-bg-sunken object-contain"
               loading="lazy"
               src={imageUrlFor(attachment.id, attachment)}
             />
@@ -93,11 +93,7 @@ export function PromptSourceView({
     )
   }
 
-  return (
-    <div className={cn('text-[13px] leading-[1.65] [overflow-wrap:anywhere] text-fg', className)}>
-      {rows}
-    </div>
-  )
+  return <div className={cn('text-ui [overflow-wrap:anywhere] text-fg', className)}>{rows}</div>
 }
 
 function highlightLine(line: string): ReactNode {
@@ -109,8 +105,8 @@ function highlightLine(line: string): ReactNode {
 
   if (heading) {
     return (
-      <span className="font-bold text-accent">
-        <span className="text-fg-faint">{heading[1]}</span>
+      <span className="font-extrabold text-fg">
+        <span className="font-normal text-fg-faint">{heading[1]}</span>
         {highlightInline(heading[2] ?? '')}
       </span>
     )
@@ -121,7 +117,7 @@ function highlightLine(line: string): ReactNode {
   if (quote) {
     return (
       <span className="text-fg-dim">
-        <span className="text-magenta">{quote[1]}</span>
+        <span className="text-fg-faint">{quote[1]}</span>
         {highlightInline(quote[2] ?? '')}
       </span>
     )
@@ -133,7 +129,7 @@ function highlightLine(line: string): ReactNode {
     return (
       <>
         {list[1]}
-        <span className="text-yellow">{list[2]}</span>
+        <span className="text-fg-faint">{list[2]}</span>
         {list[3]}
         {highlightInline(list[4] ?? '')}
       </>
@@ -162,7 +158,7 @@ function highlightInline(text: string): ReactNode {
 
     if (code) {
       parts.push(
-        <span className="text-cyan" key={index}>
+        <span className="text-fg-dim" key={index}>
           {code}
         </span>,
       )
@@ -183,13 +179,13 @@ function highlightInline(text: string): ReactNode {
       )
     } else if (bold) {
       parts.push(
-        <span className="font-bold" key={index}>
+        <span className="font-semibold" key={index}>
           {bold}
         </span>,
       )
     } else if (link) {
       parts.push(
-        <span className="text-blue" key={index}>
+        <span className="text-accent" key={index}>
           {link}
         </span>,
       )

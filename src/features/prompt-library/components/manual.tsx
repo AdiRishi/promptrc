@@ -1,13 +1,13 @@
-import { type ReactNode } from 'react'
+import { type ReactNode, useRef } from 'react'
 
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog'
-import { KeyCombo } from '@/components/ui/kbd'
+import { KeyCombo, useModKeyLabel } from '@/components/ui/kbd'
 import {
   PROMPT_LIBRARY_HELP_GROUPS,
   getPromptLibraryCommand,
 } from '@/features/prompt-library/commands/prompt-library-command-surface'
 import { EX_COMMANDS } from '@/features/prompt-library/commands/prompt-library-ex-commands'
-import { KIND_GLYPHS, KIND_TEXT_CLASS } from '@/features/prompt-library/components/kind-mark'
+import { KindTag } from '@/features/prompt-library/components/kind-mark'
 import { PROMPT_KIND_DEFINITIONS, PROMPT_KINDS } from '@/features/prompt-library/model/prompt-kinds'
 import { SITE_GITHUB_URL } from '@/lib/site-config'
 import { COLOR_SCHEMES } from '@/lib/theme'
@@ -19,23 +19,31 @@ type ManualProps = {
 
 /** `man promptrc` — every key, command and convention on one scrolling page. */
 export function Manual({ open, onOpenChange }: ManualProps) {
+  const scrollRef = useRef<HTMLDivElement>(null)
+  const modLabel = useModKeyLabel()
+
   return (
     <Dialog onOpenChange={onOpenChange} open={open}>
       <DialogContent
-        className="top-[5vh] max-h-[90vh] translate-y-0 gap-0 overflow-hidden p-0 sm:max-w-[min(860px,calc(100%-2rem))]"
+        className="top-[12vh] max-h-[80dvh] translate-y-0 gap-0 p-0 sm:max-w-[min(96ch,calc(100%-2rem))]"
+        initialFocus={scrollRef}
         showCloseButton={false}
       >
-        <DialogTitle className="sr-only">promptrc manual</DialogTitle>
+        <DialogTitle className="pane-title text-meta font-normal text-fg-dim">manual</DialogTitle>
         <DialogDescription className="sr-only">
           Keyboard shortcuts, commands, template syntax and colorschemes.
         </DialogDescription>
-        <div className="flex items-center justify-between border-b border-line px-[2ch] py-1.5 text-[12px] text-fg-dim">
-          <span className="font-bold">PROMPTRC(1)</span>
+        <div className="flex h-9 items-center justify-between border-b border-line px-[3ch] text-meta text-fg-dim">
+          <span>PROMPTRC(1)</span>
           <span className="hidden sm:inline">General Commands Manual</span>
-          <span className="font-bold">PROMPTRC(1)</span>
+          <span>PROMPTRC(1)</span>
         </div>
 
-        <div className="scrollbar-term max-h-[calc(90vh-4rem)] overflow-y-auto px-[2ch] pt-3 pb-6 text-[13px] leading-[1.7]">
+        <div
+          className="scrollbar-term max-h-[calc(80dvh-2.25rem)] overflow-y-auto px-[3ch] pt-5 pb-8 outline-none"
+          ref={scrollRef}
+          tabIndex={-1}
+        >
           <Section title="NAME">
             <p>
               <b className="text-fg">promptrc</b> — a place for the prompts that worked
@@ -44,7 +52,7 @@ export function Manual({ open, onOpenChange }: ManualProps) {
 
           <Section title="SYNOPSIS">
             <p>
-              <b className="text-fg">c</b> capture · <b className="text-fg">⌘K</b> find ·{' '}
+              <b className="text-fg">c</b> capture · <b className="text-fg">{modLabel} K</b> find ·{' '}
               <b className="text-fg">:</b>
               <u className="decoration-fg-faint underline-offset-2">command</u> [
               <u className="decoration-fg-faint underline-offset-2">args</u>]
@@ -61,16 +69,9 @@ export function Manual({ open, onOpenChange }: ManualProps) {
           </Section>
 
           <Section title="KINDS">
-            <dl className="grid grid-cols-[14ch_1fr] gap-x-[2ch]">
+            <dl className="grid grid-cols-[16ch_minmax(0,1fr)] gap-x-[2ch]">
               {PROMPT_KINDS.map((kind) => (
-                <Row
-                  key={kind}
-                  term={
-                    <span className={KIND_TEXT_CLASS[kind]}>
-                      {KIND_GLYPHS[kind]} {kind}
-                    </span>
-                  }
-                >
+                <Row key={kind} term={<KindTag kind={kind} />}>
                   {PROMPT_KIND_DEFINITIONS[kind].description}
                 </Row>
               ))}
@@ -79,9 +80,9 @@ export function Manual({ open, onOpenChange }: ManualProps) {
 
           <Section title="KEYS">
             {PROMPT_LIBRARY_HELP_GROUPS.map((group) => (
-              <div className="mb-2" key={group.heading}>
-                <p className="text-cyan">{group.heading.toLowerCase()}</p>
-                <dl className="grid grid-cols-[14ch_1fr] gap-x-[2ch]">
+              <div className="mb-3 last:mb-0" key={group.heading}>
+                <p className="text-fg-faint">{group.heading.toLowerCase()}</p>
+                <dl className="grid grid-cols-[16ch_minmax(0,1fr)] gap-x-[2ch]">
                   {group.commandIds.map((commandId) => {
                     const command = getPromptLibraryCommand(commandId)
 
@@ -106,7 +107,7 @@ export function Manual({ open, onOpenChange }: ManualProps) {
               Press <b className="text-fg">:</b>, type, <b className="text-fg">⏎</b>.{' '}
               <b className="text-fg">⇥</b> completes, <b className="text-fg">↑</b> recalls history.
             </p>
-            <dl className="grid grid-cols-[minmax(0,26ch)_1fr] gap-x-[2ch]">
+            <dl className="grid gap-x-[2ch] sm:grid-cols-[30ch_minmax(0,1fr)]">
               {EX_COMMANDS.map((command) => (
                 <Row
                   key={command.name}
@@ -133,24 +134,24 @@ export function Manual({ open, onOpenChange }: ManualProps) {
           </Section>
 
           <Section title="TEMPLATES">
-            <dl className="grid grid-cols-[minmax(0,26ch)_1fr] gap-x-[2ch]">
-              <Row term={<code className="text-cyan">{'{{audience}}'}</code>}>
+            <dl className="grid gap-x-[2ch] sm:grid-cols-[30ch_minmax(0,1fr)]">
+              <Row term={<code className="text-fg">{'{{audience}}'}</code>}>
                 a blank, filled in before copying
               </Row>
-              <Row term={<code className="text-cyan">{'{{tone | warm}}'}</code>}>
+              <Row term={<code className="text-fg">{'{{tone | warm}}'}</code>}>
                 a blank with a fallback
               </Row>
-              <Row term={<code className="text-green">{'<!-- step -->'}</code>}>
+              <Row term={<code className="text-fg">{'<!-- step -->'}</code>}>
                 separates the steps of a sequence
               </Row>
-              <Row term={<span className="text-blue">paste an image</span>}>
+              <Row term={<span className="text-fg">paste an image</span>}>
                 attaches it while editing (signed in)
               </Row>
             </dl>
           </Section>
 
           <Section title="COLORSCHEMES">
-            <dl className="grid grid-cols-[14ch_1fr] gap-x-[2ch]">
+            <dl className="grid grid-cols-[16ch_minmax(0,1fr)] gap-x-[2ch]">
               {COLOR_SCHEMES.map((scheme) => (
                 <Row key={scheme.id} term={<span className="text-fg">{scheme.id}</span>}>
                   {scheme.description}
@@ -161,19 +162,14 @@ export function Manual({ open, onOpenChange }: ManualProps) {
 
           <Section title="SEE ALSO">
             <p>
-              <a
-                className="text-blue underline underline-offset-2"
-                href={SITE_GITHUB_URL}
-                rel="noreferrer"
-                target="_blank"
-              >
+              <a className="link" href={SITE_GITHUB_URL} rel="noreferrer" target="_blank">
                 github.com/AdiRishi/promptrc
               </a>
             </p>
           </Section>
 
-          <p className="mt-4 text-fg-faint">
-            Manual page promptrc(1) line 1 (press <b>q</b> or <b>esc</b> to quit)
+          <p className="mt-6 text-meta text-fg-faint">
+            Manual page promptrc(1), press <b>q</b> or <b>esc</b> to quit
           </p>
         </div>
       </DialogContent>
@@ -183,9 +179,9 @@ export function Manual({ open, onOpenChange }: ManualProps) {
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <section className="mb-4">
-      <h2 className="font-bold text-fg">{title}</h2>
-      <div className="pl-[4ch] text-fg-dim">{children}</div>
+    <section className="mb-5">
+      <h2 className="font-extrabold text-fg">{title}</h2>
+      <div className="pl-[4ch] text-fg-dim max-sm:pl-[2ch]">{children}</div>
     </section>
   )
 }
@@ -193,8 +189,8 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
 function Row({ term, children }: { term: ReactNode; children: ReactNode }) {
   return (
     <>
-      <dt className="truncate">{term}</dt>
-      <dd>{children}</dd>
+      <dt className="[overflow-wrap:anywhere]">{term}</dt>
+      <dd className="max-sm:mb-2 max-sm:pl-[2ch]">{children}</dd>
     </>
   )
 }

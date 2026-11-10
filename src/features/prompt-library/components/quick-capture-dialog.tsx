@@ -1,10 +1,10 @@
 import { type ReactNode, useId, useState } from 'react'
 
-import { Choice, ChoiceGroup } from '@/components/ui/choice'
+import { Bracketed, Choice, ChoiceGroup } from '@/components/ui/choice'
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog'
-import { KeyCombo } from '@/components/ui/kbd'
+import { KeyAction, KeyActionBar } from '@/components/ui/key-action'
 import { type PromptCaptureInput } from '@/features/prompt-library/commands/prompt-library-command-executor'
-import { KIND_GLYPHS, KIND_TEXT_CLASS } from '@/features/prompt-library/components/kind-mark'
+import { KindMark } from '@/features/prompt-library/components/kind-mark'
 import { ProjectPicker } from '@/features/prompt-library/components/project-picker'
 import { PROMPT_KIND_DEFINITIONS, PROMPT_KINDS } from '@/features/prompt-library/model/prompt-kinds'
 import { deriveTitleFromBody } from '@/features/prompt-library/model/prompt-library-integrity'
@@ -37,7 +37,7 @@ export function QuickCaptureDialog({ open, onOpenChange, ...props }: QuickCaptur
   return (
     <Dialog onOpenChange={onOpenChange} open={open}>
       <DialogContent
-        className="top-[18vh] translate-y-0 gap-0 p-0 sm:max-w-[680px]"
+        className="top-[18vh] max-h-[calc(100dvh-18vh-1rem)] translate-y-0 gap-0 p-0 max-sm:top-[3vh] max-sm:max-h-[calc(100dvh-3vh-1rem)] sm:max-w-[76ch]"
         showCloseButton={false}
       >
         {/* Remount per opening so every capture starts from a clean prompt. */}
@@ -61,7 +61,9 @@ function CaptureShell({
   const [title, setTitle] = useState('')
   const [category, setCategory] = useState(defaultCategory)
   const [tagsInput, setTagsInput] = useState(defaultTags)
-  const [now] = useState(() => new Date().toISOString().slice(0, 16).replace('T', ' '))
+  const [now] = useState(() =>
+    new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }),
+  )
   const derivedTitle = deriveTitleFromBody(body)
 
   const submit = () => {
@@ -79,26 +81,23 @@ function CaptureShell({
   }
 
   return (
+    // The body line gives up height first, so keep and discard stay on screen.
     <form
-      className="relative"
+      className="relative flex max-h-[inherit] flex-col"
       onSubmit={(event) => {
         event.preventDefault()
         submit()
       }}
     >
-      <DialogTitle className="pane-title text-accent">capture</DialogTitle>
+      <DialogTitle className="pane-title text-meta font-normal text-fg-dim">capture</DialogTitle>
       <span className="pane-title-right">{now}</span>
       <DialogDescription className="sr-only">
         Capture a prompt, fragment, sequence or benchmark. Press Command or Control with Enter to
         keep it.
       </DialogDescription>
 
-      <div className="px-[2ch] pt-4">
-        <ChoiceGroup
-          className="flex flex-wrap items-center gap-x-[1ch] gap-y-1 text-[12.5px]"
-          label="Kind"
-        >
-          <span className="text-yellow">kind:</span>
+      <div className="flex min-h-0 flex-col px-[3ch] pt-5">
+        <ChoiceGroup className="-mx-[1ch] flex flex-wrap items-center" label="Kind">
           {PROMPT_KINDS.map((option) => {
             const selected = option === kind
 
@@ -106,10 +105,8 @@ function CaptureShell({
               <Choice
                 checked={selected}
                 className={cn(
-                  'rounded-sm px-[0.75ch] transition-colors',
-                  selected
-                    ? cn('bg-bg-sel font-bold', KIND_TEXT_CLASS[option])
-                    : 'text-fg-faint hover:text-fg',
+                  'inline-flex h-6 items-center transition-colors max-md:h-11',
+                  selected ? 'font-semibold text-fg' : 'text-fg-dim hover:text-fg',
                 )}
                 key={option}
                 label={PROMPT_KIND_DEFINITIONS[option].label}
@@ -118,18 +115,18 @@ function CaptureShell({
                 title={PROMPT_KIND_DEFINITIONS[option].description}
                 value={option}
               >
-                <span className={KIND_TEXT_CLASS[option]}>{KIND_GLYPHS[option]}</span> {option}
+                <Bracketed active={selected}>
+                  <KindMark className="mr-[1ch] w-[1ch]" kind={option} label={false} />
+                  {option}
+                </Bracketed>
               </Choice>
             )
           })}
         </ChoiceGroup>
 
-        <div className="mt-3 flex gap-[1ch]">
-          <span
-            aria-hidden="true"
-            className={cn('pt-[0.1em] text-[15px] font-bold', KIND_TEXT_CLASS[kind])}
-          >
-            {KIND_GLYPHS[kind]}
+        <div className="mt-4 flex min-h-[3lh] gap-[1ch]">
+          <span aria-hidden="true" className="-ml-[0.25ch] font-bold text-accent">
+            ❯
           </span>
           <label className="sr-only" htmlFor={`${id}-body`}>
             {PROMPT_KIND_DEFINITIONS[kind].bodyLabel}
@@ -138,7 +135,7 @@ function CaptureShell({
             // The whole point of capture is zero friction: focus the prompt line.
             // oxlint-disable-next-line jsx-a11y/no-autofocus
             autoFocus
-            className="[field-sizing:content] max-h-[40vh] min-h-[7.5rem] w-full resize-none bg-transparent text-[14px] leading-[1.65] text-fg outline-none placeholder:text-fg-faint"
+            className="[field-sizing:content] max-h-[40vh] min-h-[3lh] w-full resize-none bg-transparent text-body text-fg outline-none placeholder:text-fg-faint max-md:text-[16px]"
             id={`${id}-body`}
             onChange={(event) => setBody(event.target.value)}
             onKeyDown={submitOnModEnter}
@@ -148,11 +145,11 @@ function CaptureShell({
         </div>
       </div>
 
-      <div className="grid gap-x-[2ch] gap-y-1 border-t border-dashed border-line px-[2ch] py-2.5 text-[12.5px] sm:grid-cols-[1.3fr_1fr]">
-        <CaptureField className="sm:col-span-2" label="title">
+      <div className="shrink-0 px-[3ch] pt-2 pb-3">
+        <CaptureField label="title">
           <input
             autoComplete="off"
-            className="w-full bg-transparent text-fg outline-none placeholder:text-fg-faint"
+            className="w-full bg-transparent text-fg outline-none placeholder:text-fg-faint max-md:text-[16px]"
             onChange={(event) => setTitle(event.target.value)}
             onKeyDown={submitOnModEnter}
             placeholder={derivedTitle || 'from the first line'}
@@ -171,7 +168,7 @@ function CaptureShell({
         <CaptureField label="tags">
           <input
             autoComplete="off"
-            className="w-full bg-transparent text-magenta outline-none placeholder:text-fg-faint"
+            className="w-full bg-transparent text-fg outline-none placeholder:text-fg-faint max-md:text-[16px]"
             onChange={(event) => setTagsInput(event.target.value)}
             onKeyDown={submitOnModEnter}
             placeholder="#idea"
@@ -181,26 +178,16 @@ function CaptureShell({
         </CaptureField>
       </div>
 
-      <div className="flex items-center gap-[2ch] border-t border-line bg-bg-sunken/60 px-[2ch] py-2 text-[12px] text-fg-faint">
-        <span className="hidden items-center gap-[1ch] sm:flex">
-          <KeyCombo keys={['Mod', 'Enter']} /> keep
-        </span>
-        <span className="hidden items-center gap-[1ch] sm:flex">
-          <KeyCombo keys={['Esc']} /> discard
-        </span>
-        <span className="ml-auto flex items-center gap-[1ch]">
-          <button className="px-[1ch] text-fg-dim hover:text-fg" onClick={onClose} type="button">
-            :q!
-          </button>
-          <button
-            className="rounded-sm bg-accent px-[1ch] font-bold text-accent-fg transition hover:brightness-110 disabled:opacity-40"
-            disabled={!body.trim()}
-            type="submit"
-          >
-            :w keep it
-          </button>
-        </span>
-      </div>
+      <KeyActionBar className="mx-0 shrink-0 border-t border-line px-[2ch] py-2">
+        <KeyAction
+          disabled={!body.trim()}
+          keys={['Mod', 'Enter']}
+          label="keep it"
+          primary
+          type="submit"
+        />
+        <KeyAction keys={['Esc']} label="discard" onClick={onClose} />
+      </KeyActionBar>
     </form>
   )
 }
@@ -217,10 +204,15 @@ function CaptureField({
   className?: string
   children: ReactNode
 }) {
+  const rowClass = cn(
+    'flex min-h-8 min-w-0 items-center gap-[1ch] border-b border-line transition-colors focus-within:border-accent max-md:min-h-11',
+    className,
+  )
+
   if (htmlFor) {
     return (
-      <div className={cn('flex min-w-0 items-baseline gap-[1ch]', className)}>
-        <label className="shrink-0 text-yellow" htmlFor={htmlFor}>
+      <div className={rowClass}>
+        <label className="w-[9ch] shrink-0 text-fg-faint" htmlFor={htmlFor}>
           {label}:
         </label>
         <div className="min-w-0 flex-1">{children}</div>
@@ -229,8 +221,8 @@ function CaptureField({
   }
 
   return (
-    <label className={cn('flex min-w-0 items-baseline gap-[1ch]', className)}>
-      <span className="shrink-0 text-yellow">{label}:</span>
+    <label className={rowClass}>
+      <span className="w-[9ch] shrink-0 text-fg-faint">{label}:</span>
       {children}
     </label>
   )

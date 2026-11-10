@@ -1,7 +1,9 @@
 import { type SubmitEvent, useId, useState } from 'react'
 
-import { Choice, ChoiceGroup } from '@/components/ui/choice'
+import { Bracketed, Choice, ChoiceGroup } from '@/components/ui/choice'
+import { KeyAction } from '@/components/ui/key-action'
 import { type PromptRunRequest } from '@/features/prompt-library/commands/prompt-library-command-executor'
+import { SectionLabel } from '@/features/prompt-library/components/section-label'
 import {
   PROMPT_RUN_VERDICTS,
   summarizePromptRuns,
@@ -11,7 +13,7 @@ import { cn } from '@/lib/utils'
 
 const VERDICT_STYLE: Record<PromptRunVerdict, { mark: string; text: string; label: string }> = {
   pass: { mark: '✓', text: 'text-green', label: 'PASS' },
-  mixed: { mark: '~', text: 'text-yellow', label: 'MIXED' },
+  mixed: { mark: '≈', text: 'text-yellow', label: 'MIXED' },
   fail: { mark: '✗', text: 'text-red', label: 'FAIL' },
 }
 
@@ -42,35 +44,44 @@ export function BenchmarkLedger({
   const sparkline = runs.toReversed().slice(-32)
 
   return (
-    <section aria-label="Benchmark" className="mt-8 text-[13px]">
-      <p className="mb-1 text-[12px] text-cyan">## expected</p>
+    <section aria-label="Benchmark" className="@container mt-8">
+      <SectionLabel>expected</SectionLabel>
       {expected ? (
-        <div className="border-l-2 border-cyan/60 pl-[2ch] whitespace-pre-line text-fg">
+        <div className="border-l-2 border-kind-benchmark/60 pl-[2ch] text-body whitespace-pre-line text-fg">
           {expected}
         </div>
       ) : (
-        <p className="text-fg-faint">
-          # no rubric yet — <span className="text-accent">e</span>dit and describe what a pass looks
-          like
+        <p className="text-fg-dim">
+          No rubric yet. Press <span className="text-accent">e</span> and describe what a pass looks
+          like.
         </p>
       )}
 
-      <p className="mt-6 mb-1 text-[12px] text-cyan">## runs</p>
-      <div className="flex flex-wrap items-baseline gap-x-[2ch] gap-y-1">
-        <span className="font-bold">
-          {summary.total ? (
-            <>
-              <span className="text-green">{summary.pass} passed</span>
-              {summary.mixed ? <span className="text-yellow"> | {summary.mixed} mixed</span> : null}
-              {summary.fail ? <span className="text-red"> | {summary.fail} failed</span> : null}
-              <span className="font-normal text-fg-faint"> ({summary.total})</span>
-            </>
-          ) : (
-            <span className="font-normal text-fg-faint">no runs yet</span>
-          )}
-        </span>
+      <div className="mt-8">
+        <SectionLabel>runs</SectionLabel>
+      </div>
+      <p className="flex flex-wrap items-baseline gap-x-[2ch] text-fg-dim">
+        {summary.total ? (
+          <>
+            <span>
+              <span className="font-semibold text-green">{summary.pass}</span> passed
+            </span>
+            {summary.mixed ? (
+              <span>
+                <span className="font-semibold text-yellow">{summary.mixed}</span> mixed
+              </span>
+            ) : null}
+            {summary.fail ? (
+              <span>
+                <span className="font-semibold text-red">{summary.fail}</span> failed
+              </span>
+            ) : null}
+          </>
+        ) : (
+          <span>No runs yet.</span>
+        )}
         {summary.passRate !== null ? (
-          <span className="text-fg-dim">{Math.round(summary.passRate * 100)}% pass rate</span>
+          <span>{Math.round(summary.passRate * 100)}% pass rate</span>
         ) : null}
         {sparkline.length > 0 ? (
           <span aria-hidden="true">
@@ -85,37 +96,44 @@ export function BenchmarkLedger({
             ))}
           </span>
         ) : null}
-      </div>
+      </p>
 
       {runs.length > 0 ? (
-        <ol aria-label="Runs" className="mt-2">
+        <ol aria-label="Runs" className="mt-3 border-t border-line">
           {runs.map((run) => {
             const style = VERDICT_STYLE[run.verdict]
 
             return (
               <li
-                className="group grid grid-cols-[2ch_6ch_minmax(0,1fr)_auto] gap-x-[1ch] py-0.5"
+                className="group relative grid grid-cols-[2ch_6ch_minmax(0,1fr)_10ch] items-baseline gap-x-[2ch] gap-y-1 border-b border-line py-1.5 @xl:grid-cols-[2ch_6ch_18ch_minmax(0,1fr)_10ch]"
                 key={run.id}
               >
-                <span className={style.text}>{style.mark}</span>
-                <span className={cn('font-bold', style.text)}>{style.label}</span>
-                <span className="min-w-0">
-                  <span className="text-fg">{run.model}</span>
-                  {run.note ? <span className="text-fg-dim"> — {run.note}</span> : null}
+                <span aria-hidden="true" className={style.text}>
+                  {style.mark}
                 </span>
-                <span className="flex items-center gap-[1ch] text-[11.5px] text-fg-faint">
-                  <time dateTime={run.ranAt}>{run.ranAt.slice(0, 10)}</time>
-                  {onRemoveRun ? (
-                    <button
-                      aria-label={`Remove the ${run.model} run`}
-                      className="opacity-0 group-hover:opacity-100 hover:text-red focus-visible:opacity-100"
-                      onClick={() => onRemoveRun(run.id)}
-                      type="button"
-                    >
-                      rm
-                    </button>
-                  ) : null}
+                <span className={cn('text-meta font-semibold tracking-wide', style.text)}>
+                  {style.label}
                 </span>
+                <span className="min-w-0 truncate text-fg">{run.model}</span>
+                <span className="min-w-0 [overflow-wrap:anywhere] text-fg-dim @max-xl:col-span-2 @max-xl:col-start-3 @max-xl:row-start-2">
+                  {run.note}
+                </span>
+                <time
+                  className="text-right text-meta whitespace-nowrap text-fg-faint tabular-nums @max-xl:col-start-4 @max-xl:row-start-1"
+                  dateTime={run.ranAt}
+                >
+                  {run.ranAt.slice(0, 10)}
+                </time>
+                {onRemoveRun ? (
+                  <button
+                    aria-label={`Remove the ${run.model} run`}
+                    className="absolute inset-y-0 right-0 bg-bg-raised pl-[2ch] text-meta text-fg-dim opacity-0 group-hover:opacity-100 hover:text-red focus-visible:opacity-100"
+                    onClick={() => onRemoveRun(run.id)}
+                    type="button"
+                  >
+                    rm
+                  </button>
+                ) : null}
               </li>
             )
           })}
@@ -148,69 +166,73 @@ function LogRunForm({
   }
 
   return (
-    <form
-      aria-label="Log a run"
-      className="mt-3 flex flex-wrap items-center gap-x-[1.5ch] gap-y-2 rounded-sm border border-dashed border-line-strong px-[1.5ch] py-2 text-[12.5px]"
-      onSubmit={submit}
-    >
-      <span className="text-accent">❯ log</span>
-      <label className="sr-only" htmlFor={`${id}-model`}>
-        Model
-      </label>
-      <input
-        autoComplete="off"
-        className="w-[22ch] border-b border-line-strong bg-transparent text-fg outline-none placeholder:text-fg-faint focus:border-accent"
-        id={`${id}-model`}
-        list={`${id}-models`}
-        onChange={(event) => setModel(event.target.value)}
-        placeholder="model"
-        spellCheck={false}
-        value={model}
-      />
-      <datalist id={`${id}-models`}>
-        {knownModels.map((knownModel) => (
-          <option key={knownModel} value={knownModel} />
-        ))}
-      </datalist>
+    <form aria-label="Log a run" className="mt-3 flex gap-[1ch]" onSubmit={submit}>
+      <span aria-hidden="true" className="flex h-8 items-center font-bold text-accent max-md:h-11">
+        ❯
+      </span>
+      <div className="min-w-0 flex-1">
+        <div className="flex flex-wrap items-center gap-x-[2ch]">
+          <label className="sr-only" htmlFor={`${id}-model`}>
+            Model
+          </label>
+          <input
+            autoComplete="off"
+            className={cn(inputClass, 'w-[24ch] max-sm:w-full')}
+            id={`${id}-model`}
+            list={`${id}-models`}
+            onChange={(event) => setModel(event.target.value)}
+            placeholder="model"
+            spellCheck={false}
+            value={model}
+          />
+          <datalist id={`${id}-models`}>
+            {knownModels.map((knownModel) => (
+              <option key={knownModel} value={knownModel} />
+            ))}
+          </datalist>
 
-      <ChoiceGroup className="flex items-center gap-[0.5ch]" label="Verdict">
-        {PROMPT_RUN_VERDICTS.map((option) => (
-          <Choice
-            checked={verdict === option}
-            className={cn(
-              'rounded-sm px-[0.75ch] transition-colors',
-              verdict === option
-                ? cn('bg-bg-hover font-bold', VERDICT_STYLE[option].text)
-                : 'text-fg-faint hover:text-fg',
-            )}
-            key={option}
-            label={`${option[0]?.toUpperCase() ?? ''}${option.slice(1)}`}
-            name={`${id}-verdict`}
-            onSelect={setVerdict}
-            value={option}
-          >
-            {VERDICT_STYLE[option].mark} {option}
-          </Choice>
-        ))}
-      </ChoiceGroup>
+          <ChoiceGroup className="flex items-center" label="Verdict">
+            {PROMPT_RUN_VERDICTS.map((option) => (
+              <Choice
+                checked={verdict === option}
+                className={cn(
+                  'inline-flex h-6 items-center transition-colors max-md:h-11',
+                  verdict === option
+                    ? cn('font-semibold', VERDICT_STYLE[option].text)
+                    : 'text-fg-dim hover:text-fg',
+                )}
+                key={option}
+                label={`${option[0]?.toUpperCase() ?? ''}${option.slice(1)}`}
+                name={`${id}-verdict`}
+                onSelect={setVerdict}
+                value={option}
+              >
+                <Bracketed active={verdict === option}>
+                  {VERDICT_STYLE[option].mark} {option}
+                </Bracketed>
+              </Choice>
+            ))}
+          </ChoiceGroup>
+        </div>
 
-      <label className="sr-only" htmlFor={`${id}-note`}>
-        Note
-      </label>
-      <input
-        autoComplete="off"
-        className="min-w-[16ch] flex-1 border-b border-line-strong bg-transparent text-fg outline-none placeholder:text-fg-faint focus:border-accent"
-        id={`${id}-note`}
-        onChange={(event) => setNote(event.target.value)}
-        placeholder="what happened? (optional)"
-        value={note}
-      />
-      <button
-        className="rounded-sm border border-line-strong px-[1ch] text-fg-dim transition-colors hover:border-accent hover:text-accent"
-        type="submit"
-      >
-        ⏎ Log run
-      </button>
+        <div className="flex items-center gap-x-[2ch]">
+          <label className="sr-only" htmlFor={`${id}-note`}>
+            Note
+          </label>
+          <input
+            autoComplete="off"
+            className={cn(inputClass, 'min-w-0 flex-1')}
+            id={`${id}-note`}
+            onChange={(event) => setNote(event.target.value)}
+            placeholder="what happened? (optional)"
+            value={note}
+          />
+          <KeyAction keys={['Enter']} label="log run" primary type="submit" />
+        </div>
+      </div>
     </form>
   )
 }
+
+const inputClass =
+  'h-8 border-b border-line bg-transparent text-fg outline-none transition-colors placeholder:text-fg-faint focus:border-accent max-md:h-11 max-md:text-[16px]'

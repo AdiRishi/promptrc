@@ -3,6 +3,7 @@ import { Link } from '@tanstack/react-router'
 import { useServerFn } from '@tanstack/react-start'
 import { useEffect, useEffectEvent, useState } from 'react'
 
+import { KeyAction } from '@/components/ui/key-action'
 import { Pane } from '@/components/ui/pane'
 import { type PromptViewMode } from '@/features/prompt-library/commands/prompt-library-ex-commands'
 import { EchoLine } from '@/features/prompt-library/components/command-line'
@@ -96,32 +97,28 @@ export function SharedPromptPage({ shareId }: SharedPromptPageProps) {
   }, [])
 
   return (
-    <div className="relative z-10 mx-auto flex min-h-dvh max-w-[60rem] flex-col px-2 pt-2 sm:px-4">
-      <header className="flex h-7 items-center justify-between text-[12px]">
-        <Link className="rounded-sm" to="/">
-          <Wordmark className="text-[13px]" />
+    <div className="relative z-10 mx-auto flex min-h-dvh max-w-[96ch] flex-col px-2 sm:px-3">
+      <header className="flex h-8 items-center justify-between max-md:h-11">
+        <Link to="/">
+          <Wordmark />
         </Link>
-        <span className="text-fg-faint">read-only · shared entry</span>
+        <span className="text-meta text-fg-faint">read-only · shared entry</span>
       </header>
 
-      <p className="mt-3 mb-4 text-[12.5px] text-fg-dim">
-        <span className="text-green">guest@promptrc</span>
-        <span className="text-fg-faint">:</span>
-        <span className="text-blue">~/shared</span>
-        <span className="text-fg-faint">$</span> cat {prompt ? promptPath(prompt) : shareId}
-        {shareQuery.isPending ? <span className="cursor-block" /> : null}
+      <p className="mt-3 mb-5 text-meta text-fg-faint">
+        guest@promptrc:~/shared$ <span className="text-fg-dim">cat</span>{' '}
+        <span className="text-fg-dim">{prompt ? promptPath(prompt) : shareId}</span>
+        {shareQuery.isPending ? <span className="cursor-block cursor-blink" /> : null}
       </p>
 
       {isMissing ? (
-        <div className="text-[13px] leading-[1.8]">
-          <p className="text-red">cat: {shareId}: No such file or directory</p>
-          <p className="text-fg-faint"># the link was revoked by its owner, or never existed</p>
+        <div>
+          <p className="text-fg">This link no longer works.</p>
+          <p className="mt-1 text-fg-dim">Its owner revoked it, or it never existed.</p>
           <p className="mt-4">
-            <span className="text-fg-faint">$</span>{' '}
-            <Link className="text-accent underline underline-offset-2" to="/">
-              promptrc --start-your-own
+            <Link className="link" to="/">
+              Start your own library
             </Link>
-            <span className="cursor-block" />
           </p>
         </div>
       ) : null}
@@ -133,30 +130,28 @@ export function SharedPromptPage({ shareId }: SharedPromptPageProps) {
           className="mb-2 flex-1 animate-boot"
           title={promptPath(prompt)}
         >
-          <article className="px-[2ch] pt-5 pb-8 sm:px-[4ch]">
-            <div className="mb-2 flex flex-wrap items-center gap-x-[2ch] gap-y-1 text-[12px] text-fg-faint">
-              <KindTag kind={prompt.kind} />
-              <span>~/{prompt.category}/</span>
-              <span>shared {formatLongDate(shareQuery.data?.createdAt ?? prompt.createdAt)}</span>
-            </div>
+          <article className="measure mx-auto w-full px-[2ch] pt-6 pb-10 sm:px-[3ch]">
             <h1
               className={cn(
-                'voice-title animate-type-in text-[clamp(1.5rem,4vw,2.2rem)] leading-[1.12] text-balance text-fg',
-                prompt.kind === 'fragment' && 'voice-note font-semibold',
+                'voice-title text-title text-balance text-fg',
+                prompt.kind === 'fragment' && 'voice-note',
               )}
               id="shared-prompt-title"
             >
               {prompt.title}
             </h1>
-            {prompt.tags.length > 0 ? (
-              <p className="mt-2 flex flex-wrap gap-x-[2ch] text-[12px] text-magenta">
-                {prompt.tags.map((tag) => (
-                  <span key={tag}>#{tag}</span>
-                ))}
-              </p>
-            ) : null}
+            <div className="mt-2 flex flex-wrap items-center gap-x-[2ch] text-meta text-fg-faint">
+              <KindTag kind={prompt.kind} />
+              <span>{prompt.category}/</span>
+              {prompt.tags.length > 0 ? (
+                <span className="text-fg-dim">{prompt.tags.map((tag) => `#${tag}`).join(' ')}</span>
+              ) : null}
+              <span className="whitespace-nowrap">
+                shared {formatLongDate(shareQuery.data?.createdAt ?? prompt.createdAt)}
+              </span>
+            </div>
 
-            <div className="my-5 border-t border-dashed border-line" />
+            <div className="my-6 border-t border-line" />
 
             <PromptVariableProvider
               value={{
@@ -181,16 +176,16 @@ export function SharedPromptPage({ shareId }: SharedPromptPageProps) {
 
             <PromptImageAttachments imageUrlFor={imageUrlFor} images={prompt.images} />
 
-            <div className="mt-10 flex flex-wrap items-center gap-x-[2ch] gap-y-2 border-t border-line pt-4 text-[13px]">
-              <button
-                className="rounded-sm bg-accent px-[1ch] py-0.5 font-bold text-accent-fg transition hover:brightness-110"
-                onClick={() => void copy()}
-                type="button"
-              >
-                y {filledCount > 0 ? 'yank with your blanks' : 'yank'}
-              </button>
-              <Link className="text-fg-dim hover:text-accent" to="/">
-                ❯ keep your own in promptrc
+            <div className="mt-10 flex flex-wrap items-center gap-x-[2ch] gap-y-2 border-t border-line pt-3">
+              <KeyAction
+                className="-ml-[1ch]"
+                keys={['y']}
+                label={filledCount > 0 ? 'yank with your blanks' : 'yank'}
+                onClick={() => copy()}
+                primary
+              />
+              <Link className="link" to="/">
+                Keep your own in promptrc
               </Link>
             </div>
           </article>
