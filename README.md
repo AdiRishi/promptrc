@@ -38,7 +38,7 @@ Every entry lives in a **project** and can carry **notes** (why it works, what g
   </tr>
   <tr>
     <td width="50%"><img src="docs/screenshots/command-line.jpg" alt="The vim-style command line open at the bottom of the screen, with a wildmenu completing :cd with project names" /></td>
-    <td width="50%"><img src="docs/screenshots/finder.jpg" alt="The Telescope-style finder: results on the left, a line-numbered preview of the highlighted sequence on the right" /></td>
+    <td width="50%"><img src="docs/screenshots/finder.jpg" alt="The Telescope-style finder: results on the left, a rendered preview of the highlighted sequence on the right" /></td>
   </tr>
   <tr>
     <td align="center"><sub><kbd>:</kbd> — the command line, with completion and history</sub></td>
@@ -63,8 +63,8 @@ Every entry lives in a **project** and can carry **notes** (why it works, what g
 - **Capture in seconds** — <kbd>c</kbd> floats a capture shell over whatever you're doing. Paste, pick a kind, <kbd>⌘</kbd><kbd>↵</kbd>. The title comes from the first line if you skip it.
 - **Fill-in blanks** — write `{{audience}}` or `{{tone | calm}}`; the viewer turns them into slots you type straight into, and remembers what you typed per entry.
 - **glow and bat** — read entries rendered, or press <kbd>r</kbd> for the raw markdown with line numbers and syntax colour.
-- **Benchmarks as a test runner** — `:log claude-opus-5-5 pass decision led` records a run; the ledger shows ✓/~/✗ rows, a pass rate and a sparkline.
-- **Seven colorschemes** — `:colorscheme promptrc | daylight | phosphor | green-screen | tokyo-night | catppuccin | gruvbox`. The phosphor and green-screen CRTs get scanlines, glow and a vignette.
+- **Benchmarks as a test runner** — `:log claude-opus-5-5 pass decision led` records a run; the ledger shows ✓/≈/✗ rows, a pass rate and a sparkline.
+- **Seven colorschemes** — `:colorscheme promptrc | daylight | phosphor | green-screen | tokyo-night | catppuccin | gruvbox`. The phosphor and green-screen CRTs get a trace of scanlines, glow and a vignette.
 - **Local-first, cloud-optional** — everything works signed out (stored in your browser). `:login` to sync to Cloudflare D1 and share read-only links.
 
 <img src="docs/screenshots/colorschemes.jpg" alt="The same benchmark in six colorschemes: promptrc, daylight, green-screen, catppuccin, gruvbox and phosphor" width="100%" />
