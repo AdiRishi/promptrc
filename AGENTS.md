@@ -40,7 +40,7 @@ The prompt library has two backends behind one interface:
 
 `src/features/prompt-library/server/prompt-library-functions.ts` defines TanStack Start `createServerFn` endpoints. Important patterns:
 
-- The D1 binding is accessed via `const { env } = await import('cloudflare:workers')` inside `getDatabase()` — **not** a top-level import. Vite externalizes `cloudflare:workers` (see `vite.config.ts` `build.rollupOptions.external`), so a static import would break the client bundle.
+- The D1 binding is accessed via `const { env } = await import('cloudflare:workers')` inside `getDatabase()` — **not** a top-level import. Vite externalizes `cloudflare:workers` (see `vite.config.ts` `build.rolldownOptions.external`), so a static import would break the client bundle.
 - Every handler calls `requireUserId()` (Clerk `auth()`) and scopes queries by `ext_user_id`. New endpoints must follow this pattern; there is no separate authorization layer.
 - Exported pure DB helpers (`listPromptsForUser`, `upsertPromptForUser`, etc.) exist so tests can call them with a direct `D1Database` handle without going through the serverfn wrapper.
 - D1 row encoding/decoding and remote write transitions live in `persistence/`; the `server/` folder should stay focused on TanStack server-function wrappers and Cloudflare binding access.

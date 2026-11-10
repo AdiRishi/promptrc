@@ -16,7 +16,7 @@ export default defineConfig(({ mode }) => {
       tsconfigPaths: true,
     },
     build: {
-      rollupOptions: {
+      rolldownOptions: {
         external: ['cloudflare:workers'],
       },
     },

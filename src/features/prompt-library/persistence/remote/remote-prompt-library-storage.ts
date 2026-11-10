@@ -79,7 +79,7 @@ export function useRemotePromptLibraryStorage(userId: string | null): RemoteProm
       getPromptShare: (promptId) => getPromptShare({ data: promptId }),
       hydrate: async () => ({
         source: 'remote',
-        snapshot: await queryClient.fetchQuery({
+        snapshot: await queryClient.query({
           queryKey,
           queryFn: () => getPromptLibrary(),
         }),
