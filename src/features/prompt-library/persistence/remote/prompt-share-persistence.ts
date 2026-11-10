@@ -1,11 +1,15 @@
+import { DEFAULT_PROMPT_KIND, isPromptKind } from '@/features/prompt-library/model/prompt-kinds'
 import {
   PROMPT_COLUMNS,
   type PromptRow,
+  decodePromptTags,
   rowToPrompt,
 } from '@/features/prompt-library/persistence/remote/d1-prompt-library-adapter'
 import {
   type PromptRecord,
+  type PromptShareListingChange,
   type PromptShareRecord,
+  type PublicPromptListing,
   type PublicPromptShare,
 } from '@/features/prompt-library/types'
 
@@ -14,11 +18,23 @@ type PromptShareRow = {
   prompt_id: string
   created_at: string
   revoked_at: string | null
+  listed_at: string | null
 }
 
 type PublicPromptShareRow = PromptRow & {
   share_created_at: string
   share_id: string
+  share_listed_at: string | null
+}
+
+type PublicPromptListingRow = {
+  share_id: string
+  listed_at: string
+  kind: string
+  title: string
+  category: string
+  tags_json: string
+  body_start: string
 }
 
 type PromptShareFactoryOptions = {
@@ -26,11 +42,18 @@ type PromptShareFactoryOptions = {
   now?: () => Date
 }
 
+const SHARE_COLUMNS = 'id, prompt_id, created_at, revoked_at, listed_at'
+
+/** The public list is a page, not an export: newest first, and bounded. */
+const PUBLIC_LISTING_LIMIT = 500
+const PUBLIC_LISTING_BODY_START = 600
+
 const rowToPromptShare = (row: PromptShareRow): PromptShareRecord => ({
   id: row.id,
   promptId: row.prompt_id,
   createdAt: row.created_at,
   revokedAt: row.revoked_at,
+  listedAt: row.listed_at,
 })
 
 const getTimestamp = (options: PromptShareFactoryOptions) => {
@@ -65,7 +88,7 @@ export const getActivePromptShareForUser = async (
   const { results } = await db
     .prepare(
       `
-        SELECT id, prompt_id, created_at, revoked_at
+        SELECT ${SHARE_COLUMNS}
         FROM prompt_shares
         WHERE ext_user_id = ? AND prompt_id = ? AND revoked_at IS NULL
         LIMIT 1
@@ -125,7 +148,54 @@ export const createPromptShareForUser = async (
     promptId,
     createdAt,
     revokedAt: null,
+    listedAt: null,
   } satisfies PromptShareRecord
+}
+
+/**
+ * Publishes or unpublishes a Prompt's share. Returns the share as it now
+ * stands, or `null` when there was nothing to change.
+ *
+ * Publishing changes only the share it names, and only while that share is
+ * active. If the owner revoked it and made another in the meantime, the new
+ * link stays private. Unpublishing takes whichever share is active out of
+ * public view.
+ */
+export const setPromptShareListedForUser = async (
+  db: D1Database,
+  extUserId: string,
+  change: PromptShareListingChange,
+  options: Pick<PromptShareFactoryOptions, 'now'> = {},
+) => {
+  const update = change.listed
+    ? db
+        .prepare(
+          `
+            UPDATE prompt_shares
+            SET listed_at = ?
+            WHERE ext_user_id = ? AND prompt_id = ? AND id = ? AND revoked_at IS NULL
+          `,
+        )
+        .bind(getTimestamp(options), extUserId, change.promptId, change.shareId)
+    : db
+        .prepare(
+          `
+            UPDATE prompt_shares
+            SET listed_at = NULL
+            WHERE ext_user_id = ? AND prompt_id = ? AND revoked_at IS NULL
+          `,
+        )
+        .bind(extUserId, change.promptId)
+  const result = await update.run()
+
+  if (result.meta.changes === 0) {
+    return null
+  }
+
+  const share = await getActivePromptShareForUser(db, extUserId, change.promptId)
+
+  // The named share can be revoked between the update and this read.
+  return change.listed && share?.id !== change.shareId ? null : share
 }
 
 export const revokePromptShareForUser = async (
@@ -161,6 +231,7 @@ export const getPublicPromptShare = async (
         SELECT
           shares.id AS share_id,
           shares.created_at AS share_created_at,
+          shares.listed_at AS share_listed_at,
           prompts.${PROMPT_COLUMNS.replaceAll(', ', ', prompts.')}
         FROM prompt_shares AS shares
         INNER JOIN prompts
@@ -182,8 +253,47 @@ export const getPublicPromptShare = async (
   return {
     shareId: row.share_id,
     createdAt: row.share_created_at,
+    listed: row.share_listed_at !== null,
     prompt: toPublicPrompt(rowToPrompt(row)),
   }
+}
+
+/**
+ * Every published share, most recently published first. Only shares whose
+ * owner published them appear here; a plain share link never does.
+ */
+export const listPublicPromptShares = async (db: D1Database): Promise<PublicPromptListing[]> => {
+  const { results } = await db
+    .prepare(
+      `
+        SELECT
+          shares.id AS share_id,
+          shares.listed_at AS listed_at,
+          prompts.kind AS kind,
+          prompts.title AS title,
+          prompts.category AS category,
+          prompts.tags_json AS tags_json,
+          substr(prompts.body, 1, ${PUBLIC_LISTING_BODY_START}) AS body_start
+        FROM prompt_shares AS shares
+        INNER JOIN prompts
+          ON prompts.id = shares.prompt_id
+          AND prompts.ext_user_id = shares.ext_user_id
+        WHERE shares.listed_at IS NOT NULL AND shares.revoked_at IS NULL
+        ORDER BY shares.listed_at DESC
+        LIMIT ${PUBLIC_LISTING_LIMIT}
+      `,
+    )
+    .all<PublicPromptListingRow>()
+
+  return results.map((row) => ({
+    shareId: row.share_id,
+    listedAt: row.listed_at,
+    kind: isPromptKind(row.kind) ? row.kind : DEFAULT_PROMPT_KIND,
+    title: row.title,
+    category: row.category,
+    tags: decodePromptTags(row.tags_json),
+    bodyStart: row.body_start,
+  }))
 }
 
 /**

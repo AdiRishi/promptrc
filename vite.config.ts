@@ -38,7 +38,10 @@ export default defineConfig(({ mode }) => {
       sitemapPlugin({
         baseUrl: siteUrl,
         verbose: mode !== 'production',
-        excludePaths: ['/www-library'],
+        // Published Prompts change at run time, so their sitemap (which also lists
+        // /prompts once it has entries) is served by a route, not written here.
+        excludePaths: ['/www-library', '/prompts', '/sitemap-prompts.xml'],
+        extraSitemapPaths: ['/sitemap-prompts.xml'],
       }),
     ],
   }

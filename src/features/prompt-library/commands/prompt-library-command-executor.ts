@@ -60,6 +60,9 @@ export type PromptRunRequest = {
   note?: string
 }
 
+export const UNSAVED_CHANGES_MESSAGE =
+  'E37: No write since last change (save with :w or discard with :q!)'
+
 export const createPromptLibraryCommandExecutor = ({
   clipboard,
   focusTitleInput,
@@ -208,6 +211,103 @@ export const createPromptLibraryCommandExecutor = ({
         ? `Share link revoked for “${activePrompt.title}”`
         : 'There was no active share link',
     )
+
+    return result.value
+  }
+
+  /**
+   * Publishing goes one step past sharing: the Prompt joins the public list
+   * and search engines may index it. It shares the Prompt first if it must.
+   */
+  const publishActivePrompt = async (): Promise<PromptShareRecord | null> => {
+    const activePrompt = getVisibleState().activePrompt
+
+    if (!activePrompt) {
+      return null
+    }
+
+    if (!library.canSharePrompts) {
+      notify('Sign in to publish prompts')
+      return null
+    }
+
+    // What goes public is the saved entry. An owner who has just edited text out
+    // of it must not publish the text they removed.
+    if (store.getState().composer.mode !== 'view') {
+      notify(UNSAVED_CHANGES_MESSAGE)
+      return null
+    }
+
+    // The public page shows the server's copy, and saving an edit returns before
+    // the server has it. Publishing waits for the entry as it reads now to be
+    // saved, so a save that is still on its way, or failed, cannot leave older
+    // text public.
+    const saved = await library.savePrompt(activePrompt)
+
+    if (saved.status === 'failed') {
+      notifySyncFailure(saved.message)
+      return null
+    }
+
+    const share = await library.createPromptShare(activePrompt.id)
+
+    if (share.status === 'failed') {
+      notifySyncFailure(share.message)
+      return null
+    }
+
+    const result = await library.setPromptShareListed({
+      promptId: activePrompt.id,
+      listed: true,
+      shareId: share.value.id,
+    })
+
+    if (result.status === 'failed') {
+      notifySyncFailure(result.message)
+      return null
+    }
+
+    if (!result.value) {
+      notify('The share link was revoked before it could be published')
+      return null
+    }
+
+    try {
+      await clipboard.writeText(getShareUrl(result.value.id))
+    } catch {
+      // The Prompt is published either way; the link is one :share away.
+    }
+
+    notify(`Published “${activePrompt.title}”. It is public and search engines can find it`)
+
+    return result.value
+  }
+
+  const unpublishActivePrompt = async (): Promise<PromptShareRecord | null> => {
+    const activePrompt = getVisibleState().activePrompt
+
+    if (!activePrompt) {
+      return null
+    }
+
+    if (!library.canSharePrompts) {
+      notify('Sign in to publish prompts')
+      return null
+    }
+
+    const result = await library.setPromptShareListed({ promptId: activePrompt.id, listed: false })
+
+    if (result.status === 'failed') {
+      notifySyncFailure(result.message)
+      return null
+    }
+
+    if (!result.value) {
+      notify(`“${activePrompt.title}” isn’t shared`)
+      return null
+    }
+
+    notify(`Unpublished “${activePrompt.title}”. Its share link still works`)
 
     return result.value
   }
@@ -412,10 +512,12 @@ export const createPromptLibraryCommandExecutor = ({
     togglePinActivePrompt,
     deletePrompt,
     duplicatePrompt,
+    publishActivePrompt,
     revokeActivePromptShare,
     saveComposer,
     selectPrompt,
     shareActivePrompt,
     startEditActivePrompt,
+    unpublishActivePrompt,
   }
 }

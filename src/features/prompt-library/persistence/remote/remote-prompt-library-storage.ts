@@ -17,6 +17,7 @@ import {
   getRemotePromptShare,
   incrementRemotePromptUses,
   revokeRemotePromptShare,
+  setRemotePromptShareListed,
   uploadRemotePromptImage,
   upsertRemotePrompt,
 } from '@/features/prompt-library/server/prompt-library-functions'
@@ -34,6 +35,7 @@ export function useRemotePromptLibraryStorage(userId: string | null): RemoteProm
   const createPromptShare = useServerFn(createRemotePromptShare)
   const revokePromptShare = useServerFn(revokeRemotePromptShare)
   const getPromptShare = useServerFn(getRemotePromptShare)
+  const setPromptShareListed = useServerFn(setRemotePromptShareListed)
   const uploadPromptImage = useServerFn(uploadRemotePromptImage)
   const addStarterPrompts = useServerFn(addRemoteStarterPrompts)
   const acceptFirstSignInCopy = useServerFn(acceptRemoteFirstSignInCopy)
@@ -100,6 +102,7 @@ export function useRemotePromptLibraryStorage(userId: string | null): RemoteProm
 
         return savedPrompt
       },
+      setPromptShareListed: (change) => setPromptShareListed({ data: change }),
       uploadPromptImage: (upload) => uploadPromptImage({ data: upload }),
     }),
     [
@@ -116,6 +119,7 @@ export function useRemotePromptLibraryStorage(userId: string | null): RemoteProm
       removePrompt,
       removePromptImage,
       revokePromptShare,
+      setPromptShareListed,
       uploadPromptImage,
       upsertPrompt,
     ],

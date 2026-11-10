@@ -37,13 +37,18 @@ export type PromptCopyHandler = (request?: { stepIndex?: number }) => void | Pro
 type PromptReaderActions = {
   canSharePrompts: boolean
   hasActivePromptShare: boolean
+  /** The share is in the public list and open to search engines. */
+  isPublished: boolean
   isConfirmingDelete: boolean
+  isConfirmingPublish: boolean
   onCopy: PromptCopyHandler
   onEdit: () => void
   onTogglePin: () => void
   onDuplicate: () => void
   onShare: () => void | Promise<void>
   onRevokeShare: () => void | Promise<void>
+  onPublish: () => void
+  onUnpublish: () => void | Promise<void>
   onDelete: () => void
   onLogRun: (request: PromptRunRequest) => boolean
   onRemoveRun: (runId: string) => void
@@ -149,6 +154,7 @@ export function PromptReader({
                   <span className="text-yellow">★</span> pinned
                 </span>
               ) : null}
+              {actions.isPublished ? <span className="whitespace-nowrap">public</span> : null}
             </div>
           </div>
         </header>
@@ -242,13 +248,17 @@ function ReaderActions({
   prompt,
   canSharePrompts,
   hasActivePromptShare,
+  isPublished,
   isConfirmingDelete,
+  isConfirmingPublish,
   onCopy,
   onEdit,
   onTogglePin,
   onDuplicate,
   onShare,
   onRevokeShare,
+  onPublish,
+  onUnpublish,
   onDelete,
 }: ReaderActionsProps) {
   return (
@@ -261,6 +271,16 @@ function ReaderActions({
         {canSharePrompts ? <KeyAction keys={['s']} label="share" onClick={onShare} /> : null}
         {canSharePrompts && hasActivePromptShare ? (
           <KeyAction label="unshare" onClick={onRevokeShare} />
+        ) : null}
+        {canSharePrompts && isPublished ? (
+          <KeyAction label="unpublish" onClick={onUnpublish} />
+        ) : null}
+        {canSharePrompts && !isPublished ? (
+          <KeyAction
+            ariaLabel={isConfirmingPublish ? 'Press again to publish' : 'Publish'}
+            label={isConfirmingPublish ? 'press again to publish' : 'publish'}
+            onClick={onPublish}
+          />
         ) : null}
         <KeyAction
           ariaLabel={isConfirmingDelete ? 'Press again to delete' : 'Delete'}

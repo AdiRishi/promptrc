@@ -1,6 +1,7 @@
 import { useAuth } from '@clerk/tanstack-react-start'
 import { useDeferredValue, useEffect, useRef, useState, useSyncExternalStore } from 'react'
 
+import { UNSAVED_CHANGES_MESSAGE } from '@/features/prompt-library/commands/prompt-library-command-executor'
 import { runPromptLibraryCommand } from '@/features/prompt-library/commands/prompt-library-command-router'
 import {
   type PromptLibraryCommandId,
@@ -133,7 +134,9 @@ function PromptLibraryScreen() {
   const [activePane, setActivePane] = useState<PaneId>(2)
   const [viewMode, setViewMode] = useState<PromptViewMode>('rendered')
   const [activePromptShare, setActivePromptShare] = useState<PromptShareRecord | null>(null)
+  const [confirmPublishId, setConfirmPublishId] = useState<string | null>(null)
   const shareLookupVersionRef = useRef(0)
+  const shownPromptIdRef = useRef<string | null>(null)
   const commandLineReturnFocusRef = useRef<HTMLElement | null>(null)
 
   const deferredQuery = useDeferredValue(query)
@@ -162,6 +165,8 @@ function PromptLibraryScreen() {
   }
 
   const isEditing = composer.mode !== 'view'
+  const isActivePromptPublished =
+    activePromptShare?.promptId === activePromptId && activePromptShare.listedAt !== null
   const mode: ScreenMode = isCommandLineOpen
     ? 'COMMAND'
     : finder.open
@@ -226,22 +231,73 @@ function PromptLibraryScreen() {
   const copyActivePrompt = (request: { stepIndex?: number } = {}) =>
     commands.copyActivePrompt({ ...request, values: blanks.values })
 
+  /**
+   * Records what a share request did to an entry. The answer can arrive after
+   * the selection has moved on; then it describes an entry that is no longer
+   * shown, and the one that is keeps its own state and its own lookup.
+   */
+  const applyShareResult = (promptId: string, share: PromptShareRecord | null) => {
+    if (promptId !== shownPromptIdRef.current) {
+      return
+    }
+
+    shareLookupVersionRef.current += 1
+    setActivePromptShare(share)
+  }
+
   const sharePrompt = async () => {
     const share = await commands.shareActivePrompt()
 
-    if (share && share.promptId === activePromptId) {
-      shareLookupVersionRef.current += 1
-      setActivePromptShare(share)
+    if (share) {
+      applyShareResult(share.promptId, share)
     }
   }
 
   const revokePromptShare = async () => {
     const result = await commands.revokeActivePromptShare()
 
-    if (result && result.promptId === activePromptId) {
-      shareLookupVersionRef.current += 1
-      setActivePromptShare(null)
+    if (result) {
+      applyShareResult(result.promptId, null)
     }
+  }
+
+  const setPublished = async (published: boolean) => {
+    const share = published
+      ? await commands.publishActivePrompt()
+      : await commands.unpublishActivePrompt()
+
+    if (share) {
+      applyShareResult(share.promptId, share)
+    }
+  }
+
+  /** Publishing puts an entry in front of search engines, so it asks twice. */
+  const requestPublish = (force = false) => {
+    if (!activePrompt) {
+      echo('E32: No entry selected')
+      return
+    }
+
+    if (!library.canSharePrompts) {
+      echo('Publishing needs an account — :login to sync')
+      return
+    }
+
+    if (isEditing) {
+      echo(UNSAVED_CHANGES_MESSAGE)
+      return
+    }
+
+    if (force || confirmPublishId === activePrompt.id) {
+      setConfirmPublishId(null)
+      void setPublished(true)
+      return
+    }
+
+    setConfirmPublishId(activePrompt.id)
+    echo(
+      `This makes “${activePrompt.title}” public, and search engines can find it — :publish again to confirm`,
+    )
   }
 
   const deleteDiscardedPromptImages = (images: PromptImage[]) => {
@@ -278,7 +334,7 @@ function PromptLibraryScreen() {
 
   const startNew = (kind?: Parameters<typeof actions.startNew>[0]) => {
     if (isEditing) {
-      echo('E37: No write since last change (save with :w or discard with :q!)')
+      echo(UNSAVED_CHANGES_MESSAGE)
       return
     }
 
@@ -450,7 +506,7 @@ function PromptLibraryScreen() {
     const command = getPromptLibraryCommand(commandId)
 
     if (command.disabledWhileComposing && isEditing) {
-      echo('E37: No write since last change (save with :w or discard with :q!)')
+      echo(UNSAVED_CHANGES_MESSAGE)
     } else if (command.requiresCloud && !library.canSharePrompts) {
       echo('Sharing needs an account — :login to sync')
     } else {
@@ -512,6 +568,18 @@ function PromptLibraryScreen() {
           echo(`“${activePrompt.title}” isn’t shared`)
         } else {
           void revokePromptShare()
+        }
+        return
+      case 'publish':
+        requestPublish(action.force)
+        return
+      case 'unpublish':
+        if (!activePrompt) {
+          echo('E32: No entry selected')
+        } else if (!isActivePromptPublished) {
+          echo(`“${activePrompt.title}” isn’t published`)
+        } else {
+          void setPublished(false)
         }
         return
       case 'delete':
@@ -676,6 +744,16 @@ function PromptLibraryScreen() {
     return () => window.clearTimeout(timeout)
   }, [actions, confirmDeleteId])
 
+  useEffect(() => {
+    if (!confirmPublishId) {
+      return
+    }
+
+    const timeout = window.setTimeout(() => setConfirmPublishId(null), 6000)
+
+    return () => window.clearTimeout(timeout)
+  }, [confirmPublishId])
+
   // Follow keyboard selection in the list: keep it in view, and move focus along.
   useEffect(() => {
     if (!activePromptId) {
@@ -713,6 +791,7 @@ function PromptLibraryScreen() {
     let ignore = false
     const lookupVersion = shareLookupVersionRef.current + 1
     shareLookupVersionRef.current = lookupVersion
+    shownPromptIdRef.current = activePromptId
 
     if (!library.canSharePrompts || !activePromptId) {
       return
@@ -896,6 +975,10 @@ function PromptLibraryScreen() {
               catalogNumber={catalogNumbers.get(activePrompt.id)}
               hasActivePromptShare={activePromptShare?.promptId === activePromptId}
               isConfirmingDelete={confirmDeleteId === activePrompt.id}
+              isConfirmingPublish={confirmPublishId === activePrompt.id}
+              isPublished={isActivePromptPublished}
+              onPublish={() => requestPublish()}
+              onUnpublish={() => setPublished(false)}
               knownModels={knownModels}
               onCopy={copyActivePrompt}
               onDelete={commands.deletePrompt}

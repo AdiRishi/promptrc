@@ -9,6 +9,7 @@ import {
   type PromptImage,
   type PromptImageUploadInput,
   type PromptRecord,
+  type PromptShareListingChange,
   type PromptShareRecord,
   type PromptShareRevokeResult,
   type PromptSyncMode,
@@ -42,6 +43,10 @@ export type PromptLibraryClient = {
     promptId: string,
   ) => Promise<PromptLibraryMutationResult<PromptShareRevokeResult>>
   savePrompt: (prompt: PromptRecord) => Promise<PromptLibraryMutationResult<PromptRecord>>
+  /** Publishes or unpublishes a share; the value is `null` when there was none to change. */
+  setPromptShareListed: (
+    change: PromptShareListingChange,
+  ) => Promise<PromptLibraryMutationResult<PromptShareRecord | null>>
   sync: () => Promise<void>
   uploadPromptImage: (
     upload: PromptImageUploadInput,
@@ -128,6 +133,7 @@ export const createPromptLibraryClient = (
       reportError: storage.reportError,
       revokePromptShare: localShareUnavailable,
       savePrompt: (prompt) => syncMutation(() => Promise.resolve(prompt)),
+      setPromptShareListed: localShareUnavailable,
       sync,
       uploadPromptImage: localImageUploadUnavailable,
       recordPromptUse: () => syncMutation(() => Promise.resolve(null)),
@@ -147,6 +153,7 @@ export const createPromptLibraryClient = (
     reportError: storage.reportError,
     revokePromptShare: (promptId) => syncMutation(() => storage.revokePromptShare(promptId)),
     savePrompt: (prompt) => syncMutation(() => storage.savePrompt(prompt)),
+    setPromptShareListed: (change) => syncMutation(() => storage.setPromptShareListed(change)),
     sync,
     uploadPromptImage: (upload) => syncMutation(() => storage.uploadPromptImage(upload)),
     recordPromptUse: (promptId) => syncMutation(() => storage.recordPromptUse(promptId)),

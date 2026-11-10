@@ -10,6 +10,7 @@ const SECTIONS = [
   { id: 'about', to: '/about', label: 'about' },
   { id: 'manual', to: '/manual', label: 'manual' },
   { id: 'guides', to: '/guides', label: 'guides' },
+  { id: 'prompts', to: '/prompts', label: 'prompts' },
 ] as const
 
 export type SiteSection = (typeof SECTIONS)[number]['id']
@@ -28,7 +29,7 @@ type SiteShellProps = {
 export function SiteShell({ section, path, children }: SiteShellProps) {
   return (
     <div className="relative z-10 mx-auto flex min-h-dvh max-w-[104ch] flex-col px-2 sm:px-3">
-      <header className="flex h-8 shrink-0 items-stretch gap-[2ch] max-md:h-11">
+      <header className="flex h-8 shrink-0 items-stretch gap-[2ch] max-md:h-11 max-sm:gap-[1ch]">
         <Link className="self-center" to="/">
           <Wordmark />
         </Link>
@@ -49,12 +50,12 @@ export function SiteShell({ section, path, children }: SiteShellProps) {
             </Link>
           ))}
         </nav>
+        {/* On a phone the four sections fill the row; the wordmark already leads to the app. */}
         <Link
-          className="ml-auto self-center font-semibold whitespace-nowrap text-accent hover:underline"
+          className="ml-auto self-center font-semibold whitespace-nowrap text-accent hover:underline max-sm:hidden"
           to="/"
         >
-          open <span className="max-sm:sr-only">promptrc </span>
-          <span aria-hidden="true">→</span>
+          open promptrc <span aria-hidden="true">→</span>
         </Link>
       </header>
 

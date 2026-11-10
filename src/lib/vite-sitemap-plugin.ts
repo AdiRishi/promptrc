@@ -10,6 +10,8 @@ interface SitemapPluginOptions {
   verbose?: boolean
   trailingSlash?: boolean
   excludePaths?: string[]
+  /** Paths of sitemaps served at request time, announced in robots.txt beside this one. */
+  extraSitemapPaths?: string[]
 }
 
 function extractRoutes(content: string) {
@@ -80,6 +82,7 @@ export function sitemapPlugin({
   verbose = false,
   trailingSlash = false,
   excludePaths = [],
+  extraSitemapPaths = [],
 }: SitemapPluginOptions): Plugin {
   return {
     name: 'vite-sitemap-plugin',
@@ -135,11 +138,17 @@ ${urls}
 </urlset>
 `
 
+      const sitemapLines = [
+        sitemapUrl,
+        ...extraSitemapPaths.map((path) => buildUrl(baseUrl, path, false)),
+      ]
+        .map((url) => `Sitemap: ${url}`)
+        .join('\n')
       const robots = `# https://www.robotstxt.org/robotstxt.html
 User-agent: *
 Disallow:
 
-Sitemap: ${sitemapUrl}
+${sitemapLines}
 `
 
       writeTextFile(sitemapFullPath, sitemap)

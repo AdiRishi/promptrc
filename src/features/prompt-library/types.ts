@@ -55,6 +55,12 @@ export type PromptShareRecord = {
   promptId: string
   createdAt: string
   revokedAt: string | null
+  /**
+   * Set once the owner publishes the share. A published share appears in the
+   * public list and may be indexed by search engines; otherwise only someone
+   * holding the link can reach it.
+   */
+  listedAt: string | null
 }
 
 export type PromptShareRevokeResult = {
@@ -62,10 +68,33 @@ export type PromptShareRevokeResult = {
   revoked: boolean
 }
 
+/**
+ * A request to publish or unpublish a Prompt's share. Publishing names the
+ * share the owner confirmed: a link made after they asked is a different
+ * hand-out, and must not go public in its place.
+ */
+export type PromptShareListingChange =
+  | { promptId: string; listed: true; shareId: string }
+  | { promptId: string; listed: false }
+
 export type PublicPromptShare = {
   shareId: string
   createdAt: string
+  /** Whether the owner published it. Unpublished shares stay out of search. */
+  listed: boolean
   prompt: PromptRecord
+}
+
+/** One row of the public list: enough to recognise a Prompt, not its whole body. */
+export type PublicPromptListing = {
+  shareId: string
+  listedAt: string
+  kind: PromptKind
+  title: string
+  category: string
+  tags: string[]
+  /** The first few hundred characters of the Prompt Body, as written. */
+  bodyStart: string
 }
 
 export type PromptSaveInput = {

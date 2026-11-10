@@ -30,6 +30,8 @@ const renderReader = (prompt: PromptRecord, overrides: Record<string, unknown> =
     onDuplicate: vi.fn(),
     onShare: vi.fn(),
     onRevokeShare: vi.fn(),
+    onPublish: vi.fn(),
+    onUnpublish: vi.fn(),
     onDelete: vi.fn(),
     onLogRun: vi.fn(() => true),
     onRemoveRun: vi.fn(),
@@ -46,6 +48,8 @@ const renderReader = (prompt: PromptRecord, overrides: Record<string, unknown> =
       catalogNumber={7}
       hasActivePromptShare={false}
       isConfirmingDelete={false}
+      isConfirmingPublish={false}
+      isPublished={false}
       knownModels={['claude-opus-5-5']}
       prompt={prompt}
       variableValues={{}}

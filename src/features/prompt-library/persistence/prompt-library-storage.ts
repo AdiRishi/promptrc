@@ -4,6 +4,7 @@ import {
   type PromptLibraryPersistedSnapshot,
   type PromptLibraryRemoteSnapshot,
   type PromptRecord,
+  type PromptShareListingChange,
   type PromptShareRecord,
   type PromptShareRevokeResult,
   type PromptSyncMode,
@@ -42,6 +43,8 @@ export type RemotePromptLibraryStorage = PromptLibraryStorageBase & {
   recordPromptUse: (promptId: string) => Promise<PromptRecord>
   revokePromptShare: (promptId: string) => Promise<PromptShareRevokeResult>
   savePrompt: (prompt: PromptRecord) => Promise<PromptRecord>
+  /** Publishes or unpublishes a share; `null` when there was none to change. */
+  setPromptShareListed: (change: PromptShareListingChange) => Promise<PromptShareRecord | null>
   uploadPromptImage: (upload: PromptImageUploadInput) => Promise<PromptImage>
 }
 
