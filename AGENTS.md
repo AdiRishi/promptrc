@@ -83,13 +83,11 @@ Tests should mirror the feature folders under `tests/features/<feature>/`. Use t
 - `browser-unit` — `jsdom`, includes `tests/**/*.test.{ts,tsx}` but **excludes** `tests/**/*.server.test.{ts,tsx}`
 - `cloudflare-server` — `@cloudflare/vitest-plugin` Miniflare, includes `tests/**/*.server.test.{ts,tsx}`, runs `tests/setup-cloudflare.ts` which re-applies D1 migrations and truncates `prompts` before each test
 
-Vitest is on v5. `@cloudflare/vitest-plugin@1.3.5` only declares support for Vitest 4, so `patches/@cloudflare__vitest-plugin@1.3.5.patch` backports the Vitest 5 changes from cloudflare/workers-sdk#15500 (new module registry, `weak_ref`, `node:process` fallback, coverage loopback). `pnpm-workspace.yaml` allows the peer mismatch. Remove both once an upstream release supports Vitest 5.
-
 **Naming matters:** D1 and server-function tests must use the `.server.test.ts` suffix so they hit the workers pool (and get the D1 binding). Put browser/unit tests in the mirrored feature folder without that suffix, or they'll run in the wrong environment.
 
 ## Version pins worth knowing
 
-- `nitro` is pinned to `3.0.260610-beta`: in `3.0.260903-beta` the workerd dev runner inlines CommonJS dependencies (React) and `pnpm dev` fails with `module is not defined`.
+- `nitro` is pinned to `3.0.260610-beta`. In `3.0.260903-beta` the workerd dev runner inlines CommonJS dependencies (React) and `pnpm dev` fails with `module is not defined`. In `3.0.261103-rc`, `pnpm dev` loads two copies of React and SSR fails with `Cannot read properties of null (reading 'useRef')`, and the build rejects the trailing commas in `wrangler.jsonc`.
 - `miniflare@^4` is a direct dev dependency because Wrangler and `@cloudflare/vitest-plugin` now ship miniflare 5 (alpha), while Nitro's `env-runner` needs v4.
 - `vite.config.ts` marks `cloudflare:workers` external for the dependency optimizer too; otherwise the dependency scan aborts on the dynamic import.
 

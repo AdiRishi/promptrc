@@ -18,7 +18,6 @@
     ".claude",
     "coverage",
     "public",
-    "patches",
     "worker-configuration.d.ts",
     "**/*.gen.ts"
   ],
