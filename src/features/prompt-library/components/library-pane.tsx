@@ -137,8 +137,9 @@ export function LibraryPane({
             </button>
           ))}
         </div>
-        <div className="max-md:flex">
-          <FooterRow className="max-md:flex-1" label="sync">
+        {/* Side by side where a phone has the width; the narrowest ones stack them. */}
+        <div className="max-md:flex max-md:flex-wrap">
+          <FooterRow className="max-md:grow" label="sync">
             <SyncMark className="mr-[1ch]" mode={syncMode} status={syncStatus} />
             <span className={cn(syncStatus === 'error' && 'text-red')}>
               {syncStatus === 'error'
@@ -150,7 +151,7 @@ export function LibraryPane({
                     : 'local'}
             </span>
           </FooterRow>
-          <FooterRow className="max-md:flex-1" label="docs">
+          <FooterRow className="max-md:grow" label="docs">
             <span className="flex gap-[1ch]">
               <a className="link" href="/about">
                 about

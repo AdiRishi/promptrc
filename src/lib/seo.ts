@@ -270,6 +270,13 @@ export function getArticleJsonLd({
   const siteUrl = getCanonicalSiteUrl(siteUrlEnv)
   const schemaIds = getSchemaIds(siteUrl)
   const pageUrl = getCanonicalAbsoluteUrl(path, siteUrlEnv)
+  // The full Organization is only on the home page, so name it here as well.
+  const organization = {
+    '@type': 'Organization',
+    '@id': schemaIds.organization,
+    name: SITE_NAME,
+    url: siteUrl,
+  }
 
   return {
     '@context': 'https://schema.org',
@@ -282,8 +289,8 @@ export function getArticleJsonLd({
     dateModified: updated,
     inLanguage: SITE_IN_LANGUAGE,
     image: getCanonicalSocialImageUrl(siteUrlEnv),
-    author: { '@id': schemaIds.organization },
-    publisher: { '@id': schemaIds.organization },
+    author: organization,
+    publisher: organization,
     isPartOf: { '@id': schemaIds.website },
   }
 }
