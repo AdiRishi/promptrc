@@ -27,54 +27,55 @@
 /* ── colorschemes ──────────────────────────────────────────────────────────
  * Each scheme sets the terminal palette; everything else derives from it.
  * The default follows the system: `promptrc` when dark, `daylight` when light.
+ *
+ * Text colours hold 4.5:1 against every surface they sit on, the selection
+ * tint included. `--fg-faint` is the quietest readable text, not decoration.
  */
 :root,
 [data-scheme='promptrc'] {
     color-scheme: dark;
-    --bg: #0b0c0e;
-    --bg-raised: #0f1013;
-    --bg-sunken: #07080a;
-    --bg-hover: #15161a;
-    --bg-sel: #221d14;
-    --fg: #e8e6e3;
-    --fg-dim: #a29d96;
-    --fg-faint: #67635d;
-    --line: #24262b;
-    --line-strong: #34363d;
+    --bg: #0c0d10;
+    --bg-raised: #111317;
+    --bg-sunken: #08090b;
+    --bg-hover: #181a1f;
+    --fg: #e6e3dd;
+    --fg-dim: #aaa59c;
+    --fg-faint: #96918a;
+    --line: #262930;
+    --line-strong: #3b3f47;
     --accent: #ffb454;
     --accent-fg: #1a1305;
-    --red: #ff6b6b;
-    --green: #7acc8e;
-    --yellow: #ffb454;
-    --blue: #7eb6f2;
-    --magenta: #c0a4ff;
-    --cyan: #6cc4d9;
-    --scanline-opacity: 0.018;
-    --glow: 0;
+    --red: #f27b81;
+    --green: #8cc79a;
+    --yellow: #e6c35c;
+    --blue: #8fb4e0;
+    --magenta: #b9a3e6;
+    --cyan: #7cc0cf;
+    --shadow: 0 24px 60px -12px rgb(0 0 0 / 0.65);
+    --scrim: rgb(0 0 0 / 0.6);
 }
 
 [data-scheme='daylight'] {
     color-scheme: light;
-    --bg: #f5f2ea;
+    --bg: #f4f1e9;
     --bg-raised: #fbf9f4;
-    --bg-sunken: #ebe6da;
-    --bg-hover: #ede7db;
-    --bg-sel: #f3dfbd;
+    --bg-sunken: #ece7db;
+    --bg-hover: #f0ebe0;
     --fg: #22201c;
-    --fg-dim: #5c564d;
-    --fg-faint: #958e82;
-    --line: #d9d1c2;
-    --line-strong: #c4baa7;
-    --accent: #b4520a;
+    --fg-dim: #524c44;
+    --fg-faint: #6b645a;
+    --line: #dbd4c6;
+    --line-strong: #c2b8a5;
+    --accent: #a34705;
     --accent-fg: #fff8ef;
-    --red: #c0392b;
-    --green: #2e7a4d;
-    --yellow: #9a6500;
-    --blue: #2a62ad;
-    --magenta: #8b43b0;
-    --cyan: #1d7688;
-    --scanline-opacity: 0;
-    --glow: 0;
+    --red: #b0261d;
+    --green: #22653c;
+    --yellow: #7a5000;
+    --blue: #22569f;
+    --magenta: #753893;
+    --cyan: #136476;
+    --shadow: 0 16px 48px -8px rgb(60 45 20 / 0.22);
+    --scrim: rgb(40 32 20 / 0.28);
 }
 
 [data-scheme='phosphor'] {
@@ -83,22 +84,21 @@
     --bg-raised: #140b02;
     --bg-sunken: #0b0601;
     --bg-hover: #1e1304;
-    --bg-sel: #3b2507;
-    --fg: #ffb000;
-    --fg-dim: #c98a00;
-    --fg-faint: #7c5400;
-    --line: #3d2805;
+    --fg: #f7b541;
+    --fg-dim: #d39a35;
+    --fg-faint: #b5822a;
+    --line: #3a2605;
     --line-strong: #5c3c07;
-    --accent: #ffd04a;
+    --accent: #ffd878;
     --accent-fg: #100902;
-    --red: #ff8640;
-    --green: #ffcf3d;
+    --red: #ff8a4c;
+    --green: #f3cf5a;
     --yellow: #ffd866;
-    --blue: #ffb000;
-    --magenta: #ffa033;
-    --cyan: #ffd75c;
-    --scanline-opacity: 0.09;
-    --glow: 1;
+    --blue: #f7b541;
+    --magenta: #ffa544;
+    --cyan: #ffd98a;
+    --shadow: 0 24px 60px -12px rgb(0 0 0 / 0.7);
+    --scrim: rgb(0 0 0 / 0.6);
 }
 
 [data-scheme='green-screen'] {
@@ -107,22 +107,21 @@
     --bg-raised: #031208;
     --bg-sunken: #010903;
     --bg-hover: #071c0d;
-    --bg-sel: #0b3416;
-    --fg: #3cff70;
-    --fg-dim: #25c250;
-    --fg-faint: #137833;
-    --line: #0c3d1a;
+    --fg: #6cf08e;
+    --fg-dim: #4fca70;
+    --fg-faint: #3fa85c;
+    --line: #0c3a19;
     --line-strong: #135a27;
-    --accent: #8dffae;
+    --accent: #c0ffd0;
     --accent-fg: #020e05;
-    --red: #c4ff57;
-    --green: #3cff70;
-    --yellow: #d4ff6e;
-    --blue: #3dffd0;
-    --magenta: #6dffc2;
-    --cyan: #3dffd0;
-    --scanline-opacity: 0.09;
-    --glow: 1;
+    --red: #d4ff6e;
+    --green: #6cf08e;
+    --yellow: #dcff86;
+    --blue: #5cf2d2;
+    --magenta: #8af7c8;
+    --cyan: #5cf2d2;
+    --shadow: 0 24px 60px -12px rgb(0 0 0 / 0.7);
+    --scrim: rgb(0 0 0 / 0.6);
 }
 
 [data-scheme='tokyo-night'] {
@@ -130,13 +129,12 @@
     --bg: #1a1b26;
     --bg-raised: #1d1e2b;
     --bg-sunken: #16161e;
-    --bg-hover: #222436;
-    --bg-sel: #283457;
+    --bg-hover: #232538;
     --fg: #c0caf5;
     --fg-dim: #a9b1d6;
-    --fg-faint: #565f89;
-    --line: #292e42;
-    --line-strong: #3b4261;
+    --fg-faint: #9099c2;
+    --line: #2c3047;
+    --line-strong: #3f4668;
     --accent: #7aa2f7;
     --accent-fg: #16161e;
     --red: #f7768e;
@@ -145,8 +143,8 @@
     --blue: #7aa2f7;
     --magenta: #bb9af7;
     --cyan: #7dcfff;
-    --scanline-opacity: 0;
-    --glow: 0;
+    --shadow: 0 24px 60px -12px rgb(0 0 0 / 0.6);
+    --scrim: rgb(8 8 14 / 0.6);
 }
 
 [data-scheme='catppuccin'] {
@@ -154,13 +152,12 @@
     --bg: #1e1e2e;
     --bg-raised: #222234;
     --bg-sunken: #181825;
-    --bg-hover: #29293d;
-    --bg-sel: #313244;
+    --bg-hover: #2a2a3f;
     --fg: #cdd6f4;
-    --fg-dim: #a6adc8;
-    --fg-faint: #6c7086;
-    --line: #313244;
-    --line-strong: #45475a;
+    --fg-dim: #b4bcdb;
+    --fg-faint: #9aa0bd;
+    --line: #34354a;
+    --line-strong: #4a4c63;
     --accent: #cba6f7;
     --accent-fg: #11111b;
     --red: #f38ba8;
@@ -169,8 +166,8 @@
     --blue: #89b4fa;
     --magenta: #f5c2e7;
     --cyan: #94e2d5;
-    --scanline-opacity: 0;
-    --glow: 0;
+    --shadow: 0 24px 60px -12px rgb(0 0 0 / 0.6);
+    --scrim: rgb(10 10 18 / 0.6);
 }
 
 [data-scheme='gruvbox'] {
@@ -178,28 +175,30 @@
     --bg: #282828;
     --bg-raised: #2c2c2b;
     --bg-sunken: #1d2021;
-    --bg-hover: #32302f;
-    --bg-sel: #3c3836;
+    --bg-hover: #353332;
     --fg: #ebdbb2;
-    --fg-dim: #bdae93;
-    --fg-faint: #7c6f64;
-    --line: #3c3836;
-    --line-strong: #504945;
-    --accent: #fe8019;
+    --fg-dim: #cdbe9f;
+    --fg-faint: #b3a48c;
+    --line: #403c39;
+    --line-strong: #5a524c;
+    --accent: #ff9339;
     --accent-fg: #1d2021;
-    --red: #fb4934;
+    --red: #fd8472;
     --green: #b8bb26;
     --yellow: #fabd2f;
-    --blue: #83a598;
-    --magenta: #d3869b;
+    --blue: #8fb3a6;
+    --magenta: #dc93a7;
     --cyan: #8ec07c;
-    --scanline-opacity: 0;
-    --glow: 0;
+    --shadow: 0 24px 60px -12px rgb(0 0 0 / 0.6);
+    --scrim: rgb(12 12 12 / 0.6);
 }
 
-/* shadcn-compatible names: Base UI primitives and Clerk's shadcn theme read these. */
+/* Derived from the palette, so every scheme gets the same selection language. */
 :root,
 [data-scheme] {
+    --bg-sel: color-mix(in oklab, var(--accent) 14%, var(--bg-raised));
+
+    /* shadcn-compatible names: Base UI primitives and Clerk's shadcn theme read these. */
     --background: var(--bg);
     --foreground: var(--fg);
     --card: var(--bg-raised);
@@ -219,10 +218,36 @@
     --ring: var(--accent);
     --radius: 0.375rem;
 
-    --kind-prompt: var(--yellow);
+    /* Prompts are the default kind and stay neutral; the other kinds carry a colour. */
+    --kind-prompt: var(--fg-dim);
     --kind-fragment: var(--magenta);
     --kind-sequence: var(--green);
     --kind-benchmark: var(--cyan);
+}
+
+/*
+ * The type scale, used through `text-meta` … `text-display`:
+ *   meta     counts, dates, key hints, pane titles
+ *   ui       chrome, lists, controls, editor fields
+ *   body     the text you came to read
+ *   head     secondary titles
+ *   title    the open entry
+ *   display  the one headline, on the sign-in page
+ * Weights are 400, 600 and 800.
+ */
+@theme {
+    --text-meta: 0.75rem;
+    --text-meta--line-height: calc(18 / 12);
+    --text-ui: 0.875rem;
+    --text-ui--line-height: calc(22 / 14);
+    --text-body: 0.9375rem;
+    --text-body--line-height: calc(26 / 15);
+    --text-head: 1.25rem;
+    --text-head--line-height: calc(28 / 20);
+    --text-title: 1.75rem;
+    --text-title--line-height: calc(34 / 28);
+    --text-display: 2.25rem;
+    --text-display--line-height: calc(42 / 36);
 }
 
 @theme inline {
@@ -248,6 +273,7 @@
     --color-blue: var(--blue);
     --color-magenta: var(--magenta);
     --color-cyan: var(--cyan);
+    --color-scrim: var(--scrim);
     --color-kind-prompt: var(--kind-prompt);
     --color-kind-fragment: var(--kind-fragment);
     --color-kind-sequence: var(--kind-sequence);
@@ -270,19 +296,22 @@
     --color-input: var(--input);
     --color-ring: var(--ring);
 
-    --radius-sm: 0.25rem;
-    --radius-md: 0.375rem;
-    --radius-lg: 0.5rem;
+    /* Frames and overlays round like ╭╮; keycaps barely; fills inside a pane are square. */
+    --radius-sm: 2px;
+    --radius-md: 6px;
+    --radius-lg: 6px;
+
+    --shadow-overlay: var(--shadow);
 
     --animate-blink: blink 1.06s steps(1) infinite;
-    --animate-type-in: type-in 0.28s steps(8) both;
-    --animate-boot: boot-line 0.18s steps(2) both;
-    --animate-pop: pop 0.14s ease-out both;
+    --animate-type-in: type-in 0.24s steps(8) both;
+    --animate-boot: fade-in 0.12s ease-out both;
+    --animate-pop: fade-in 0.1s ease-out both;
 }
 
 @layer base {
     * {
-        @apply border-line outline-accent/70;
+        @apply border-line outline-accent;
     }
 
     html {
@@ -295,34 +324,47 @@
         -webkit-tap-highlight-color: transparent;
     }
 
+    /* Roomy screens get the whole scale one step larger; widths are in ch and follow. */
+    @media (min-width: 1680px) {
+        :root {
+            --text-meta: 0.8125rem;
+            --text-ui: 0.9375rem;
+            --text-body: 1rem;
+            --text-head: 1.375rem;
+            --text-title: 2rem;
+        }
+    }
+
+    @media (max-width: 639px) {
+        :root {
+            --text-title: 1.5rem;
+        }
+    }
+
     body {
-        @apply min-h-dvh bg-bg text-[13.5px] leading-[1.6] text-fg antialiased;
-        text-shadow: 0 0 calc(var(--glow) * 6px) color-mix(in oklab, var(--fg) 55%, transparent);
+        @apply min-h-dvh bg-bg text-ui text-fg antialiased;
     }
 
-    /* Scanlines: barely there on the default scheme, unmistakable on the CRTs. */
-    body::after {
+    /* The CRT schemes: a trace of scanline and bloom, never enough to blur small text. */
+    [data-crt] body {
+        text-shadow: 0 0 2px color-mix(in oklab, var(--fg) 30%, transparent);
+    }
+
+    [data-crt] body::after {
         content: '';
         position: fixed;
         inset: 0;
         z-index: 100;
         pointer-events: none;
-        background: repeating-linear-gradient(
-            to bottom,
-            rgb(255 255 255 / var(--scanline-opacity)) 0,
-            rgb(255 255 255 / var(--scanline-opacity)) 1px,
-            transparent 1px,
-            transparent 3px
-        );
-    }
-
-    [data-crt] body::before {
-        content: '';
-        position: fixed;
-        inset: 0;
-        z-index: 100;
-        pointer-events: none;
-        background: radial-gradient(ellipse at center, transparent 55%, rgb(0 0 0 / 0.55) 100%);
+        background:
+            radial-gradient(ellipse at center, transparent 62%, rgb(0 0 0 / 0.22) 100%),
+            repeating-linear-gradient(
+                to bottom,
+                rgb(255 255 255 / 0.035) 0,
+                rgb(255 255 255 / 0.035) 1px,
+                transparent 1px,
+                transparent 3px
+            );
     }
 
     ::selection {
@@ -332,13 +374,23 @@
     }
 
     :focus-visible {
-        outline: 1px solid var(--accent);
+        outline: 2px solid var(--accent);
         outline-offset: 1px;
     }
 
     input,
     textarea {
         caret-color: var(--accent);
+    }
+
+    b,
+    strong {
+        font-weight: 600;
+    }
+
+    /* The grep field draws its own clear control. */
+    input[type='search']::-webkit-search-cancel-button {
+        appearance: none;
     }
 
     @media (prefers-reduced-motion: reduce) {
@@ -362,13 +414,9 @@
             'slnt' -9;
     }
 
-    /* Heavy, slightly casual display weight for titles — a figlet without the ASCII. */
+    /* The display weight for an entry's title. */
     .voice-title {
         font-weight: 800;
-        font-variation-settings:
-            'MONO' 1,
-            'CASL' 0.35,
-            'CRSV' 0;
         letter-spacing: -0.02em;
     }
 
@@ -377,20 +425,31 @@
         @apply relative rounded-md border border-line bg-bg-raised;
     }
 
-    .pane:focus-within {
-        @apply border-accent/70;
+    .pane[data-active] {
+        @apply border-accent/75;
     }
 
     .pane-title {
-        @apply absolute -top-[0.72em] left-2.5 z-10 flex max-w-[calc(100%-1.25rem)] items-center gap-1.5 bg-bg-raised px-1.5 text-[12px] leading-[1.4] text-fg-dim;
+        @apply absolute -top-[0.75em] left-[1ch] z-10 flex max-w-[calc(100%-2ch)] items-center gap-[1ch] bg-bg-raised px-[1ch] text-meta text-fg-dim;
     }
 
-    .pane:focus-within > .pane-title {
-        @apply text-accent;
+    .pane[data-active] > .pane-title {
+        @apply text-fg;
     }
 
     .pane-title-right {
-        @apply absolute -top-[0.72em] right-2.5 z-10 flex items-center gap-1.5 bg-bg-raised px-1.5 text-[12px] leading-[1.4] text-fg-faint;
+        @apply absolute -top-[0.75em] right-[1ch] z-10 flex items-center gap-[1ch] bg-bg-raised px-[1ch] text-meta text-fg-faint;
+    }
+
+    /* The one way anything is marked as selected: a tint and an accent rail. */
+    .row-selected {
+        background: var(--bg-sel);
+        box-shadow: inset 2px 0 0 var(--accent);
+    }
+
+    /* The reading column: prose, tables and notes share one measure. */
+    .measure {
+        max-width: 76ch;
     }
 
     .cursor-block::after {
@@ -401,6 +460,9 @@
         margin-left: 1px;
         vertical-align: -0.2em;
         background: var(--accent);
+    }
+
+    .cursor-blink::after {
         animation: var(--animate-blink);
     }
 
@@ -430,22 +492,11 @@
     }
 }
 
-@keyframes boot-line {
+@keyframes fade-in {
     from {
         opacity: 0;
     }
     to {
         opacity: 1;
-    }
-}
-
-@keyframes pop {
-    from {
-        opacity: 0;
-        transform: translateY(4px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
     }
 }
