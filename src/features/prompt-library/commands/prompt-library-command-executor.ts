@@ -60,6 +60,9 @@ export type PromptRunRequest = {
   note?: string
 }
 
+export const UNSAVED_CHANGES_MESSAGE =
+  'E37: No write since last change (save with :w or discard with :q!)'
+
 export const createPromptLibraryCommandExecutor = ({
   clipboard,
   focusTitleInput,
@@ -225,6 +228,13 @@ export const createPromptLibraryCommandExecutor = ({
 
     if (!library.canSharePrompts) {
       notify('Sign in to publish prompts')
+      return null
+    }
+
+    // What goes public is the saved entry. An owner who has just edited text out
+    // of it must not publish the text they removed.
+    if (store.getState().composer.mode !== 'view') {
+      notify(UNSAVED_CHANGES_MESSAGE)
       return null
     }
 

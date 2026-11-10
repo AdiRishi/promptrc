@@ -1,6 +1,7 @@
 import { useAuth } from '@clerk/tanstack-react-start'
 import { useDeferredValue, useEffect, useRef, useState, useSyncExternalStore } from 'react'
 
+import { UNSAVED_CHANGES_MESSAGE } from '@/features/prompt-library/commands/prompt-library-command-executor'
 import { runPromptLibraryCommand } from '@/features/prompt-library/commands/prompt-library-command-router'
 import {
   type PromptLibraryCommandId,
@@ -135,6 +136,7 @@ function PromptLibraryScreen() {
   const [activePromptShare, setActivePromptShare] = useState<PromptShareRecord | null>(null)
   const [confirmPublishId, setConfirmPublishId] = useState<string | null>(null)
   const shareLookupVersionRef = useRef(0)
+  const shownPromptIdRef = useRef<string | null>(null)
   const commandLineReturnFocusRef = useRef<HTMLElement | null>(null)
 
   const deferredQuery = useDeferredValue(query)
@@ -229,21 +231,33 @@ function PromptLibraryScreen() {
   const copyActivePrompt = (request: { stepIndex?: number } = {}) =>
     commands.copyActivePrompt({ ...request, values: blanks.values })
 
+  /**
+   * Records what a share request did to an entry. The answer can arrive after
+   * the selection has moved on; then it describes an entry that is no longer
+   * shown, and the one that is keeps its own state and its own lookup.
+   */
+  const applyShareResult = (promptId: string, share: PromptShareRecord | null) => {
+    if (promptId !== shownPromptIdRef.current) {
+      return
+    }
+
+    shareLookupVersionRef.current += 1
+    setActivePromptShare(share)
+  }
+
   const sharePrompt = async () => {
     const share = await commands.shareActivePrompt()
 
-    if (share && share.promptId === activePromptId) {
-      shareLookupVersionRef.current += 1
-      setActivePromptShare(share)
+    if (share) {
+      applyShareResult(share.promptId, share)
     }
   }
 
   const revokePromptShare = async () => {
     const result = await commands.revokeActivePromptShare()
 
-    if (result && result.promptId === activePromptId) {
-      shareLookupVersionRef.current += 1
-      setActivePromptShare(null)
+    if (result) {
+      applyShareResult(result.promptId, null)
     }
   }
 
@@ -252,9 +266,8 @@ function PromptLibraryScreen() {
       ? await commands.publishActivePrompt()
       : await commands.unpublishActivePrompt()
 
-    if (share && share.promptId === activePromptId) {
-      shareLookupVersionRef.current += 1
-      setActivePromptShare(share)
+    if (share) {
+      applyShareResult(share.promptId, share)
     }
   }
 
@@ -267,6 +280,11 @@ function PromptLibraryScreen() {
 
     if (!library.canSharePrompts) {
       echo('Publishing needs an account — :login to sync')
+      return
+    }
+
+    if (isEditing) {
+      echo(UNSAVED_CHANGES_MESSAGE)
       return
     }
 
@@ -316,7 +334,7 @@ function PromptLibraryScreen() {
 
   const startNew = (kind?: Parameters<typeof actions.startNew>[0]) => {
     if (isEditing) {
-      echo('E37: No write since last change (save with :w or discard with :q!)')
+      echo(UNSAVED_CHANGES_MESSAGE)
       return
     }
 
@@ -488,7 +506,7 @@ function PromptLibraryScreen() {
     const command = getPromptLibraryCommand(commandId)
 
     if (command.disabledWhileComposing && isEditing) {
-      echo('E37: No write since last change (save with :w or discard with :q!)')
+      echo(UNSAVED_CHANGES_MESSAGE)
     } else if (command.requiresCloud && !library.canSharePrompts) {
       echo('Sharing needs an account — :login to sync')
     } else {
@@ -773,6 +791,7 @@ function PromptLibraryScreen() {
     let ignore = false
     const lookupVersion = shareLookupVersionRef.current + 1
     shareLookupVersionRef.current = lookupVersion
+    shownPromptIdRef.current = activePromptId
 
     if (!library.canSharePrompts || !activePromptId) {
       return

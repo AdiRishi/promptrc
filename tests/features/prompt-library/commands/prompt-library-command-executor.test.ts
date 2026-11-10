@@ -205,6 +205,51 @@ describe('prompt library command executor', () => {
     expect(notify).toHaveBeenCalledWith('Unpublished “Alpha”. Its share link still works')
   })
 
+  it('refuses to publish while the entry has unsaved edits', async () => {
+    const prompt = createPrompt({ body: 'Internal: the launch date is 3 March.' })
+    const store = createPromptLibraryStore()
+    const notify = vi.fn()
+    const createPromptShare = vi.fn(() =>
+      Promise.resolve({
+        status: 'synced' as const,
+        value: {
+          id: 'share-alpha',
+          promptId: prompt.id,
+          createdAt: '2026-04-24T00:01:00.000Z',
+          revokedAt: null,
+          listedAt: null,
+        },
+      }),
+    )
+    const setPromptShareListed = vi.fn(() =>
+      Promise.resolve({ status: 'synced' as const, value: null }),
+    )
+
+    store.getState().actions.replacePrompts([prompt], { isFresh: false })
+    store.getState().actions.selectPrompt(prompt.id)
+    store.getState().actions.startEdit(prompt.id)
+    store.getState().actions.updateDraft('body', 'The launch date is coming.')
+
+    const commands = createPromptLibraryCommandExecutor({
+      clipboard: { writeText: vi.fn(() => Promise.resolve()) },
+      library: createLibrary({
+        canSharePrompts: true,
+        mode: 'remote',
+        createPromptShare,
+        setPromptShareListed,
+      }),
+      notify,
+      store,
+    })
+
+    await expect(commands.publishActivePrompt()).resolves.toBeNull()
+    expect(createPromptShare).not.toHaveBeenCalled()
+    expect(setPromptShareListed).not.toHaveBeenCalled()
+    expect(notify).toHaveBeenCalledWith(
+      'E37: No write since last change (save with :w or discard with :q!)',
+    )
+  })
+
   it('does not publish from a library that cannot share', async () => {
     const prompt = createPrompt()
     const store = createPromptLibraryStore()
