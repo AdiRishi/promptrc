@@ -116,6 +116,16 @@ describe('prompt templates', () => {
       )
     })
 
+    it('fills a variable whose fallback is written as code', () => {
+      const body = 'Run {{command | `pnpm test`}} first.'
+
+      expect(fillPromptVariables(body, { command: 'pnpm check' })).toBe('Run pnpm check first.')
+      expect(fillPromptVariables(body, {})).toBe('Run `pnpm test` first.')
+      expect(extractFillablePromptVariables(body)).toEqual([
+        { name: 'command', fallback: '`pnpm test`' },
+      ])
+    })
+
     it('ignores values for names that are not in the body', () => {
       expect(fillPromptVariables('Plain text', { unused: 'x' })).toBe('Plain text')
     })

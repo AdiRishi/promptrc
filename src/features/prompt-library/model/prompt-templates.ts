@@ -40,11 +40,22 @@ export const extractPromptVariables = (body: string): PromptVariable[] => {
 const CODE_PATTERN = /```[\s\S]*?(?:```|$)|`[^`\n]*`/g
 
 /**
+ * Code or a variable, whichever starts first. A variable inside code is code;
+ * backticks inside a variable's fallback are part of the variable.
+ */
+const CODE_OR_VARIABLE_PATTERN = new RegExp(
+  `${CODE_PATTERN.source}|${VARIABLE_PATTERN.source}`,
+  'g',
+)
+
+/**
  * Variables a reader can actually fill in: the same as extractPromptVariables,
  * minus anything inside code spans or fenced blocks, which render verbatim.
  */
 export const extractFillablePromptVariables = (body: string): PromptVariable[] => {
-  return extractPromptVariables(body.replace(CODE_PATTERN, ''))
+  return extractPromptVariables(
+    body.replace(CODE_OR_VARIABLE_PATTERN, (token, name?: string) => (name ? token : '')),
+  )
 }
 
 export const hasPromptVariables = (body: string) => {
@@ -57,30 +68,13 @@ export const hasPromptVariables = (body: string) => {
 
 /** Fills the slots a reader can fill. Code is copied as written, the way it is shown. */
 export const fillPromptVariables = (body: string, values: Readonly<Record<string, string>>) => {
-  const fill = (text: string) =>
-    text.replace(VARIABLE_PATTERN, (placeholder, name: string, fallback?: string) => {
-      const value = values[name]?.trim()
+  return body.replace(CODE_OR_VARIABLE_PATTERN, (token, name?: string, fallback?: string) => {
+    if (!name) {
+      return token
+    }
 
-      if (value) {
-        return value
-      }
-
-      if (fallback) {
-        return fallback
-      }
-
-      return placeholder
-    })
-
-  let filled = ''
-  let cursor = 0
-
-  for (const code of body.matchAll(CODE_PATTERN)) {
-    filled += fill(body.slice(cursor, code.index)) + code[0]
-    cursor = code.index + code[0].length
-  }
-
-  return filled + fill(body.slice(cursor))
+    return values[name]?.trim() || fallback || token
+  })
 }
 
 export type PromptTemplateSegment =
