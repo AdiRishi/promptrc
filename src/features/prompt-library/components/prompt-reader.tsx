@@ -477,6 +477,44 @@ export function ReaderPlaceholder({
   )
 }
 
+/**
+ * The entry pane while the library loads, like a login banner. It is also what
+ * the server sends, so a page read without running the app still says what
+ * promptrc is and links to the pages that explain it.
+ */
+export function ReaderBanner({ active }: { active?: boolean }) {
+  return (
+    <Pane active={active} className="h-full" index={3} title="[No Name]">
+      <div className="flex-1 px-[2ch] pt-5 text-fg-dim md:px-[3ch]">
+        <EmptyBufferLine>
+          <span className="text-fg">promptrc</span>, a keyboard-first AI prompt manager and library
+        </EmptyBufferLine>
+        <EmptyBufferLine />
+        <EmptyBufferLine>
+          Keep the prompts, phrasings, sequences and benchmarks that worked, and get them back in a
+          keystroke.
+        </EmptyBufferLine>
+        <EmptyBufferLine />
+        <EmptyBufferLine>
+          Read{' '}
+          <a className="link" href="/about">
+            about promptrc
+          </a>
+          , the{' '}
+          <a className="link" href="/manual">
+            manual
+          </a>
+          , or the{' '}
+          <a className="link" href="/guides">
+            guides
+          </a>
+          .
+        </EmptyBufferLine>
+      </div>
+    </Pane>
+  )
+}
+
 function EmptyBufferLine({ children }: { children?: ReactNode }) {
   return (
     <p className="flex min-h-[1lh] gap-[2ch]">

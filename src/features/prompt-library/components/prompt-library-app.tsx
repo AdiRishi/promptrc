@@ -29,7 +29,11 @@ import {
   usePromptLibraryStore,
 } from '@/features/prompt-library/components/prompt-library-provider'
 import { PromptList } from '@/features/prompt-library/components/prompt-list'
-import { PromptReader, ReaderPlaceholder } from '@/features/prompt-library/components/prompt-reader'
+import {
+  PromptReader,
+  ReaderBanner,
+  ReaderPlaceholder,
+} from '@/features/prompt-library/components/prompt-reader'
 import { QuickCaptureDialog } from '@/features/prompt-library/components/quick-capture-dialog'
 import { type ScreenMode, StatusLine } from '@/features/prompt-library/components/status-line'
 import { usePromptLibraryCommands } from '@/features/prompt-library/hooks/use-prompt-library-commands'
@@ -64,6 +68,7 @@ import {
   type PromptShareRecord,
 } from '@/features/prompt-library/types'
 import { echo } from '@/lib/echo'
+import { SITE_APP_HEADING } from '@/lib/site-config'
 import { setColorSchemePreference } from '@/lib/theme'
 import { cn } from '@/lib/utils'
 
@@ -790,7 +795,7 @@ function PromptLibraryScreen() {
 
   return (
     <div className="relative z-10 flex h-dvh flex-col overflow-hidden px-2 sm:px-3">
-      <h1 className="sr-only">promptrc — a place for the prompts that worked</h1>
+      <h1 className="sr-only">{SITE_APP_HEADING}</h1>
 
       <TabLine activePane={activePane} onFocusPane={focusPane} />
 
@@ -910,7 +915,9 @@ function PromptLibraryScreen() {
               variableValues={blanks.values}
               viewMode={viewMode}
             />
-          ) : isLoading ? null : (
+          ) : isLoading ? (
+            <ReaderBanner active={activePane === 3} />
+          ) : (
             <ReaderPlaceholder active={activePane === 3} onCapture={openCapture} />
           )}
         </main>
