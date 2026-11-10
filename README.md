@@ -66,6 +66,7 @@ Every entry lives in a **project** and can carry **notes** (why it works, what g
 - **Benchmarks as a test runner** — `:log claude-opus-5-5 pass decision led` records a run; the ledger shows ✓/≈/✗ rows, a pass rate and a sparkline.
 - **Seven colorschemes** — `:colorscheme promptrc | daylight | phosphor | green-screen | tokyo-night | catppuccin | gruvbox`. The phosphor and green-screen CRTs get a trace of scanlines, glow and a vignette.
 - **Local-first, cloud-optional** — everything works signed out (stored in your browser). `:login` to sync to Cloudflare D1 and share read-only links.
+- **Publish what you want found** — a share link stays private to whoever you hand it to. `:publish` lists the entry on [promptrc.app/prompts](https://promptrc.app/prompts) and lets search engines index it; `:unpublish` takes it back.
 
 <img src="docs/screenshots/colorschemes.jpg" alt="The same benchmark in six colorschemes: promptrc, daylight, green-screen, catppuccin, gruvbox and phosphor" width="100%" />
 
