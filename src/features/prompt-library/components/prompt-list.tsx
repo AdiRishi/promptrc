@@ -304,9 +304,9 @@ function ItemSignal({ prompt }: { prompt: PromptRecord }) {
 
     return (
       <span aria-label={`${summary.pass} of ${summary.total} runs passed`}>
-        {[...prompt.runs]
+        {prompt.runs
           .slice(0, 8)
-          .reverse()
+          .toReversed()
           .map((run) => (
             <span
               className={cn(

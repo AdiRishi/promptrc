@@ -143,7 +143,7 @@ const compareBySort = (sort: PromptLibrarySort) => (left: PromptRecord, right: P
 export const orderPrompts = (prompts: readonly PromptRecord[], sort: PromptLibrarySort) => {
   const compare = compareBySort(sort)
 
-  return [...prompts].sort(
+  return prompts.toSorted(
     (left, right) =>
       Number(right.pinned) - Number(left.pinned) ||
       compare(left, right) ||
@@ -229,7 +229,7 @@ const countTags = (prompts: readonly PromptRecord[]): PromptLibraryFacet[] => {
     }
   }
 
-  return Array.from(tags, ([tag, count]) => ({ key: tag, label: tag, count })).sort(
+  return Array.from(tags, ([tag, count]) => ({ key: tag, label: tag, count })).toSorted(
     (left, right) => right.count - left.count || comparePromptLibraryText(left.key, right.key),
   )
 }
@@ -295,7 +295,7 @@ export const isSamePromptLibraryFilter = (
  * to an entry.
  */
 export const getCatalogNumbers = (prompts: readonly PromptRecord[]) => {
-  const ordered = [...prompts].sort(
+  const ordered = prompts.toSorted(
     (left, right) =>
       left.createdAt.localeCompare(right.createdAt) || left.id.localeCompare(right.id),
   )

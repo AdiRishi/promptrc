@@ -122,8 +122,8 @@ describe('remote Prompt Library persistence', () => {
     const retryCopy = await copyPromptsForUser(env.DB, 'user_a', localPrompts)
     const library = await getPromptLibraryForUser(env.DB, 'user_a')
 
-    expect(retryCopy.map((prompt) => prompt.id).sort()).toEqual(
-      firstCopy.map((prompt) => prompt.id).sort(),
+    expect(retryCopy.map((prompt) => prompt.id).toSorted()).toEqual(
+      firstCopy.map((prompt) => prompt.id).toSorted(),
     )
     expect(library.prompts).toHaveLength(2)
     expect(library.isFresh).toBe(false)

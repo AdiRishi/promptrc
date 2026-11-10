@@ -46,6 +46,6 @@ describe('starter prompts', () => {
     const updatedTimestamps = starterPrompts.map((prompt) => new Date(prompt.updatedAt).getTime())
 
     expect(new Set(updatedTimestamps).size).toBe(starterPrompts.length)
-    expect([...updatedTimestamps].sort((a, b) => b - a)).toEqual(updatedTimestamps)
+    expect(updatedTimestamps.toSorted((a, b) => b - a)).toEqual(updatedTimestamps)
   })
 })

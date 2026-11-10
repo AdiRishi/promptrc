@@ -39,7 +39,7 @@ export function BenchmarkLedger({
   onRemoveRun,
 }: BenchmarkLedgerProps) {
   const summary = summarizePromptRuns(runs)
-  const sparkline = [...runs].reverse().slice(-32)
+  const sparkline = runs.toReversed().slice(-32)
 
   return (
     <section aria-label="Benchmark" className="mt-8 text-[13px]">
