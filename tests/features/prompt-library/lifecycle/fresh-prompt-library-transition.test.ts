@@ -65,6 +65,7 @@ const createRemoteStorage = (
       promptId,
       createdAt: '2026-04-24T00:01:00.000Z',
       revokedAt: null,
+      listedAt: null,
     }),
   declineFirstSignInCopy: () =>
     Promise.resolve({
@@ -79,6 +80,7 @@ const createRemoteStorage = (
       promptId,
       createdAt: '2026-04-24T00:01:00.000Z',
       revokedAt: null,
+      listedAt: null,
     }),
   hydrate: () =>
     Promise.resolve({
@@ -101,6 +103,7 @@ const createRemoteStorage = (
       revoked: true,
     }),
   savePrompt: (savedPrompt) => Promise.resolve(savedPrompt),
+  setPromptShareListed: () => Promise.resolve(null),
   uploadPromptImage: (upload) =>
     Promise.resolve({
       id: 'image-alpha',

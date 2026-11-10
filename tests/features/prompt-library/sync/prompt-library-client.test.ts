@@ -84,6 +84,7 @@ const createRemoteStorage = (
       promptId,
       createdAt: '2026-04-24T00:01:00.000Z',
       revokedAt: null,
+      listedAt: null,
     }),
   declineFirstSignInCopy: () =>
     Promise.resolve({
@@ -98,6 +99,7 @@ const createRemoteStorage = (
       promptId,
       createdAt: '2026-04-24T00:01:00.000Z',
       revokedAt: null,
+      listedAt: null,
     }),
   hydrate: () =>
     Promise.resolve({
@@ -120,6 +122,7 @@ const createRemoteStorage = (
       revoked: true,
     }),
   savePrompt: (savedPrompt) => Promise.resolve(savedPrompt),
+  setPromptShareListed: () => Promise.resolve(null),
   uploadPromptImage: (upload) =>
     Promise.resolve({
       id: 'image-alpha',
@@ -281,6 +284,7 @@ describe('prompt library client', () => {
         promptId,
         createdAt: '2026-04-24T00:01:00.000Z',
         revokedAt: null,
+        listedAt: null,
       }),
     )
     const revokePromptShare = vi.fn((promptId: string) =>
@@ -295,6 +299,7 @@ describe('prompt library client', () => {
         promptId,
         createdAt: '2026-04-24T00:01:00.000Z',
         revokedAt: null,
+        listedAt: null,
       }),
     )
     const storage = createRemoteStorage({
@@ -311,6 +316,7 @@ describe('prompt library client', () => {
         promptId: prompt.id,
         createdAt: '2026-04-24T00:01:00.000Z',
         revokedAt: null,
+        listedAt: null,
       },
     })
     await expect(client.revokePromptShare(prompt.id)).resolves.toEqual({
@@ -327,6 +333,7 @@ describe('prompt library client', () => {
         promptId: prompt.id,
         createdAt: '2026-04-24T00:01:00.000Z',
         revokedAt: null,
+        listedAt: null,
       },
     })
     expect(createPromptShare).toHaveBeenCalledWith(prompt.id)

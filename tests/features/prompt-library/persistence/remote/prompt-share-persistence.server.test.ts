@@ -5,7 +5,9 @@ import {
   createPromptShareForUser,
   getActivePromptShareForUser,
   getPublicPromptShare,
+  listPublicPromptShares,
   revokePromptShareForUser,
+  setPromptShareListedForUser,
 } from '@/features/prompt-library/persistence/remote/prompt-share-persistence'
 import {
   deletePromptForUser,
@@ -67,6 +69,7 @@ describe('prompt share persistence', () => {
       promptId: 'prompt-alpha',
       createdAt: '2026-04-24T00:01:00.000Z',
       revokedAt: null,
+      listedAt: null,
     })
     expect(retryShare).toEqual(share)
     await expect(getPublicPromptShare(env.DB, 'share-alpha')).resolves.toMatchObject({
@@ -171,6 +174,109 @@ describe('prompt share persistence', () => {
       pinned: false,
       uses: 0,
     })
+  })
+
+  it('keeps a share out of the public list until its owner publishes it', async () => {
+    await upsertPromptForUser(env.DB, 'user_a', createPrompt())
+    await createPromptShareForUser(env.DB, 'user_a', 'prompt-alpha', {
+      generateId: () => 'share-alpha',
+    })
+
+    await expect(listPublicPromptShares(env.DB)).resolves.toEqual([])
+    await expect(getPublicPromptShare(env.DB, 'share-alpha')).resolves.toMatchObject({
+      listed: false,
+    })
+
+    await expect(
+      setPromptShareListedForUser(env.DB, 'user_a', 'prompt-alpha', true, {
+        now: createDate('2026-04-24T00:05:00.000Z'),
+      }),
+    ).resolves.toMatchObject({ id: 'share-alpha', listedAt: '2026-04-24T00:05:00.000Z' })
+
+    await expect(getPublicPromptShare(env.DB, 'share-alpha')).resolves.toMatchObject({
+      listed: true,
+    })
+    await expect(listPublicPromptShares(env.DB)).resolves.toEqual([
+      {
+        shareId: 'share-alpha',
+        listedAt: '2026-04-24T00:05:00.000Z',
+        kind: 'prompt',
+        title: 'Alpha',
+        category: 'Engineering',
+        tags: ['testing', 'sharing'],
+        bodyStart: 'Write a concise test plan.',
+      },
+    ])
+  })
+
+  it('takes a Prompt out of the public list when it is unpublished or its share is revoked', async () => {
+    await upsertPromptForUser(env.DB, 'user_a', createPrompt())
+    await upsertPromptForUser(env.DB, 'user_a', createPrompt({ id: 'prompt-beta', title: 'Beta' }))
+    await createPromptShareForUser(env.DB, 'user_a', 'prompt-alpha', {
+      generateId: () => 'share-alpha',
+    })
+    await createPromptShareForUser(env.DB, 'user_a', 'prompt-beta', {
+      generateId: () => 'share-beta',
+    })
+    await setPromptShareListedForUser(env.DB, 'user_a', 'prompt-alpha', true)
+    await setPromptShareListedForUser(env.DB, 'user_a', 'prompt-beta', true)
+
+    await expect(
+      setPromptShareListedForUser(env.DB, 'user_a', 'prompt-alpha', false),
+    ).resolves.toMatchObject({ id: 'share-alpha', listedAt: null })
+    await revokePromptShareForUser(env.DB, 'user_a', 'prompt-beta')
+
+    await expect(listPublicPromptShares(env.DB)).resolves.toEqual([])
+    // Unpublishing keeps the link working; revoking does not.
+    await expect(getPublicPromptShare(env.DB, 'share-alpha')).resolves.toMatchObject({
+      listed: false,
+    })
+    await expect(getPublicPromptShare(env.DB, 'share-beta')).resolves.toBeNull()
+  })
+
+  it('lets only the owner publish, and only a Prompt that has a share', async () => {
+    await upsertPromptForUser(env.DB, 'user_a', createPrompt())
+
+    await expect(
+      setPromptShareListedForUser(env.DB, 'user_a', 'prompt-alpha', true),
+    ).resolves.toBeNull()
+
+    await createPromptShareForUser(env.DB, 'user_a', 'prompt-alpha', {
+      generateId: () => 'share-alpha',
+    })
+
+    await expect(
+      setPromptShareListedForUser(env.DB, 'user_b', 'prompt-alpha', true),
+    ).resolves.toBeNull()
+    await expect(listPublicPromptShares(env.DB)).resolves.toEqual([])
+  })
+
+  it('lists published Prompts newest first without their private notes', async () => {
+    await upsertPromptForUser(env.DB, 'user_a', createPrompt({ notes: 'Private rubric' }))
+    await upsertPromptForUser(
+      env.DB,
+      'user_b',
+      createPrompt({ id: 'prompt-beta', title: 'Beta', kind: 'sequence', body: 'x'.repeat(2000) }),
+    )
+    await createPromptShareForUser(env.DB, 'user_a', 'prompt-alpha', {
+      generateId: () => 'share-alpha',
+    })
+    await createPromptShareForUser(env.DB, 'user_b', 'prompt-beta', {
+      generateId: () => 'share-beta',
+    })
+    await setPromptShareListedForUser(env.DB, 'user_a', 'prompt-alpha', true, {
+      now: createDate('2026-04-24T00:05:00.000Z'),
+    })
+    await setPromptShareListedForUser(env.DB, 'user_b', 'prompt-beta', true, {
+      now: createDate('2026-04-25T00:05:00.000Z'),
+    })
+
+    const listings = await listPublicPromptShares(env.DB)
+
+    expect(listings.map((listing) => listing.shareId)).toEqual(['share-beta', 'share-alpha'])
+    expect(listings[0]).toMatchObject({ kind: 'sequence', title: 'Beta' })
+    expect(listings[0]?.bodyStart).toHaveLength(600)
+    expect(JSON.stringify(listings)).not.toContain('Private rubric')
   })
 
   it('stops resolving public shares when the underlying Prompt is deleted', async () => {

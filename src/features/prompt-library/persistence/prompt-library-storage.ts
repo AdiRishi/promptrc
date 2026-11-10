@@ -42,6 +42,8 @@ export type RemotePromptLibraryStorage = PromptLibraryStorageBase & {
   recordPromptUse: (promptId: string) => Promise<PromptRecord>
   revokePromptShare: (promptId: string) => Promise<PromptShareRevokeResult>
   savePrompt: (prompt: PromptRecord) => Promise<PromptRecord>
+  /** Publishes or unpublishes the active share; `null` when there is none. */
+  setPromptShareListed: (promptId: string, listed: boolean) => Promise<PromptShareRecord | null>
   uploadPromptImage: (upload: PromptImageUploadInput) => Promise<PromptImage>
 }
 

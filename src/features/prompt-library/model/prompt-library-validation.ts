@@ -293,6 +293,25 @@ export const assertPromptId = (value: unknown) => {
   return promptId
 }
 
+const MAX_PROMPT_SHARE_ID_LENGTH = 80
+
+/** Whether a URL segment could be a share id at all, before asking the database. */
+export const isPromptShareId = (value: string) => {
+  const shareId = value.trim()
+
+  return shareId.length > 0 && shareId.length <= MAX_PROMPT_SHARE_ID_LENGTH
+}
+
+/** A request to publish (`listed: true`) or unpublish a Prompt's share. */
+export const assertPromptShareListingInput = (value: unknown) => {
+  const input = assertObject(value, 'input')
+
+  return {
+    promptId: assertPromptId(input.promptId),
+    listed: assertBoolean(input.listed, 'listed'),
+  }
+}
+
 export const assertPromptShareId = (value: unknown) => {
   const shareId = assertString(value, 'shareId').trim()
 
@@ -300,7 +319,7 @@ export const assertPromptShareId = (value: unknown) => {
     throw new Error('shareId is required')
   }
 
-  if (shareId.length > 80) {
+  if (shareId.length > MAX_PROMPT_SHARE_ID_LENGTH) {
     throw new Error('shareId is too long')
   }
 

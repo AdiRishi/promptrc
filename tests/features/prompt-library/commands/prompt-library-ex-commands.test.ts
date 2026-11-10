@@ -33,6 +33,12 @@ describe('parseExCommand', () => {
     expect(action('rm!')).toEqual({ type: 'delete', force: true })
   })
 
+  it('asks before publishing unless told not to', () => {
+    expect(action('publish')).toEqual({ type: 'publish', force: false })
+    expect(action('publish!')).toEqual({ type: 'publish', force: true })
+    expect(action('unpublish')).toEqual({ type: 'unpublish' })
+  })
+
   it('creates entries of a chosen kind, accepting plurals', () => {
     expect(action('new')).toEqual({ type: 'new' })
     expect(action('new sequence')).toEqual({ type: 'new', kind: 'sequence' })

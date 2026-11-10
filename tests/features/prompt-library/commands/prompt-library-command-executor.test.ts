@@ -50,6 +50,7 @@ const createLibrary = (overrides: Partial<PromptLibraryClient> = {}): PromptLibr
       },
     }),
   savePrompt: (prompt) => Promise.resolve({ status: 'synced', value: prompt }),
+  setPromptShareListed: () => Promise.resolve({ status: 'synced', value: null }),
   sync: () => Promise.resolve(),
   uploadPromptImage: () =>
     Promise.resolve({
@@ -109,6 +110,7 @@ describe('prompt library command executor', () => {
           promptId: prompt.id,
           createdAt: '2026-04-24T00:01:00.000Z',
           revokedAt: null,
+          listedAt: null,
         },
       }),
     )
@@ -152,6 +154,78 @@ describe('prompt library command executor', () => {
     expect(notify).toHaveBeenCalledWith('Share link copied for “Alpha”')
     expect(revokePromptShare).toHaveBeenCalledWith(prompt.id)
     expect(notify).toHaveBeenCalledWith('Share link revoked for “Alpha”')
+  })
+
+  it('publishes the active Prompt through its share link, and unpublishes it', async () => {
+    const prompt = createPrompt()
+    const store = createPromptLibraryStore()
+    const clipboard = { writeText: vi.fn(() => Promise.resolve()) }
+    const notify = vi.fn()
+    const share = {
+      id: 'share-alpha',
+      promptId: prompt.id,
+      createdAt: '2026-04-24T00:01:00.000Z',
+      revokedAt: null,
+    }
+    const setPromptShareListed = vi.fn((_promptId: string, listed: boolean) =>
+      Promise.resolve({
+        status: 'synced' as const,
+        value: { ...share, listedAt: listed ? '2026-04-24T00:05:00.000Z' : null },
+      }),
+    )
+
+    store.getState().actions.replacePrompts([prompt], { isFresh: false })
+    store.getState().actions.selectPrompt(prompt.id)
+
+    const commands = createPromptLibraryCommandExecutor({
+      clipboard,
+      getShareUrl: (shareId) => `https://promptrc.app/share/${shareId}`,
+      library: createLibrary({
+        canSharePrompts: true,
+        mode: 'remote',
+        createPromptShare: () =>
+          Promise.resolve({ status: 'synced', value: { ...share, listedAt: null } }),
+        setPromptShareListed,
+      }),
+      notify,
+      store,
+    })
+
+    await expect(commands.publishActivePrompt()).resolves.toMatchObject({
+      id: 'share-alpha',
+      listedAt: '2026-04-24T00:05:00.000Z',
+    })
+    expect(clipboard.writeText).toHaveBeenCalledWith('https://promptrc.app/share/share-alpha')
+    expect(notify).toHaveBeenCalledWith(
+      'Published “Alpha”. It is public and search engines can find it',
+    )
+
+    await expect(commands.unpublishActivePrompt()).resolves.toMatchObject({ listedAt: null })
+    expect(setPromptShareListed).toHaveBeenLastCalledWith(prompt.id, false)
+    expect(notify).toHaveBeenCalledWith('Unpublished “Alpha”. Its share link still works')
+  })
+
+  it('does not publish from a library that cannot share', async () => {
+    const prompt = createPrompt()
+    const store = createPromptLibraryStore()
+    const notify = vi.fn()
+    const setPromptShareListed = vi.fn(() =>
+      Promise.resolve({ status: 'synced' as const, value: null }),
+    )
+
+    store.getState().actions.replacePrompts([prompt], { isFresh: false })
+    store.getState().actions.selectPrompt(prompt.id)
+
+    const commands = createPromptLibraryCommandExecutor({
+      clipboard: { writeText: vi.fn(() => Promise.resolve()) },
+      library: createLibrary({ setPromptShareListed }),
+      notify,
+      store,
+    })
+
+    await expect(commands.publishActivePrompt()).resolves.toBeNull()
+    expect(setPromptShareListed).not.toHaveBeenCalled()
+    expect(notify).toHaveBeenCalledWith('Sign in to publish prompts')
   })
 
   it('saves a new Prompt through the Prompt Library client', async () => {

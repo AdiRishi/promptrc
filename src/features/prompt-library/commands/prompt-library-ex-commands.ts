@@ -23,6 +23,8 @@ export type ExAction =
   | { type: 'duplicate' }
   | { type: 'share' }
   | { type: 'unshare' }
+  | { type: 'publish'; force: boolean }
+  | { type: 'unpublish' }
   | { type: 'delete'; force: boolean }
   | { type: 'copy'; step?: number }
   | { type: 'find'; query: string }
@@ -84,8 +86,14 @@ export const EX_COMMANDS: readonly ExCommandDefinition[] = [
   { name: 'pin', usage: 'pin', summary: 'pin or unpin the selected entry' },
   { name: 'unpin', usage: 'unpin', summary: 'unpin the selected entry' },
   { name: 'duplicate', aliases: ['dup'], usage: 'dup', summary: 'duplicate the selected entry' },
-  { name: 'share', usage: 'share', summary: 'copy a public share link' },
+  { name: 'share', usage: 'share', summary: 'copy a share link only you hand out' },
   { name: 'unshare', usage: 'unshare', summary: 'revoke the share link' },
+  {
+    name: 'publish',
+    usage: 'publish[!]',
+    summary: 'make it public and findable by search (! skips the confirm)',
+  },
+  { name: 'unpublish', usage: 'unpublish', summary: 'take it out of public view' },
   {
     name: 'delete',
     aliases: ['rm', 'del'],
@@ -208,6 +216,10 @@ export const parseExCommand = (input: string): ExParseResult => {
       return { ok: true, action: { type: 'share' } }
     case 'unshare':
       return { ok: true, action: { type: 'unshare' } }
+    case 'publish':
+      return { ok: true, action: { type: 'publish', force: bang } }
+    case 'unpublish':
+      return { ok: true, action: { type: 'unpublish' } }
     case 'delete':
       return { ok: true, action: { type: 'delete', force: bang } }
     case 'yank': {

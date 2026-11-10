@@ -8,6 +8,7 @@ import {
   assertPromptRecordWithinLimits,
   assertPromptRecordsWithinLimits,
   assertPromptShareId,
+  assertPromptShareListingInput,
 } from '@/features/prompt-library/model/prompt-library-validation'
 import {
   deleteUnreferencedPromptImageObjectsForUser,
@@ -20,7 +21,9 @@ import {
   createPromptShareForUser,
   getActivePromptShareForUser,
   getPublicPromptShare,
+  listPublicPromptShares,
   revokePromptShareForUser,
+  setPromptShareListedForUser,
 } from '@/features/prompt-library/persistence/remote/prompt-share-persistence'
 import {
   createRemotePromptLibraryPersistence,
@@ -180,6 +183,15 @@ export const getRemotePromptShare = createServerFn({ method: 'GET' })
     return getActivePromptShareForUser(db, extUserId, promptId)
   })
 
+export const setRemotePromptShareListed = createServerFn({ method: 'POST' })
+  .validator(assertPromptShareListingInput)
+  .handler(async ({ data: { promptId, listed } }) => {
+    const extUserId = await requireUserId()
+    const db = await getDatabase()
+
+    return setPromptShareListedForUser(db, extUserId, promptId, listed)
+  })
+
 export const getPublicRemotePromptShare = createServerFn({ method: 'GET' })
   .validator(assertPromptShareId)
   .handler(async ({ data: shareId }) => {
@@ -187,6 +199,13 @@ export const getPublicRemotePromptShare = createServerFn({ method: 'GET' })
 
     return getPublicPromptShare(db, shareId)
   })
+
+/** Unauthenticated on purpose: it returns only what owners chose to publish. */
+export const listPublicRemotePromptShares = createServerFn({ method: 'GET' }).handler(async () => {
+  const db = await getDatabase()
+
+  return listPublicPromptShares(db)
+})
 
 export const uploadRemotePromptImage = createServerFn({ method: 'POST' })
   .validator(assertPromptImageUploadInput)

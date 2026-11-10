@@ -212,6 +212,81 @@ export const createPromptLibraryCommandExecutor = ({
     return result.value
   }
 
+  /**
+   * Publishing goes one step past sharing: the Prompt joins the public list
+   * and search engines may index it. It shares the Prompt first if it must.
+   */
+  const publishActivePrompt = async (): Promise<PromptShareRecord | null> => {
+    const activePrompt = getVisibleState().activePrompt
+
+    if (!activePrompt) {
+      return null
+    }
+
+    if (!library.canSharePrompts) {
+      notify('Sign in to publish prompts')
+      return null
+    }
+
+    const share = await library.createPromptShare(activePrompt.id)
+
+    if (share.status === 'failed') {
+      notifySyncFailure(share.message)
+      return null
+    }
+
+    const result = await library.setPromptShareListed(activePrompt.id, true)
+
+    if (result.status === 'failed') {
+      notifySyncFailure(result.message)
+      return null
+    }
+
+    if (!result.value) {
+      notify('The share link was revoked before it could be published')
+      return null
+    }
+
+    try {
+      await clipboard.writeText(getShareUrl(result.value.id))
+    } catch {
+      // The Prompt is published either way; the link is one :share away.
+    }
+
+    notify(`Published “${activePrompt.title}”. It is public and search engines can find it`)
+
+    return result.value
+  }
+
+  const unpublishActivePrompt = async (): Promise<PromptShareRecord | null> => {
+    const activePrompt = getVisibleState().activePrompt
+
+    if (!activePrompt) {
+      return null
+    }
+
+    if (!library.canSharePrompts) {
+      notify('Sign in to publish prompts')
+      return null
+    }
+
+    const result = await library.setPromptShareListed(activePrompt.id, false)
+
+    if (result.status === 'failed') {
+      notifySyncFailure(result.message)
+      return null
+    }
+
+    if (!result.value) {
+      notify(`“${activePrompt.title}” isn’t shared`)
+      return null
+    }
+
+    notify(`Unpublished “${activePrompt.title}”. Its share link still works`)
+
+    return result.value
+  }
+
   /** A saved Prompt must not open hidden behind the current filter. */
   const revealPrompt = (prompt: PromptRecord) => {
     const { actions, filter } = store.getState()
@@ -412,10 +487,12 @@ export const createPromptLibraryCommandExecutor = ({
     togglePinActivePrompt,
     deletePrompt,
     duplicatePrompt,
+    publishActivePrompt,
     revokeActivePromptShare,
     saveComposer,
     selectPrompt,
     shareActivePrompt,
     startEditActivePrompt,
+    unpublishActivePrompt,
   }
 }

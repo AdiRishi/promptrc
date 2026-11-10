@@ -72,7 +72,7 @@ const UPSERT_PROMPT_LIBRARY_FRESHNESS_SQL = `
     updated_at = excluded.updated_at
 `
 
-const decodePromptTags = (tagsJson: string) => {
+export const decodePromptTags = (tagsJson: string) => {
   try {
     const tags = JSON.parse(tagsJson) as unknown
 
