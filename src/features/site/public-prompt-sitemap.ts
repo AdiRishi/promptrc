@@ -13,26 +13,23 @@ const escapeXml = (text: string) =>
  * The sitemap for published Prompts. The static sitemap is written at build
  * time and cannot know them, so this one is built per request: the public list
  * page, then each published share. With nothing published it lists no URLs.
+ *
+ * It gives no `lastmod`. Nothing records when a Prompt's public text last
+ * changed (`updated_at` also moves on every copy, pin and logged run), and a
+ * date a crawler finds wrong is worse than none.
  */
 export const buildPublicPromptSitemap = (
-  listings: readonly PublicPromptListing[],
+  listings: ReadonlyArray<Pick<PublicPromptListing, 'shareId'>>,
   rawSiteUrl?: string | null,
 ) => {
-  const newest = listings[0]
-  const entries = newest
-    ? [
-        { path: '/prompts', lastModified: newest.listedAt },
-        ...listings.map((listing) => ({
-          path: `/share/${listing.shareId}`,
-          lastModified: listing.listedAt,
-        })),
-      ]
-    : []
-  const urls = entries
+  const paths =
+    listings.length > 0
+      ? ['/prompts', ...listings.map((listing) => `/share/${listing.shareId}`)]
+      : []
+  const urls = paths
     .map(
-      (entry) => `  <url>
-    <loc>${escapeXml(getCanonicalAbsoluteUrl(entry.path, rawSiteUrl))}</loc>
-    <lastmod>${escapeXml(entry.lastModified)}</lastmod>
+      (path) => `  <url>
+    <loc>${escapeXml(getCanonicalAbsoluteUrl(path, rawSiteUrl))}</loc>
   </url>`,
     )
     .join('\n')
