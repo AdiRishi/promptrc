@@ -823,6 +823,9 @@ function PromptLibraryScreen() {
             filter={filter}
             onCapture={openCapture}
             onFilterChange={changeFilter}
+            onOpenCommandLine={openCommandLine}
+            onOpenFinder={() => openFinder()}
+            onOpenHelp={() => setIsHelpOpen(true)}
             syncMode={syncMode}
             syncStatus={syncStatus}
           />

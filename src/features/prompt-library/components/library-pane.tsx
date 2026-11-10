@@ -25,6 +25,9 @@ type LibraryPaneProps = {
   /** Changes some parts of the filter; the rest stay. */
   onFilterChange: (patch: Partial<PromptLibraryFilter>) => void
   onCapture: () => void
+  onOpenFinder: () => void
+  onOpenCommandLine: () => void
+  onOpenHelp: () => void
 }
 
 const MAX_TAGS = 18
@@ -50,6 +53,9 @@ export function LibraryPane({
   className,
   onFilterChange,
   onCapture,
+  onOpenFinder,
+  onOpenCommandLine,
+  onOpenHelp,
 }: LibraryPaneProps) {
   const colorScheme = useColorScheme()
   const tags = facets.here.tags.slice(0, MAX_TAGS)
@@ -105,15 +111,32 @@ export function LibraryPane({
       </nav>
 
       <div className="border-t border-line py-1.5 text-fg-dim">
-        <button
-          className="flex h-7 w-full items-center gap-[1ch] px-[2ch] text-left font-semibold text-accent transition-colors hover:bg-bg-hover max-md:h-11"
-          onClick={onCapture}
-          type="button"
-        >
-          <span aria-hidden="true">+</span>
-          <span className="flex-1">capture</span>
-          <Kbd className="font-normal max-md:hidden">c</Kbd>
-        </button>
+        <div className="flex">
+          <button
+            className="flex h-7 min-w-0 flex-1 items-center gap-[1ch] px-[2ch] text-left font-semibold text-accent transition-colors hover:bg-bg-hover max-md:h-11"
+            onClick={onCapture}
+            type="button"
+          >
+            <span aria-hidden="true">+</span>
+            <span className="flex-1">capture</span>
+            <Kbd className="font-normal max-md:hidden">c</Kbd>
+          </button>
+          {/* With a keyboard these are keys, hinted in the message row. Touch needs buttons. */}
+          {[
+            { label: 'find', onClick: onOpenFinder },
+            { label: 'command', onClick: onOpenCommandLine },
+            { label: 'manual', onClick: onOpenHelp },
+          ].map((launcher) => (
+            <button
+              className="h-11 px-[1ch] transition-colors last:mr-[1ch] hover:bg-bg-hover hover:text-fg md:hidden"
+              key={launcher.label}
+              onClick={launcher.onClick}
+              type="button"
+            >
+              {launcher.label}
+            </button>
+          ))}
+        </div>
         <FooterRow className="max-md:h-8" label="sync">
           <SyncMark className="mr-[1ch]" mode={syncMode} status={syncStatus} />
           <span className={cn(syncStatus === 'error' && 'text-red')}>

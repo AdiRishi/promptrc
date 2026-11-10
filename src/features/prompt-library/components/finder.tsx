@@ -323,6 +323,7 @@ function FinderPreview({ item }: { item: FinderItem | undefined }) {
 
   if (item.kind === 'entry') {
     const { prompt } = item
+    const preview = previewBody(prompt)
 
     return (
       <div className="scrollbar-term min-h-0 flex-1 overflow-y-auto px-[3ch] pt-4 pb-6">
@@ -331,16 +332,10 @@ function FinderPreview({ item }: { item: FinderItem | undefined }) {
           <span className="truncate">{promptPath(prompt)}</span>
         </div>
         <p className="voice-title mt-1 mb-4 text-head text-fg">{prompt.title}</p>
-        <PromptBodyMarkdown
-          // A sequence's steps are split by markers in the source; here a rule stands in.
-          body={
-            prompt.kind === 'sequence'
-              ? splitSequenceSteps(prompt.body).join('\n\n---\n\n')
-              : prompt.body
-          }
-          className="text-ui"
-          images={prompt.images}
-        />
+        <PromptBodyMarkdown body={preview.body} className="text-ui" images={prompt.images} />
+        {preview.hiddenLines > 0 ? (
+          <p className="mt-4 text-meta text-fg-faint">… {preview.hiddenLines} more lines</p>
+        ) : null}
       </div>
     )
   }
@@ -367,6 +362,24 @@ function FinderPreview({ item }: { item: FinderItem | undefined }) {
       ) : null}
     </PreviewNote>
   )
+}
+
+const PREVIEW_LINES = 60
+
+/**
+ * The start of an entry, enough to recognise it. The preview renders again on
+ * every highlight, so it stays small however long the entry is. A sequence's
+ * steps are split by markers in the source; here a rule stands in for them.
+ */
+function previewBody(prompt: PromptRecord) {
+  const source =
+    prompt.kind === 'sequence' ? splitSequenceSteps(prompt.body).join('\n\n---\n\n') : prompt.body
+  const lines = source.split('\n')
+
+  return {
+    body: lines.slice(0, PREVIEW_LINES).join('\n'),
+    hiddenLines: Math.max(0, lines.length - PREVIEW_LINES),
+  }
 }
 
 /** How many rows the current query leaves, whatever mix of entries, places and commands. */

@@ -247,7 +247,7 @@ function PromptListItem({ prompt, catalogNumber, active, onSelect }: PromptListI
         ) : null}
         <span className="flex gap-x-[1ch] text-meta text-fg-faint">
           <span className="shrink-0 tabular-nums">{formatCatalogNumber(catalogNumber)}</span>
-          <span className="shrink-0 text-fg-dim">{prompt.category}/</span>
+          <span className="min-w-0 truncate text-fg-dim">{prompt.category}/</span>
           <span className="min-w-0 flex-1 truncate">
             {prompt.tags.map((tag) => `#${tag}`).join(' ')}
           </span>

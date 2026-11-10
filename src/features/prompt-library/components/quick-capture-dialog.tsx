@@ -37,7 +37,7 @@ export function QuickCaptureDialog({ open, onOpenChange, ...props }: QuickCaptur
   return (
     <Dialog onOpenChange={onOpenChange} open={open}>
       <DialogContent
-        className="top-[18vh] translate-y-0 gap-0 p-0 sm:max-w-[76ch]"
+        className="top-[18vh] max-h-[calc(100dvh-18vh-1rem)] translate-y-0 gap-0 p-0 max-sm:top-[3vh] max-sm:max-h-[calc(100dvh-3vh-1rem)] sm:max-w-[76ch]"
         showCloseButton={false}
       >
         {/* Remount per opening so every capture starts from a clean prompt. */}
@@ -81,8 +81,9 @@ function CaptureShell({
   }
 
   return (
+    // The body line gives up height first, so keep and discard stay on screen.
     <form
-      className="relative"
+      className="relative flex max-h-[inherit] flex-col"
       onSubmit={(event) => {
         event.preventDefault()
         submit()
@@ -95,7 +96,7 @@ function CaptureShell({
         keep it.
       </DialogDescription>
 
-      <div className="px-[3ch] pt-5">
+      <div className="flex min-h-0 flex-col px-[3ch] pt-5">
         <ChoiceGroup className="-mx-[1ch] flex flex-wrap items-center" label="Kind">
           {PROMPT_KINDS.map((option) => {
             const selected = option === kind
@@ -123,7 +124,7 @@ function CaptureShell({
           })}
         </ChoiceGroup>
 
-        <div className="mt-4 flex gap-[1ch]">
+        <div className="mt-4 flex min-h-[3lh] gap-[1ch]">
           <span aria-hidden="true" className="-ml-[0.25ch] font-bold text-accent">
             ❯
           </span>
@@ -144,7 +145,7 @@ function CaptureShell({
         </div>
       </div>
 
-      <div className="px-[3ch] pb-3">
+      <div className="shrink-0 px-[3ch] pt-2 pb-3">
         <CaptureField label="title">
           <input
             autoComplete="off"
@@ -177,7 +178,7 @@ function CaptureShell({
         </CaptureField>
       </div>
 
-      <KeyActionBar className="mx-0 border-t border-line px-[2ch] py-2">
+      <KeyActionBar className="mx-0 shrink-0 border-t border-line px-[2ch] py-2">
         <KeyAction
           disabled={!body.trim()}
           keys={['Mod', 'Enter']}
