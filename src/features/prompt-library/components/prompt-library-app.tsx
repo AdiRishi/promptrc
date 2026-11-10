@@ -795,7 +795,9 @@ function PromptLibraryScreen() {
       <TabLine activePane={activePane} onFocusPane={focusPane} />
 
       <div className="relative grid min-h-0 flex-1 gap-x-3 pt-3 pb-2 md:grid-cols-[minmax(34ch,40ch)_minmax(0,1fr)] lg:grid-cols-[26ch_38ch_minmax(0,1fr)] xl:grid-cols-[28ch_46ch_minmax(0,1fr)] min-[105rem]:grid-cols-[32ch_60ch_minmax(0,1fr)]">
-        {/* Library: a column on wide screens, a drawer on medium ones, a tab on phones. */}
+        {/* Library: a column on wide screens, a tab on phones, and in between a drawer that
+            sits on the panes' own edges. Its clearing ring is the gutter's width, so it stops
+            at the status line. */}
         <button
           aria-label="Close library"
           className={cn(
@@ -810,7 +812,7 @@ function PromptLibraryScreen() {
           className={cn(
             'min-h-0 min-w-0 lg:flex',
             activePane === 1
-              ? 'flex md:fixed md:inset-y-11 md:left-3 md:z-40 md:w-[min(34ch,calc(100vw-24px))] md:animate-pop md:shadow-overlay lg:static lg:z-auto lg:w-auto lg:animate-none lg:shadow-none'
+              ? 'flex md:absolute md:top-3 md:bottom-2 md:left-0 md:z-40 md:w-[min(34ch,calc(100vw-24px))] md:animate-pop md:shadow-overlay md:[--clearing-width:0.5rem] lg:static lg:z-auto lg:w-auto lg:animate-none lg:shadow-none'
               : 'hidden',
           )}
         >

@@ -313,7 +313,7 @@
     --radius-md: 6px;
     --radius-lg: 6px;
 
-    --shadow-overlay: 0 0 0 0.75rem var(--clearing), var(--shadow);
+    --shadow-overlay: 0 0 0 var(--clearing-width, 0.75rem) var(--clearing), var(--shadow);
     --shadow-popup: var(--shadow);
 
     --animate-blink: blink 1.06s steps(1) infinite;

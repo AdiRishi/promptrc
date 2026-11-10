@@ -144,8 +144,8 @@ function CaptureShell({
         </div>
       </div>
 
-      <div className="grid gap-x-[3ch] px-[3ch] pb-3 sm:grid-cols-2">
-        <CaptureField className="sm:col-span-2" label="title">
+      <div className="px-[3ch] pb-3">
+        <CaptureField label="title">
           <input
             autoComplete="off"
             className="w-full bg-transparent text-fg outline-none placeholder:text-fg-faint max-md:text-[16px]"

@@ -23,9 +23,9 @@ export const SITE_ALTERNATE_NAMES = [
 ] as const
 export const SITE_AUDIENCE =
   'AI power users, developers, writers, product managers, and operators who reuse prompts across ChatGPT, Claude, and other AI tools.'
-export const SITE_THEME_COLOR = '#f5f2ea'
-export const SITE_THEME_COLOR_DARK = '#0b0c0e'
-export const SITE_BACKGROUND_COLOR = '#0b0c0e'
+export const SITE_THEME_COLOR = '#f4f1e9'
+export const SITE_THEME_COLOR_DARK = '#0c0d10'
+export const SITE_BACKGROUND_COLOR = '#0c0d10'
 export const SITE_IN_LANGUAGE = 'en'
 export const SITE_OG_LOCALE = 'en_US'
 export const SITE_SOCIAL_IMAGE_PATH = '/og-preview.png'

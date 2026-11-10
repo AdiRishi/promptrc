@@ -196,7 +196,7 @@ export function PromptReader({
               <span title={new Date(prompt.createdAt).toLocaleString()}>
                 kept {prompt.createdAt.slice(0, 10)}
               </span>
-              {prompt.uses > 0 ? <span>yanked {prompt.uses}×</span> : null}
+              {prompt.uses > 0 ? <span>yanked ×{prompt.uses}</span> : null}
             </footer>
           </div>
         </div>

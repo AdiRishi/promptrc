@@ -6,6 +6,7 @@ import { KeyCombo } from '@/components/ui/kbd'
 import { KindMark, KindTag } from '@/features/prompt-library/components/kind-mark'
 import { promptPath } from '@/features/prompt-library/components/prompt-reader'
 import { PROMPT_KIND_DEFINITIONS, PROMPT_KINDS } from '@/features/prompt-library/model/prompt-kinds'
+import { splitSequenceSteps } from '@/features/prompt-library/model/prompt-sequences'
 import { PromptBodyMarkdown } from '@/features/prompt-library/rendering/prompt-body-markdown'
 import { formatCatalogNumber } from '@/features/prompt-library/rendering/prompt-library-formatting'
 import { type PromptLibraryFacets } from '@/features/prompt-library/selectors/prompt-library-selectors'
@@ -330,7 +331,16 @@ function FinderPreview({ item }: { item: FinderItem | undefined }) {
           <span className="truncate">{promptPath(prompt)}</span>
         </div>
         <p className="voice-title mt-1 mb-4 text-head text-fg">{prompt.title}</p>
-        <PromptBodyMarkdown body={prompt.body} className="text-ui" images={prompt.images} />
+        <PromptBodyMarkdown
+          // A sequence's steps are split by markers in the source; here a rule stands in.
+          body={
+            prompt.kind === 'sequence'
+              ? splitSequenceSteps(prompt.body).join('\n\n---\n\n')
+              : prompt.body
+          }
+          className="text-ui"
+          images={prompt.images}
+        />
       </div>
     )
   }

@@ -29,7 +29,7 @@
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
-  "theme_color": "#0b0c0e",
-  "background_color": "#0b0c0e",
+  "theme_color": "#0c0d10",
+  "background_color": "#0c0d10",
   "categories": ["productivity", "developer tools", "utilities"]
 }
