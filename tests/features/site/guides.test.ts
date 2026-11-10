@@ -6,7 +6,7 @@ import { SITE_DEFAULT_TITLE, SITE_DESCRIPTION, SITE_NAME } from '@/lib/site-conf
 // A search result shows about 60 characters of a title and 155 of a description.
 // Longer ones are cut mid-sentence, which is how the old home page read.
 const TITLE_LIMIT = 60
-const DESCRIPTION_LIMIT = 160
+const DESCRIPTION_LIMIT = 155
 
 describe('what a search result shows', () => {
   it('fits the home page into a result', () => {

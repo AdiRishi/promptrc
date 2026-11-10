@@ -9,7 +9,7 @@ export const Route = createFileRoute('/about')({
     meta: seo({
       title: 'About promptrc: a free, open-source AI prompt manager',
       description:
-        'What promptrc is and how it works: a prompt library for ChatGPT and Claude prompts, with fill-in variables, sequences, benchmarks and a keyboard for everything.',
+        'What promptrc is and how it works: a prompt library for ChatGPT and Claude prompts, with fill-in variables, sequences, benchmarks and a key for everything.',
       path: '/about',
     }),
     links: [canonicalLink('/about')],

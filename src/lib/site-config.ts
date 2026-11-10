@@ -8,7 +8,7 @@ export const SITE_AUTHOR = SITE_NAME
 export const SITE_DEFAULT_TITLE = 'promptrc: a keyboard-first AI prompt manager and library'
 export const SITE_APP_HEADING = SITE_DEFAULT_TITLE
 export const SITE_DESCRIPTION =
-  'Save, organize and reuse the AI prompts that worked. Fill-in variables, step-by-step sequences and benchmarks in a fast terminal-style app. Free, open source.'
+  'Save and reuse the AI prompts that worked. Fill-in variables, step-by-step sequences and benchmarks in a fast, terminal-style app. Free and open source.'
 export const SITE_KEYWORD_LIST = [
   'promptrc',
   'AI prompt manager',
