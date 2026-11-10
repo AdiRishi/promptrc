@@ -68,6 +68,15 @@ export type PromptShareRevokeResult = {
   revoked: boolean
 }
 
+/**
+ * A request to publish or unpublish a Prompt's share. Publishing names the
+ * share the owner confirmed: a link made after they asked is a different
+ * hand-out, and must not go public in its place.
+ */
+export type PromptShareListingChange =
+  | { promptId: string; listed: true; shareId: string }
+  | { promptId: string; listed: false }
+
 export type PublicPromptShare = {
   shareId: string
   createdAt: string

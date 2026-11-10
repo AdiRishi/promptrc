@@ -7,6 +7,7 @@ import {
 } from '@/features/prompt-library/persistence/remote/d1-prompt-library-adapter'
 import {
   type PromptRecord,
+  type PromptShareListingChange,
   type PromptShareRecord,
   type PublicPromptListing,
   type PublicPromptShare,
@@ -152,28 +153,49 @@ export const createPromptShareForUser = async (
 }
 
 /**
- * Publishes or unpublishes a Prompt's active share. Returns the share as it
- * now stands, or `null` when the Prompt has no active share to change.
+ * Publishes or unpublishes a Prompt's share. Returns the share as it now
+ * stands, or `null` when there was nothing to change.
+ *
+ * Publishing changes only the share it names, and only while that share is
+ * active. If the owner revoked it and made another in the meantime, the new
+ * link stays private. Unpublishing takes whichever share is active out of
+ * public view.
  */
 export const setPromptShareListedForUser = async (
   db: D1Database,
   extUserId: string,
-  promptId: string,
-  listed: boolean,
+  change: PromptShareListingChange,
   options: Pick<PromptShareFactoryOptions, 'now'> = {},
 ) => {
-  await db
-    .prepare(
-      `
-        UPDATE prompt_shares
-        SET listed_at = ?
-        WHERE ext_user_id = ? AND prompt_id = ? AND revoked_at IS NULL
-      `,
-    )
-    .bind(listed ? getTimestamp(options) : null, extUserId, promptId)
-    .run()
+  const update = change.listed
+    ? db
+        .prepare(
+          `
+            UPDATE prompt_shares
+            SET listed_at = ?
+            WHERE ext_user_id = ? AND prompt_id = ? AND id = ? AND revoked_at IS NULL
+          `,
+        )
+        .bind(getTimestamp(options), extUserId, change.promptId, change.shareId)
+    : db
+        .prepare(
+          `
+            UPDATE prompt_shares
+            SET listed_at = NULL
+            WHERE ext_user_id = ? AND prompt_id = ? AND revoked_at IS NULL
+          `,
+        )
+        .bind(extUserId, change.promptId)
+  const result = await update.run()
 
-  return getActivePromptShareForUser(db, extUserId, promptId)
+  if (result.meta.changes === 0) {
+    return null
+  }
+
+  const share = await getActivePromptShareForUser(db, extUserId, change.promptId)
+
+  // The named share can be revoked between the update and this read.
+  return change.listed && share?.id !== change.shareId ? null : share
 }
 
 export const revokePromptShareForUser = async (

@@ -26,6 +26,7 @@ import {
   type PromptLibraryFilter,
   type PromptLibraryPersistedSnapshot,
   type PromptLibrarySort,
+  type PromptShareListingChange,
   type PromptRecord,
   type PromptRun,
 } from '@/features/prompt-library/types'
@@ -303,13 +304,13 @@ export const isPromptShareId = (value: string) => {
 }
 
 /** A request to publish (`listed: true`) or unpublish a Prompt's share. */
-export const assertPromptShareListingInput = (value: unknown) => {
+export const assertPromptShareListingInput = (value: unknown): PromptShareListingChange => {
   const input = assertObject(value, 'input')
+  const promptId = assertPromptId(input.promptId)
 
-  return {
-    promptId: assertPromptId(input.promptId),
-    listed: assertBoolean(input.listed, 'listed'),
-  }
+  return assertBoolean(input.listed, 'listed')
+    ? { promptId, listed: true, shareId: assertPromptShareId(input.shareId) }
+    : { promptId, listed: false }
 }
 
 export const assertPromptShareId = (value: unknown) => {

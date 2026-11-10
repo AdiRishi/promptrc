@@ -185,11 +185,11 @@ export const getRemotePromptShare = createServerFn({ method: 'GET' })
 
 export const setRemotePromptShareListed = createServerFn({ method: 'POST' })
   .validator(assertPromptShareListingInput)
-  .handler(async ({ data: { promptId, listed } }) => {
+  .handler(async ({ data: change }) => {
     const extUserId = await requireUserId()
     const db = await getDatabase()
 
-    return setPromptShareListedForUser(db, extUserId, promptId, listed)
+    return setPromptShareListedForUser(db, extUserId, change)
   })
 
 export const getPublicRemotePromptShare = createServerFn({ method: 'GET' })

@@ -5,7 +5,11 @@ import { createPendingPromptImageMarkdown } from '@/features/prompt-library/mode
 import { joinSequenceSteps } from '@/features/prompt-library/model/prompt-sequences'
 import { createPromptLibraryStore } from '@/features/prompt-library/store/prompt-library-store'
 import { type PromptLibraryClient } from '@/features/prompt-library/sync/prompt-library-client'
-import { type PromptRecord, type PromptRun } from '@/features/prompt-library/types'
+import {
+  type PromptRecord,
+  type PromptRun,
+  type PromptShareListingChange,
+} from '@/features/prompt-library/types'
 
 const createPrompt = (overrides: Partial<PromptRecord> = {}): PromptRecord => ({
   id: 'prompt-alpha',
@@ -167,10 +171,10 @@ describe('prompt library command executor', () => {
       createdAt: '2026-04-24T00:01:00.000Z',
       revokedAt: null,
     }
-    const setPromptShareListed = vi.fn((_promptId: string, listed: boolean) =>
+    const setPromptShareListed = vi.fn((change: PromptShareListingChange) =>
       Promise.resolve({
         status: 'synced' as const,
-        value: { ...share, listedAt: listed ? '2026-04-24T00:05:00.000Z' : null },
+        value: { ...share, listedAt: change.listed ? '2026-04-24T00:05:00.000Z' : null },
       }),
     )
 
@@ -195,14 +199,101 @@ describe('prompt library command executor', () => {
       id: 'share-alpha',
       listedAt: '2026-04-24T00:05:00.000Z',
     })
+    // It publishes the share it was just given, not whichever is active later.
+    expect(setPromptShareListed).toHaveBeenLastCalledWith({
+      promptId: prompt.id,
+      listed: true,
+      shareId: 'share-alpha',
+    })
     expect(clipboard.writeText).toHaveBeenCalledWith('https://promptrc.app/share/share-alpha')
     expect(notify).toHaveBeenCalledWith(
       'Published “Alpha”. It is public and search engines can find it',
     )
 
     await expect(commands.unpublishActivePrompt()).resolves.toMatchObject({ listedAt: null })
-    expect(setPromptShareListed).toHaveBeenLastCalledWith(prompt.id, false)
+    expect(setPromptShareListed).toHaveBeenLastCalledWith({ promptId: prompt.id, listed: false })
     expect(notify).toHaveBeenCalledWith('Unpublished “Alpha”. Its share link still works')
+  })
+
+  it('saves the entry as it reads before publishing, and stops if that save fails', async () => {
+    const store = createPromptLibraryStore()
+    const notify = vi.fn()
+    const serverCopies: PromptRecord[] = []
+    let serverAcceptsSaves = false
+    const savePrompt = vi.fn((savedPrompt: PromptRecord) => {
+      if (!serverAcceptsSaves) {
+        return Promise.resolve({
+          status: 'failed' as const,
+          message: 'offline',
+          error: new Error('offline'),
+        })
+      }
+
+      serverCopies.push(savedPrompt)
+
+      return Promise.resolve({ status: 'synced' as const, value: savedPrompt })
+    })
+    const createPromptShare = vi.fn((promptId: string) =>
+      Promise.resolve({
+        status: 'synced' as const,
+        value: {
+          id: 'share-alpha',
+          promptId,
+          createdAt: '2026-04-24T00:01:00.000Z',
+          revokedAt: null,
+          listedAt: null,
+        },
+      }),
+    )
+    const setPromptShareListed = vi.fn((change: PromptShareListingChange) => {
+      // The server lists what it holds at this moment.
+      expect(serverCopies.at(-1)?.body).toBe('The launch date is coming.')
+
+      return Promise.resolve({
+        status: 'synced' as const,
+        value: {
+          id: 'share-alpha',
+          promptId: change.promptId,
+          createdAt: '2026-04-24T00:01:00.000Z',
+          revokedAt: null,
+          listedAt: '2026-04-24T00:05:00.000Z',
+        },
+      })
+    })
+    const prompt = createPrompt({ body: 'Internal: the launch date is 3 March.' })
+
+    store.getState().actions.replacePrompts([prompt], { isFresh: false })
+    store.getState().actions.selectPrompt(prompt.id)
+
+    const commands = createPromptLibraryCommandExecutor({
+      clipboard: { writeText: vi.fn(() => Promise.resolve()) },
+      library: createLibrary({
+        canSharePrompts: true,
+        mode: 'remote',
+        createPromptShare,
+        savePrompt,
+        setPromptShareListed,
+      }),
+      notify,
+      store,
+    })
+
+    // The owner edits the private text out and writes; the editor closes, but
+    // the server never receives the edit.
+    store.getState().actions.startEdit(prompt.id)
+    store.getState().actions.updateDraft('body', 'The launch date is coming.')
+    commands.saveComposer()
+    await flushPromises()
+
+    await expect(commands.publishActivePrompt()).resolves.toBeNull()
+    expect(createPromptShare).not.toHaveBeenCalled()
+    expect(setPromptShareListed).not.toHaveBeenCalled()
+    expect(notify).toHaveBeenLastCalledWith('Couldn’t sync — offline')
+
+    serverAcceptsSaves = true
+
+    await expect(commands.publishActivePrompt()).resolves.toMatchObject({ id: 'share-alpha' })
+    expect(setPromptShareListed).toHaveBeenCalledOnce()
   })
 
   it('refuses to publish while the entry has unsaved edits', async () => {

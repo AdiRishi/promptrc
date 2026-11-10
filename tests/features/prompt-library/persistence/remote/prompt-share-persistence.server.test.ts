@@ -34,6 +34,17 @@ const createPrompt = (overrides: Partial<PromptRecord> = {}): PromptRecord => ({
 
 const createDate = (isoDate: string) => () => new Date(isoDate)
 
+const publish = (extUserId: string, promptId: string, shareId: string, publishedAt?: string) =>
+  setPromptShareListedForUser(
+    env.DB,
+    extUserId,
+    { promptId, listed: true, shareId },
+    publishedAt ? { now: createDate(publishedAt) } : {},
+  )
+
+const unpublish = (extUserId: string, promptId: string) =>
+  setPromptShareListedForUser(env.DB, extUserId, { promptId, listed: false })
+
 describe('prompt share persistence', () => {
   it('runs against a migration schema that supports public Prompt shares', async () => {
     const { results: columns } = await env.DB.prepare('PRAGMA table_info(prompt_shares)').all<{
@@ -188,9 +199,7 @@ describe('prompt share persistence', () => {
     })
 
     await expect(
-      setPromptShareListedForUser(env.DB, 'user_a', 'prompt-alpha', true, {
-        now: createDate('2026-04-24T00:05:00.000Z'),
-      }),
+      publish('user_a', 'prompt-alpha', 'share-alpha', '2026-04-24T00:05:00.000Z'),
     ).resolves.toMatchObject({ id: 'share-alpha', listedAt: '2026-04-24T00:05:00.000Z' })
 
     await expect(getPublicPromptShare(env.DB, 'share-alpha')).resolves.toMatchObject({
@@ -218,12 +227,13 @@ describe('prompt share persistence', () => {
     await createPromptShareForUser(env.DB, 'user_a', 'prompt-beta', {
       generateId: () => 'share-beta',
     })
-    await setPromptShareListedForUser(env.DB, 'user_a', 'prompt-alpha', true)
-    await setPromptShareListedForUser(env.DB, 'user_a', 'prompt-beta', true)
+    await publish('user_a', 'prompt-alpha', 'share-alpha')
+    await publish('user_a', 'prompt-beta', 'share-beta')
 
-    await expect(
-      setPromptShareListedForUser(env.DB, 'user_a', 'prompt-alpha', false),
-    ).resolves.toMatchObject({ id: 'share-alpha', listedAt: null })
+    await expect(unpublish('user_a', 'prompt-alpha')).resolves.toMatchObject({
+      id: 'share-alpha',
+      listedAt: null,
+    })
     await revokePromptShareForUser(env.DB, 'user_a', 'prompt-beta')
 
     await expect(listPublicPromptShares(env.DB)).resolves.toEqual([])
@@ -237,18 +247,32 @@ describe('prompt share persistence', () => {
   it('lets only the owner publish, and only a Prompt that has a share', async () => {
     await upsertPromptForUser(env.DB, 'user_a', createPrompt())
 
-    await expect(
-      setPromptShareListedForUser(env.DB, 'user_a', 'prompt-alpha', true),
-    ).resolves.toBeNull()
+    await expect(publish('user_a', 'prompt-alpha', 'share-alpha')).resolves.toBeNull()
 
     await createPromptShareForUser(env.DB, 'user_a', 'prompt-alpha', {
       generateId: () => 'share-alpha',
     })
 
-    await expect(
-      setPromptShareListedForUser(env.DB, 'user_b', 'prompt-alpha', true),
-    ).resolves.toBeNull()
+    await expect(publish('user_b', 'prompt-alpha', 'share-alpha')).resolves.toBeNull()
     await expect(listPublicPromptShares(env.DB)).resolves.toEqual([])
+  })
+
+  it('publishes only the share the owner confirmed, not a link made since', async () => {
+    await upsertPromptForUser(env.DB, 'user_a', createPrompt())
+    await createPromptShareForUser(env.DB, 'user_a', 'prompt-alpha', {
+      generateId: () => 'share-alpha',
+    })
+    await revokePromptShareForUser(env.DB, 'user_a', 'prompt-alpha')
+    await createPromptShareForUser(env.DB, 'user_a', 'prompt-alpha', {
+      generateId: () => 'share-beta',
+    })
+
+    await expect(publish('user_a', 'prompt-alpha', 'share-alpha')).resolves.toBeNull()
+
+    await expect(listPublicPromptShares(env.DB)).resolves.toEqual([])
+    await expect(getPublicPromptShare(env.DB, 'share-beta')).resolves.toMatchObject({
+      listed: false,
+    })
   })
 
   it('lists published Prompts newest first without their private notes', async () => {
@@ -264,12 +288,8 @@ describe('prompt share persistence', () => {
     await createPromptShareForUser(env.DB, 'user_b', 'prompt-beta', {
       generateId: () => 'share-beta',
     })
-    await setPromptShareListedForUser(env.DB, 'user_a', 'prompt-alpha', true, {
-      now: createDate('2026-04-24T00:05:00.000Z'),
-    })
-    await setPromptShareListedForUser(env.DB, 'user_b', 'prompt-beta', true, {
-      now: createDate('2026-04-25T00:05:00.000Z'),
-    })
+    await publish('user_a', 'prompt-alpha', 'share-alpha', '2026-04-24T00:05:00.000Z')
+    await publish('user_b', 'prompt-beta', 'share-beta', '2026-04-25T00:05:00.000Z')
 
     const listings = await listPublicPromptShares(env.DB)
 

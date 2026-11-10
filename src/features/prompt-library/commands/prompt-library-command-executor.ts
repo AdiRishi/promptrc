@@ -238,6 +238,17 @@ export const createPromptLibraryCommandExecutor = ({
       return null
     }
 
+    // The public page shows the server's copy, and saving an edit returns before
+    // the server has it. Publishing waits for the entry as it reads now to be
+    // saved, so a save that is still on its way, or failed, cannot leave older
+    // text public.
+    const saved = await library.savePrompt(activePrompt)
+
+    if (saved.status === 'failed') {
+      notifySyncFailure(saved.message)
+      return null
+    }
+
     const share = await library.createPromptShare(activePrompt.id)
 
     if (share.status === 'failed') {
@@ -245,7 +256,11 @@ export const createPromptLibraryCommandExecutor = ({
       return null
     }
 
-    const result = await library.setPromptShareListed(activePrompt.id, true)
+    const result = await library.setPromptShareListed({
+      promptId: activePrompt.id,
+      listed: true,
+      shareId: share.value.id,
+    })
 
     if (result.status === 'failed') {
       notifySyncFailure(result.message)
@@ -280,7 +295,7 @@ export const createPromptLibraryCommandExecutor = ({
       return null
     }
 
-    const result = await library.setPromptShareListed(activePrompt.id, false)
+    const result = await library.setPromptShareListed({ promptId: activePrompt.id, listed: false })
 
     if (result.status === 'failed') {
       notifySyncFailure(result.message)

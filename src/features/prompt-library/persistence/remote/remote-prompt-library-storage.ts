@@ -102,8 +102,7 @@ export function useRemotePromptLibraryStorage(userId: string | null): RemoteProm
 
         return savedPrompt
       },
-      setPromptShareListed: (promptId, listed) =>
-        setPromptShareListed({ data: { promptId, listed } }),
+      setPromptShareListed: (change) => setPromptShareListed({ data: change }),
       uploadPromptImage: (upload) => uploadPromptImage({ data: upload }),
     }),
     [
