@@ -16,15 +16,7 @@ jobs:
       CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY }}
     steps:
       - uses: actions/checkout@v6
-      - uses: pnpm/action-setup@v6
-      - uses: actions/setup-node@v6
-        with:
-          node-version-file: '.node-version'
-          cache: 'pnpm'
-
-      - run: pnpm install --frozen-lockfile
-        env:
-          NODE_ENV: development
+      - uses: ./.github/actions/setup
 
       - run: pnpm check
       - run: pnpm typecheck
