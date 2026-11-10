@@ -249,3 +249,54 @@ export function getHomePageJsonLd() {
     },
   }
 }
+
+type ArticleJsonLdParams = {
+  title: string
+  description: string
+  path: string
+  /** ISO dates. */
+  published: string
+  updated: string
+}
+
+/** A guide, as an article published by the site. */
+export function getArticleJsonLd({
+  title,
+  description,
+  path,
+  published,
+  updated,
+}: ArticleJsonLdParams) {
+  const siteUrl = getCanonicalSiteUrl(siteUrlEnv)
+  const schemaIds = getSchemaIds(siteUrl)
+  const pageUrl = getCanonicalAbsoluteUrl(path, siteUrlEnv)
+
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'Article',
+    headline: title,
+    description,
+    url: pageUrl,
+    mainEntityOfPage: pageUrl,
+    datePublished: published,
+    dateModified: updated,
+    inLanguage: SITE_IN_LANGUAGE,
+    image: getCanonicalSocialImageUrl(siteUrlEnv),
+    author: { '@id': schemaIds.organization },
+    publisher: { '@id': schemaIds.organization },
+    isPartOf: { '@id': schemaIds.website },
+  }
+}
+
+/** Questions and answers that are visible on the page they describe. */
+export function getFaqJsonLd(items: ReadonlyArray<{ question: string; answer: string }>) {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: items.map((item) => ({
+      '@type': 'Question',
+      name: item.question,
+      acceptedAnswer: { '@type': 'Answer', text: item.answer },
+    })),
+  }
+}

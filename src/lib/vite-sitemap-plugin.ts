@@ -52,7 +52,8 @@ function escapeXml(text: string) {
 
 function buildUrl(baseUrl: string, path: string, trailingSlash: boolean) {
   const cleanBaseUrl = baseUrl.replace(/\/$/, '')
-  let url = path === '/' ? cleanBaseUrl : `${cleanBaseUrl}${path}`
+  // An index route's full path ends in a slash (`/guides/`); its canonical URL does not.
+  let url = path === '/' ? cleanBaseUrl : `${cleanBaseUrl}${path.replace(/\/$/, '')}`
 
   if (trailingSlash && !url.endsWith('/') && url !== cleanBaseUrl) {
     url += '/'

@@ -10,6 +10,12 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AboutRouteImport } from './routes/about'
+import { Route as ManualRouteImport } from './routes/manual'
+import { Route as GuidesIndexRouteImport } from './routes/guides.index'
+import { Route as GuidesPromptBenchmarksRouteImport } from './routes/guides.prompt-benchmarks'
+import { Route as GuidesPromptChainingRouteImport } from './routes/guides.prompt-chaining'
+import { Route as GuidesPromptTemplatesRouteImport } from './routes/guides.prompt-templates'
 import { Route as ShareShareIdRouteImport } from './routes/share.$shareId'
 import { Route as SignInSplatRouteImport } from './routes/sign-in.$'
 import { Route as SignUpSplatRouteImport } from './routes/sign-up.$'
@@ -19,6 +25,36 @@ import { Route as ApiSharedPromptImagesShareIdImageIdRouteImport } from './route
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AboutRoute = AboutRouteImport.update({
+  id: '/about',
+  path: '/about',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ManualRoute = ManualRouteImport.update({
+  id: '/manual',
+  path: '/manual',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GuidesIndexRoute = GuidesIndexRouteImport.update({
+  id: '/guides/',
+  path: '/guides/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GuidesPromptBenchmarksRoute = GuidesPromptBenchmarksRouteImport.update({
+  id: '/guides/prompt-benchmarks',
+  path: '/guides/prompt-benchmarks',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GuidesPromptChainingRoute = GuidesPromptChainingRouteImport.update({
+  id: '/guides/prompt-chaining',
+  path: '/guides/prompt-chaining',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GuidesPromptTemplatesRoute = GuidesPromptTemplatesRouteImport.update({
+  id: '/guides/prompt-templates',
+  path: '/guides/prompt-templates',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ShareShareIdRoute = ShareShareIdRouteImport.update({
@@ -50,26 +86,44 @@ const ApiSharedPromptImagesShareIdImageIdRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/about': typeof AboutRoute
+  '/manual': typeof ManualRoute
+  '/guides/prompt-benchmarks': typeof GuidesPromptBenchmarksRoute
+  '/guides/prompt-chaining': typeof GuidesPromptChainingRoute
+  '/guides/prompt-templates': typeof GuidesPromptTemplatesRoute
   '/share/$shareId': typeof ShareShareIdRoute
   '/sign-in/$': typeof SignInSplatRoute
   '/sign-up/$': typeof SignUpSplatRoute
+  '/guides/': typeof GuidesIndexRoute
   '/api/prompt-images/$imageId': typeof ApiPromptImagesImageIdRoute
   '/api/shared-prompt-images/$shareId/$imageId': typeof ApiSharedPromptImagesShareIdImageIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/about': typeof AboutRoute
+  '/manual': typeof ManualRoute
+  '/guides/prompt-benchmarks': typeof GuidesPromptBenchmarksRoute
+  '/guides/prompt-chaining': typeof GuidesPromptChainingRoute
+  '/guides/prompt-templates': typeof GuidesPromptTemplatesRoute
   '/share/$shareId': typeof ShareShareIdRoute
   '/sign-in/$': typeof SignInSplatRoute
   '/sign-up/$': typeof SignUpSplatRoute
+  '/guides': typeof GuidesIndexRoute
   '/api/prompt-images/$imageId': typeof ApiPromptImagesImageIdRoute
   '/api/shared-prompt-images/$shareId/$imageId': typeof ApiSharedPromptImagesShareIdImageIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/about': typeof AboutRoute
+  '/manual': typeof ManualRoute
+  '/guides/prompt-benchmarks': typeof GuidesPromptBenchmarksRoute
+  '/guides/prompt-chaining': typeof GuidesPromptChainingRoute
+  '/guides/prompt-templates': typeof GuidesPromptTemplatesRoute
   '/share/$shareId': typeof ShareShareIdRoute
   '/sign-in/$': typeof SignInSplatRoute
   '/sign-up/$': typeof SignUpSplatRoute
+  '/guides/': typeof GuidesIndexRoute
   '/api/prompt-images/$imageId': typeof ApiPromptImagesImageIdRoute
   '/api/shared-prompt-images/$shareId/$imageId': typeof ApiSharedPromptImagesShareIdImageIdRoute
 }
@@ -77,34 +131,58 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/about'
+    | '/manual'
+    | '/guides/prompt-benchmarks'
+    | '/guides/prompt-chaining'
+    | '/guides/prompt-templates'
     | '/share/$shareId'
     | '/sign-in/$'
     | '/sign-up/$'
+    | '/guides/'
     | '/api/prompt-images/$imageId'
     | '/api/shared-prompt-images/$shareId/$imageId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/about'
+    | '/manual'
+    | '/guides/prompt-benchmarks'
+    | '/guides/prompt-chaining'
+    | '/guides/prompt-templates'
     | '/share/$shareId'
     | '/sign-in/$'
     | '/sign-up/$'
+    | '/guides'
     | '/api/prompt-images/$imageId'
     | '/api/shared-prompt-images/$shareId/$imageId'
   id:
     | '__root__'
     | '/'
+    | '/about'
+    | '/manual'
+    | '/guides/prompt-benchmarks'
+    | '/guides/prompt-chaining'
+    | '/guides/prompt-templates'
     | '/share/$shareId'
     | '/sign-in/$'
     | '/sign-up/$'
+    | '/guides/'
     | '/api/prompt-images/$imageId'
     | '/api/shared-prompt-images/$shareId/$imageId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AboutRoute: typeof AboutRoute
+  ManualRoute: typeof ManualRoute
+  GuidesPromptBenchmarksRoute: typeof GuidesPromptBenchmarksRoute
+  GuidesPromptChainingRoute: typeof GuidesPromptChainingRoute
+  GuidesPromptTemplatesRoute: typeof GuidesPromptTemplatesRoute
   ShareShareIdRoute: typeof ShareShareIdRoute
   SignInSplatRoute: typeof SignInSplatRoute
   SignUpSplatRoute: typeof SignUpSplatRoute
+  GuidesIndexRoute: typeof GuidesIndexRoute
   ApiPromptImagesImageIdRoute: typeof ApiPromptImagesImageIdRoute
   ApiSharedPromptImagesShareIdImageIdRoute: typeof ApiSharedPromptImagesShareIdImageIdRoute
 }
@@ -116,6 +194,48 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/about': {
+      id: '/about'
+      path: '/about'
+      fullPath: '/about'
+      preLoaderRoute: typeof AboutRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/manual': {
+      id: '/manual'
+      path: '/manual'
+      fullPath: '/manual'
+      preLoaderRoute: typeof ManualRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/guides/': {
+      id: '/guides/'
+      path: '/guides'
+      fullPath: '/guides/'
+      preLoaderRoute: typeof GuidesIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/guides/prompt-benchmarks': {
+      id: '/guides/prompt-benchmarks'
+      path: '/guides/prompt-benchmarks'
+      fullPath: '/guides/prompt-benchmarks'
+      preLoaderRoute: typeof GuidesPromptBenchmarksRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/guides/prompt-chaining': {
+      id: '/guides/prompt-chaining'
+      path: '/guides/prompt-chaining'
+      fullPath: '/guides/prompt-chaining'
+      preLoaderRoute: typeof GuidesPromptChainingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/guides/prompt-templates': {
+      id: '/guides/prompt-templates'
+      path: '/guides/prompt-templates'
+      fullPath: '/guides/prompt-templates'
+      preLoaderRoute: typeof GuidesPromptTemplatesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/share/$shareId': {
@@ -158,9 +278,15 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AboutRoute: AboutRoute,
+  ManualRoute: ManualRoute,
+  GuidesPromptBenchmarksRoute: GuidesPromptBenchmarksRoute,
+  GuidesPromptChainingRoute: GuidesPromptChainingRoute,
+  GuidesPromptTemplatesRoute: GuidesPromptTemplatesRoute,
   ShareShareIdRoute: ShareShareIdRoute,
   SignInSplatRoute: SignInSplatRoute,
   SignUpSplatRoute: SignUpSplatRoute,
+  GuidesIndexRoute: GuidesIndexRoute,
   ApiPromptImagesImageIdRoute: ApiPromptImagesImageIdRoute,
   ApiSharedPromptImagesShareIdImageIdRoute:
     ApiSharedPromptImagesShareIdImageIdRoute,
