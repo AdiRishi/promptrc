@@ -3,13 +3,10 @@ import { fileURLToPath } from 'node:url'
 import { defineConfig } from 'vitest/config'
 
 const migrations = await readD1Migrations(fileURLToPath(new URL('./migrations', import.meta.url)))
-const alias = {
-  '@': fileURLToPath(new URL('./src', import.meta.url)),
-}
 
 export default defineConfig({
   resolve: {
-    alias,
+    tsconfigPaths: true,
   },
   test: {
     coverage: {
@@ -17,9 +14,7 @@ export default defineConfig({
     },
     projects: [
       {
-        resolve: {
-          alias,
-        },
+        extends: true,
         test: {
           name: 'browser-unit',
           environment: 'jsdom',
@@ -29,16 +24,11 @@ export default defineConfig({
         },
       },
       {
-        resolve: {
-          alias,
-        },
+        extends: true,
         plugins: [
           cloudflareTest({
+            wrangler: { configPath: './wrangler.jsonc' },
             miniflare: {
-              compatibilityDate: '2026-04-22',
-              compatibilityFlags: ['nodejs_compat'],
-              d1Databases: ['DB'],
-              r2Buckets: ['PROMPT_IMAGES'],
               bindings: {
                 TEST_MIGRATIONS: migrations,
               },

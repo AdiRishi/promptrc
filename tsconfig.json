@@ -1,19 +1,12 @@
 {
-  "include": [
-    "src/**/*.ts",
-    "src/**/*.tsx",
-    "eslint.config.js",
-    "prettier.config.js",
-    "vite.config.ts",
-    "nitro.config.ts"
-  ],
+  "include": ["src/**/*.ts", "src/**/*.tsx", "vite.config.ts", "nitro.config.ts"],
   "exclude": ["tests"],
 
   "compilerOptions": {
-    "target": "ES2022",
+    "target": "ES2024",
     "jsx": "react-jsx",
     "module": "ESNext",
-    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "lib": ["ES2024", "DOM", "DOM.Iterable"],
     "types": ["vite/client", "node", "./worker-configuration.d.ts"],
 
     /* Bundler mode */

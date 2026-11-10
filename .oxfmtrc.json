@@ -25,7 +25,6 @@
     "worker-configuration.d.ts",
     ".agents",
     ".claude",
-    "patches",
     "pnpm-lock.yaml",
     "**/*.gen.ts"
   ]

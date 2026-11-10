@@ -49,7 +49,7 @@ export const getPromptProjects = (prompts: readonly PromptRecord[]): PromptProje
     key,
     label: mostCommonSpelling(entry.spellings),
     count: entry.count,
-  })).sort((left, right) => comparePromptLibraryText(left.label, right.label))
+  })).toSorted((left, right) => comparePromptLibraryText(left.label, right.label))
 }
 
 const mostCommonSpelling = (spellings: Map<string, number>) => {
@@ -117,7 +117,7 @@ export const suggestProjects = (
   return projects
     .map((project) => ({ project, rank: rank(project) }))
     .filter((entry) => entry.rank !== -1)
-    .sort(
+    .toSorted(
       (left, right) =>
         left.rank - right.rank || comparePromptLibraryText(left.project.label, right.project.label),
     )

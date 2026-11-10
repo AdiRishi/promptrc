@@ -1,4 +1,4 @@
-import { type FormEvent, useId, useState } from 'react'
+import { type SubmitEvent, useId, useState } from 'react'
 
 import { Choice, ChoiceGroup } from '@/components/ui/choice'
 import { type PromptRunRequest } from '@/features/prompt-library/commands/prompt-library-command-executor'
@@ -39,7 +39,7 @@ export function BenchmarkLedger({
   onRemoveRun,
 }: BenchmarkLedgerProps) {
   const summary = summarizePromptRuns(runs)
-  const sparkline = [...runs].reverse().slice(-32)
+  const sparkline = runs.toReversed().slice(-32)
 
   return (
     <section aria-label="Benchmark" className="mt-8 text-[13px]">
@@ -139,7 +139,7 @@ function LogRunForm({
   const [verdict, setVerdict] = useState<PromptRunVerdict>('pass')
   const [note, setNote] = useState('')
 
-  const submit = (event: FormEvent) => {
+  const submit = (event: SubmitEvent) => {
     event.preventDefault()
 
     if (onLogRun({ model, verdict, note })) {

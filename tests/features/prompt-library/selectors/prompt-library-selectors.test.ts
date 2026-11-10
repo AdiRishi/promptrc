@@ -142,8 +142,8 @@ describe('prompt library selectors', () => {
 
     expect(ids(filterOf({ kind: 'fragment' }))).toEqual(['f'])
     expect(ids(filterOf({ pinned: true }))).toEqual(['f'])
-    expect(ids(filterOf({ project: 'Writing' })).sort()).toEqual(['b', 'f'])
-    expect(ids(filterOf({ tag: 'tone' })).sort()).toEqual(['b', 'f'])
+    expect(ids(filterOf({ project: 'Writing' })).toSorted()).toEqual(['b', 'f'])
+    expect(ids(filterOf({ tag: 'tone' })).toSorted()).toEqual(['b', 'f'])
     expect(ids(filterOf({}))).toHaveLength(3)
   })
 
@@ -162,10 +162,10 @@ describe('prompt library selectors', () => {
       }).orderedPromptIds
 
     // "Render MD" and "render-md" are the same Project.
-    expect(ids({ project: 'render-md' }).sort()).toEqual(['prompt-here', 'seq-here'])
+    expect(ids({ project: 'render-md' }).toSorted()).toEqual(['prompt-here', 'seq-here'])
     expect(ids({ project: 'render-md', kind: 'sequence' })).toEqual(['seq-here'])
     expect(ids({ project: 'render-md', pinned: true })).toEqual(['prompt-here'])
-    expect(ids({ kind: 'sequence', tag: 'plan' }).sort()).toEqual(['seq-here', 'seq-there'])
+    expect(ids({ kind: 'sequence', tag: 'plan' }).toSorted()).toEqual(['seq-here', 'seq-there'])
   })
 
   it('shows a saved Prompt by dropping narrowing first, then following its Project', () => {
