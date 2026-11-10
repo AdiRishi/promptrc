@@ -16,7 +16,7 @@ export const promptrcClerkAppearance = {
     borderRadius: '0',
     fontFamily: "'Recursive Variable', ui-monospace, monospace",
     fontFamilyButtons: "'Recursive Variable', ui-monospace, monospace",
-    fontSize: '0.875rem',
+    fontSize: 'var(--text-ui)',
   },
   elements: {
     rootBox: 'w-full',
@@ -32,6 +32,7 @@ export const promptrcClerkAppearance = {
     formButtonPrimary:
       'h-10 bg-[var(--accent)] font-semibold text-[var(--accent-fg)] shadow-none hover:bg-[var(--accent)] hover:brightness-110 max-md:h-11',
     footer: 'bg-[var(--bg-raised)] [background-image:none]',
-    footerActionLink: 'text-[var(--accent)] hover:text-[var(--accent)]',
+    footerActionLink:
+      'text-[var(--fg)] underline decoration-[var(--line-strong)] underline-offset-4 hover:text-[var(--fg)] hover:decoration-[var(--accent)]',
   },
 } as const

@@ -794,7 +794,7 @@ function PromptLibraryScreen() {
 
       <TabLine activePane={activePane} onFocusPane={focusPane} />
 
-      <div className="relative grid min-h-0 flex-1 gap-x-3 pt-3 pb-2 min-[105rem]:grid-cols-[32ch_60ch_minmax(0,1fr)] md:grid-cols-[minmax(34ch,40ch)_minmax(0,1fr)] lg:grid-cols-[26ch_38ch_minmax(0,1fr)] xl:grid-cols-[28ch_46ch_minmax(0,1fr)]">
+      <div className="relative grid min-h-0 flex-1 gap-x-3 pt-3 pb-2 md:grid-cols-[minmax(34ch,40ch)_minmax(0,1fr)] lg:grid-cols-[26ch_38ch_minmax(0,1fr)] xl:grid-cols-[28ch_46ch_minmax(0,1fr)] min-[105rem]:grid-cols-[32ch_60ch_minmax(0,1fr)]">
         {/* Library: a column on wide screens, a drawer on medium ones, a tab on phones. */}
         <button
           aria-label="Close library"

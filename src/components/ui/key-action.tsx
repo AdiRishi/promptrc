@@ -1,11 +1,11 @@
 import { type ReactNode } from 'react'
 
-import { Kbd } from '@/components/ui/kbd'
+import { KeyCombo } from '@/components/ui/kbd'
 import { cn } from '@/lib/utils'
 
 type KeyActionProps = {
-  /** The key that runs it, shown as a keycap. Hidden on touch layouts. */
-  keyLabel?: string
+  /** The keys that run it, one keycap each (`Mod` is ⌘ or ctrl). Hidden on touch layouts. */
+  keys?: readonly string[]
   label: string
   onClick?: () => void | Promise<void>
   /** The action the bar exists for. One per bar. */
@@ -18,7 +18,7 @@ type KeyActionProps = {
 
 /** `[y] yank`: the key that does it, then what it does. The pattern for every action bar. */
 export function KeyAction({
-  keyLabel,
+  keys,
   label,
   onClick,
   primary = false,
@@ -41,15 +41,12 @@ export function KeyAction({
       onClick={onClick ? () => void onClick() : undefined}
       type={type}
     >
-      {keyLabel ? (
-        <Kbd
-          className={cn(
-            'font-normal max-md:hidden',
-            primary && 'border-current bg-transparent text-current',
-          )}
-        >
-          {keyLabel}
-        </Kbd>
+      {keys ? (
+        <KeyCombo
+          capClassName={primary ? 'border-current bg-transparent text-current' : undefined}
+          className="font-normal max-md:hidden"
+          keys={keys}
+        />
       ) : null}
       {label}
     </button>

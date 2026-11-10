@@ -179,7 +179,7 @@ export function SharedPromptPage({ shareId }: SharedPromptPageProps) {
             <div className="mt-10 flex flex-wrap items-center gap-x-[2ch] gap-y-2 border-t border-line pt-3">
               <KeyAction
                 className="-ml-[1ch]"
-                keyLabel="y"
+                keys={['y']}
                 label={filledCount > 0 ? 'yank with your blanks' : 'yank'}
                 onClick={() => copy()}
                 primary

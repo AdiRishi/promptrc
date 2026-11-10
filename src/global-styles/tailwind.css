@@ -52,7 +52,8 @@
     --magenta: #b9a3e6;
     --cyan: #7cc0cf;
     --shadow: 0 24px 60px -12px rgb(0 0 0 / 0.65);
-    --scrim: rgb(0 0 0 / 0.78);
+    --scrim-ink: rgb(0 0 0);
+    --scrim-strength: 78%;
 }
 
 [data-scheme='daylight'] {
@@ -75,7 +76,8 @@
     --magenta: #753893;
     --cyan: #136476;
     --shadow: 0 16px 48px -8px rgb(60 45 20 / 0.22);
-    --scrim: rgb(40 32 20 / 0.45);
+    --scrim-ink: rgb(40 32 20);
+    --scrim-strength: 45%;
 }
 
 [data-scheme='phosphor'] {
@@ -98,7 +100,8 @@
     --magenta: #ffa544;
     --cyan: #ffd98a;
     --shadow: 0 24px 60px -12px rgb(0 0 0 / 0.7);
-    --scrim: rgb(0 0 0 / 0.78);
+    --scrim-ink: rgb(0 0 0);
+    --scrim-strength: 78%;
 }
 
 [data-scheme='green-screen'] {
@@ -121,7 +124,8 @@
     --magenta: #8af7c8;
     --cyan: #5cf2d2;
     --shadow: 0 24px 60px -12px rgb(0 0 0 / 0.7);
-    --scrim: rgb(0 0 0 / 0.78);
+    --scrim-ink: rgb(0 0 0);
+    --scrim-strength: 78%;
 }
 
 [data-scheme='tokyo-night'] {
@@ -144,7 +148,8 @@
     --magenta: #bb9af7;
     --cyan: #7dcfff;
     --shadow: 0 24px 60px -12px rgb(0 0 0 / 0.6);
-    --scrim: rgb(8 8 14 / 0.78);
+    --scrim-ink: rgb(8 8 14);
+    --scrim-strength: 78%;
 }
 
 [data-scheme='catppuccin'] {
@@ -167,7 +172,8 @@
     --magenta: #f5c2e7;
     --cyan: #94e2d5;
     --shadow: 0 24px 60px -12px rgb(0 0 0 / 0.6);
-    --scrim: rgb(10 10 18 / 0.78);
+    --scrim-ink: rgb(10 10 18);
+    --scrim-strength: 78%;
 }
 
 [data-scheme='gruvbox'] {
@@ -190,13 +196,19 @@
     --magenta: #dc93a7;
     --cyan: #8ec07c;
     --shadow: 0 24px 60px -12px rgb(0 0 0 / 0.6);
-    --scrim: rgb(12 12 12 / 0.78);
+    --scrim-ink: rgb(12 12 12);
+    --scrim-strength: 78%;
 }
 
 /* Derived from the palette, so every scheme gets the same selection language. */
 :root,
 [data-scheme] {
     --bg-sel: color-mix(in oklab, var(--accent) 14%, var(--bg-raised));
+
+    /* The scrim dims the screen behind an overlay. The clearing is that same dimmed
+       colour, opaque: a ring of it keeps text behind from touching an overlay's edge. */
+    --scrim: color-mix(in srgb, var(--scrim-ink) var(--scrim-strength), transparent);
+    --clearing: color-mix(in srgb, var(--scrim-ink) var(--scrim-strength), var(--bg));
 
     /* shadcn-compatible names: Base UI primitives and Clerk's shadcn theme read these. */
     --background: var(--bg);
@@ -301,7 +313,8 @@
     --radius-md: 6px;
     --radius-lg: 6px;
 
-    --shadow-overlay: var(--shadow);
+    --shadow-overlay: 0 0 0 0.75rem var(--clearing), var(--shadow);
+    --shadow-popup: var(--shadow);
 
     --animate-blink: blink 1.06s steps(1) infinite;
     --animate-type-in: type-in 0.24s steps(8) both;

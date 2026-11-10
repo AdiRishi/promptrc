@@ -2,7 +2,6 @@ import { type ReactNode, useId, useState } from 'react'
 
 import { Bracketed, Choice, ChoiceGroup } from '@/components/ui/choice'
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog'
-import { useModKeyLabel } from '@/components/ui/kbd'
 import { KeyAction, KeyActionBar } from '@/components/ui/key-action'
 import { type PromptCaptureInput } from '@/features/prompt-library/commands/prompt-library-command-executor'
 import { KindMark } from '@/features/prompt-library/components/kind-mark'
@@ -66,7 +65,6 @@ function CaptureShell({
     new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }),
   )
   const derivedTitle = deriveTitleFromBody(body)
-  const modLabel = useModKeyLabel()
 
   const submit = () => {
     if (onCapture({ kind, body, title, category, tagsInput })) {
@@ -126,7 +124,7 @@ function CaptureShell({
         </ChoiceGroup>
 
         <div className="mt-4 flex gap-[1ch]">
-          <span aria-hidden="true" className="font-bold text-accent">
+          <span aria-hidden="true" className="-ml-[0.25ch] font-bold text-accent">
             ❯
           </span>
           <label className="sr-only" htmlFor={`${id}-body`}>
@@ -136,7 +134,7 @@ function CaptureShell({
             // The whole point of capture is zero friction: focus the prompt line.
             // oxlint-disable-next-line jsx-a11y/no-autofocus
             autoFocus
-            className="[field-sizing:content] max-h-[40vh] min-h-[8rem] w-full resize-none bg-transparent text-body text-fg outline-none placeholder:text-fg-faint max-md:text-[16px]"
+            className="[field-sizing:content] max-h-[40vh] min-h-[3lh] w-full resize-none bg-transparent text-body text-fg outline-none placeholder:text-fg-faint max-md:text-[16px]"
             id={`${id}-body`}
             onChange={(event) => setBody(event.target.value)}
             onKeyDown={submitOnModEnter}
@@ -182,12 +180,12 @@ function CaptureShell({
       <KeyActionBar className="mx-0 border-t border-line px-[2ch] py-2">
         <KeyAction
           disabled={!body.trim()}
-          keyLabel={`${modLabel} ⏎`}
+          keys={['Mod', 'Enter']}
           label="keep it"
           primary
           type="submit"
         />
-        <KeyAction keyLabel="esc" label="discard" onClick={onClose} />
+        <KeyAction keys={['Esc']} label="discard" onClick={onClose} />
       </KeyActionBar>
     </form>
   )

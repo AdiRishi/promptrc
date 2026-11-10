@@ -4,6 +4,7 @@ import { type PropsWithChildren } from 'react'
 import { Pane } from '@/components/ui/pane'
 import { KindMark } from '@/features/prompt-library/components/kind-mark'
 import { Wordmark } from '@/features/prompt-library/components/library-pane'
+import { SyncMark } from '@/features/prompt-library/components/sync-mark'
 import { PROMPT_KIND_DEFINITIONS, PROMPT_KINDS } from '@/features/prompt-library/model/prompt-kinds'
 
 type AuthShellProps = PropsWithChildren<{
@@ -54,12 +55,12 @@ export function AuthShell({ children, mode }: AuthShellProps) {
               <Prompt /> promptrc sync --status
             </p>
             <dl className="mt-2 grid grid-cols-[16ch_minmax(0,1fr)] gap-x-[2ch] gap-y-1">
-              <dt className="text-fg">
-                <span className="text-yellow">●</span> signed out
+              <dt className="flex gap-[1ch] text-fg">
+                <SyncMark mode="local" /> signed out
               </dt>
               <dd className="text-fg-dim">entries live in this browser only</dd>
-              <dt className="text-fg">
-                <span className="text-green">●</span> signed in
+              <dt className="flex gap-[1ch] text-fg">
+                <SyncMark mode="remote" /> signed in
               </dt>
               <dd className="text-fg-dim">
                 synced to every browser you use, with share links and images
@@ -69,7 +70,7 @@ export function AuthShell({ children, mode }: AuthShellProps) {
         </Pane>
 
         {/* Starts level with the first line inside the README frame. */}
-        <div className="mx-auto flex w-full max-w-[400px] flex-col lg:pt-[29px]">
+        <div className="mx-auto flex w-full max-w-[400px] flex-col lg:max-w-none lg:pt-[29px]">
           <p className="mb-4 text-meta text-fg-dim">
             <span className="text-fg">promptrc {mode === 'sign-in' ? 'login' : 'useradd'}:</span>{' '}
             {mode === 'sign-in' ? 'welcome back' : 'create an account to sync'}

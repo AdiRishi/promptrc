@@ -224,7 +224,7 @@ function CommandLineInput({
       {completions.length > 0 ? (
         <ul
           aria-label="Completions"
-          className="scrollbar-term absolute bottom-full left-0 z-30 max-h-[50vh] w-[min(72ch,100%)] animate-pop overflow-y-auto rounded-md border border-line-strong bg-bg-raised py-1 shadow-overlay md:mb-7"
+          className="scrollbar-term absolute bottom-full left-0 z-30 max-h-[50vh] w-[min(72ch,100%)] animate-pop overflow-y-auto rounded-md border border-line-strong bg-bg-raised py-1 shadow-popup md:mb-7"
         >
           {completions.map((completion, index) => (
             <li key={completion.value}>

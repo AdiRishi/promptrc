@@ -37,13 +37,24 @@ function Kbd({ className, ...props }: React.ComponentProps<'kbd'>) {
   )
 }
 
-function KeyCombo({ keys, className }: { keys: readonly string[]; className?: string }) {
+function KeyCombo({
+  keys,
+  className,
+  capClassName,
+}: {
+  keys: readonly string[]
+  className?: string
+  /** Applied to every keycap of the chord. */
+  capClassName?: string
+}) {
   const modLabel = useModKeyLabel()
 
   return (
     <span className={cn('inline-flex items-center gap-[0.5ch]', className)}>
       {keys.map((key) => (
-        <Kbd key={key}>{key === 'Mod' ? modLabel : (KEY_GLYPHS[key] ?? key)}</Kbd>
+        <Kbd className={capClassName} key={key}>
+          {key === 'Mod' ? modLabel : (KEY_GLYPHS[key] ?? key)}
+        </Kbd>
       ))}
     </span>
   )

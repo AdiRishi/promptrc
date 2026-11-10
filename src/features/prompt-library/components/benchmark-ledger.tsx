@@ -1,6 +1,7 @@
 import { type SubmitEvent, useId, useState } from 'react'
 
 import { Bracketed, Choice, ChoiceGroup } from '@/components/ui/choice'
+import { KeyAction } from '@/components/ui/key-action'
 import { type PromptRunRequest } from '@/features/prompt-library/commands/prompt-library-command-executor'
 import { SectionLabel } from '@/features/prompt-library/components/section-label'
 import {
@@ -59,40 +60,31 @@ export function BenchmarkLedger({
       <div className="mt-8">
         <SectionLabel>runs</SectionLabel>
       </div>
-      <p className="flex flex-wrap items-baseline gap-x-[1ch] text-fg-dim">
+      <p className="flex flex-wrap items-baseline gap-x-[2ch] text-fg-dim">
         {summary.total ? (
           <>
             <span>
               <span className="font-semibold text-green">{summary.pass}</span> passed
             </span>
             {summary.mixed ? (
-              <>
-                <span aria-hidden="true">·</span>
-                <span>
-                  <span className="font-semibold text-yellow">{summary.mixed}</span> mixed
-                </span>
-              </>
+              <span>
+                <span className="font-semibold text-yellow">{summary.mixed}</span> mixed
+              </span>
             ) : null}
             {summary.fail ? (
-              <>
-                <span aria-hidden="true">·</span>
-                <span>
-                  <span className="font-semibold text-red">{summary.fail}</span> failed
-                </span>
-              </>
+              <span>
+                <span className="font-semibold text-red">{summary.fail}</span> failed
+              </span>
             ) : null}
           </>
         ) : (
           <span>No runs yet.</span>
         )}
         {summary.passRate !== null ? (
-          <>
-            <span aria-hidden="true">·</span>
-            <span>{Math.round(summary.passRate * 100)}% pass rate</span>
-          </>
+          <span>{Math.round(summary.passRate * 100)}% pass rate</span>
         ) : null}
         {sparkline.length > 0 ? (
-          <span aria-hidden="true" className="ml-[1ch]">
+          <span aria-hidden="true">
             {sparkline.map((run) => (
               <span
                 className={VERDICT_STYLE[run.verdict].text}
@@ -235,12 +227,7 @@ function LogRunForm({
             placeholder="what happened? (optional)"
             value={note}
           />
-          <button
-            className="-mr-[1ch] inline-flex h-7 shrink-0 items-center gap-[1ch] px-[1ch] text-fg-dim transition-colors hover:bg-bg-hover hover:text-fg max-md:h-11"
-            type="submit"
-          >
-            <span className="text-accent">⏎</span> log run
-          </button>
+          <KeyAction keys={['Enter']} label="log run" primary type="submit" />
         </div>
       </div>
     </form>

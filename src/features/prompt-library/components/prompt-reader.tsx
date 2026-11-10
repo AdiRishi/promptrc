@@ -144,15 +144,6 @@ export function PromptReader({
                   ))}
                 </span>
               ) : null}
-              <span
-                className="whitespace-nowrap"
-                title={new Date(prompt.createdAt).toLocaleString()}
-              >
-                kept {prompt.createdAt.slice(0, 10)}
-              </span>
-              {prompt.uses > 0 ? (
-                <span className="whitespace-nowrap">yanked {prompt.uses}×</span>
-              ) : null}
               {prompt.pinned ? (
                 <span className="whitespace-nowrap">
                   <span className="text-yellow">★</span> pinned
@@ -202,6 +193,10 @@ export function PromptReader({
               <span title={new Date(prompt.updatedAt).toLocaleString()}>
                 modified {relativeTime(prompt.updatedAt)}
               </span>
+              <span title={new Date(prompt.createdAt).toLocaleString()}>
+                kept {prompt.createdAt.slice(0, 10)}
+              </span>
+              {prompt.uses > 0 ? <span>yanked {prompt.uses}×</span> : null}
             </footer>
           </div>
         </div>
@@ -259,18 +254,18 @@ function ReaderActions({
   return (
     <div className="mt-4 border-b border-line px-[2ch] pb-3 max-md:mt-2 max-md:pb-2 md:px-[3ch]">
       <KeyActionBar>
-        <KeyAction keyLabel="y" label="yank" onClick={() => onCopy()} primary />
-        <KeyAction keyLabel="e" label="edit" onClick={onEdit} />
-        <KeyAction keyLabel="p" label={prompt.pinned ? 'unpin' : 'pin'} onClick={onTogglePin} />
-        <KeyAction keyLabel="d" label="dup" onClick={onDuplicate} />
-        {canSharePrompts ? <KeyAction keyLabel="s" label="share" onClick={onShare} /> : null}
+        <KeyAction keys={['y']} label="yank" onClick={() => onCopy()} primary />
+        <KeyAction keys={['e']} label="edit" onClick={onEdit} />
+        <KeyAction keys={['p']} label={prompt.pinned ? 'unpin' : 'pin'} onClick={onTogglePin} />
+        <KeyAction keys={['d']} label="dup" onClick={onDuplicate} />
+        {canSharePrompts ? <KeyAction keys={['s']} label="share" onClick={onShare} /> : null}
         {canSharePrompts && hasActivePromptShare ? (
           <KeyAction label="unshare" onClick={onRevokeShare} />
         ) : null}
         <KeyAction
           ariaLabel={isConfirmingDelete ? 'Press again to delete' : 'Delete'}
           className={isConfirmingDelete ? 'text-red' : undefined}
-          keyLabel="x"
+          keys={['x']}
           label={isConfirmingDelete ? 'press again to delete' : 'delete'}
           onClick={onDelete}
         />
@@ -376,18 +371,13 @@ function SequenceSteps({
               </span>
               {isNext ? <span className="text-accent">← next</span> : null}
               <span aria-hidden="true" className="h-0 flex-1 border-t border-dashed border-line" />
-              <button
-                aria-label={`Copy step ${index + 1}`}
-                className={cn(
-                  'inline-flex h-6 items-center gap-[1ch] px-[1ch] transition-colors hover:bg-bg-hover max-md:h-11',
-                  isCopied ? 'text-fg-faint hover:text-fg' : 'text-fg-dim hover:text-fg',
-                )}
-                onClick={() => void copyStep(index)}
-                type="button"
-              >
-                <span className="text-accent">:y{index + 1}</span>
-                {isCopied ? 'yanked' : 'yank'}
-              </button>
+              <KeyAction
+                ariaLabel={`Copy step ${index + 1}`}
+                className={cn('-mr-[1ch]', isCopied && 'text-fg-dim')}
+                keys={[`:y${index + 1}`]}
+                label={isCopied ? 'yanked' : 'yank'}
+                onClick={() => copyStep(index)}
+              />
             </div>
             <div
               className={cn(

@@ -1,6 +1,7 @@
 import { KindMark } from '@/features/prompt-library/components/kind-mark'
 import { listPath } from '@/features/prompt-library/components/prompt-list'
 import { promptPath } from '@/features/prompt-library/components/prompt-reader'
+import { SyncMark } from '@/features/prompt-library/components/sync-mark'
 import {
   type PromptLibraryFilter,
   type PromptRecord,
@@ -84,18 +85,7 @@ export function StatusLine({
         </span>
       ) : null}
       <span className="hidden shrink-0 items-center gap-[1ch] px-[1ch] text-fg-dim md:flex">
-        <span
-          aria-hidden="true"
-          className={cn(
-            syncStatus === 'error'
-              ? 'text-red'
-              : syncStatus === 'loading'
-                ? 'animate-pulse text-yellow'
-                : 'text-green',
-          )}
-        >
-          ●
-        </span>
+        <SyncMark mode={syncMode} status={syncStatus} />
         {syncStatus === 'error' ? 'sync error' : syncMode === 'remote' ? 'cloud' : 'local'}
       </span>
       <span className="shrink-0 bg-bg-hover px-[1.5ch] text-fg tabular-nums">

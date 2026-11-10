@@ -1,7 +1,6 @@
 import { type ReactNode, useId, useState } from 'react'
 
 import { Bracketed, Choice, ChoiceGroup } from '@/components/ui/choice'
-import { useModKeyLabel } from '@/components/ui/kbd'
 import { KeyAction, KeyActionBar } from '@/components/ui/key-action'
 import { Pane } from '@/components/ui/pane'
 import { KindMark } from '@/features/prompt-library/components/kind-mark'
@@ -63,7 +62,6 @@ export function PromptEditor({
   onPasteImages,
 }: PromptEditorProps) {
   const id = useId()
-  const modLabel = useModKeyLabel()
   const { draft } = composer
   const definition = getPromptKindDefinition(draft.kind)
   const variables = extractPromptVariables(draft.body)
@@ -139,12 +137,12 @@ export function PromptEditor({
         <div className="border-b border-line px-[2ch] pt-4 pb-3 md:px-[3ch]">
           <KeyActionBar>
             <KeyAction
-              keyLabel={`${modLabel} ⏎`}
+              keys={['Mod', 'Enter']}
               label={composer.mode === 'new' ? 'keep it' : 'save'}
               primary
               type="submit"
             />
-            <KeyAction keyLabel="esc" label="cancel" onClick={onCancel} />
+            <KeyAction keys={['Esc']} label="cancel" onClick={onCancel} />
           </KeyActionBar>
         </div>
 

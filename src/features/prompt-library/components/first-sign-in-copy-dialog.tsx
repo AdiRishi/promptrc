@@ -2,8 +2,8 @@
 
 import { useCallback } from 'react'
 
-import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog'
+import { KeyAction, KeyActionBar } from '@/components/ui/key-action'
 import {
   usePromptLibraryClient,
   usePromptLibraryStore,
@@ -85,22 +85,17 @@ export function FirstSignInCopyDialog() {
               <span className="cursor-block cursor-blink" />
             )}
           </p>
-          <div className="mt-5 flex justify-end gap-[1ch]">
-            <Button disabled={isBusy} onClick={declineCopy} type="button" variant="ghost">
-              n · start empty
-            </Button>
-            <Button
-              // The prompt waits for an answer; focus the default one.
-              // oxlint-disable-next-line jsx-a11y/no-autofocus
-              autoFocus
-              disabled={isBusy}
-              onClick={acceptCopy}
-              type="button"
-            >
-              Y · copy {promptCount === 1 ? 'it' : `all ${promptCount}`}
-            </Button>
-          </div>
         </div>
+        <KeyActionBar className="mx-0 border-t border-line px-[2ch] py-2">
+          <KeyAction
+            disabled={isBusy}
+            keys={['Y']}
+            label={`copy ${promptCount === 1 ? 'it' : `all ${promptCount}`}`}
+            onClick={acceptCopy}
+            primary
+          />
+          <KeyAction disabled={isBusy} keys={['n']} label="start empty" onClick={declineCopy} />
+        </KeyActionBar>
       </DialogContent>
     </Dialog>
   )

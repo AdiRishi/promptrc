@@ -325,9 +325,8 @@ function FinderPreview({ item }: { item: FinderItem | undefined }) {
 
     return (
       <div className="scrollbar-term min-h-0 flex-1 overflow-y-auto px-[3ch] pt-4 pb-6">
-        <div className="flex items-center gap-[1ch] text-meta text-fg-faint">
+        <div className="flex items-center gap-[2ch] text-meta text-fg-faint">
           <KindTag kind={prompt.kind} />
-          <span aria-hidden="true">·</span>
           <span className="truncate">{promptPath(prompt)}</span>
         </div>
         <p className="voice-title mt-1 mb-4 text-head text-fg">{prompt.title}</p>

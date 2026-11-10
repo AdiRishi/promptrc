@@ -146,7 +146,7 @@ export function ProjectPicker({
 
       {showMenu ? (
         <ul
-          className="absolute top-full left-0 z-40 mt-1 max-h-60 w-[min(32ch,100%)] min-w-[24ch] animate-pop overflow-y-auto rounded-md border border-line-strong bg-bg-raised py-1 shadow-overlay"
+          className="absolute top-full left-0 z-40 mt-1 max-h-60 w-[min(32ch,100%)] min-w-[24ch] animate-pop overflow-y-auto rounded-md border border-line-strong bg-bg-raised py-1 shadow-popup"
           id={listId}
         >
           {options.map((option, index) => {

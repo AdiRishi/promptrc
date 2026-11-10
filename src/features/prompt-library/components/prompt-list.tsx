@@ -99,7 +99,9 @@ export function PromptList({
           <button className="text-accent md:hidden" onClick={onCapture} type="button">
             + capture
           </button>
-          <span>{query.trim() ? `${prompts.length}/${totalCount}` : prompts.length}</span>
+          <span className="max-md:hidden">
+            {query.trim() ? `${prompts.length}/${totalCount}` : prompts.length}
+          </span>
         </>
       }
       className={cn('h-full', className)}
@@ -227,10 +229,7 @@ function PromptListItem({ prompt, catalogNumber, active, onSelect }: PromptListI
       <span className="min-w-0">
         <span className="flex items-baseline gap-[1ch]">
           <span
-            className={cn(
-              'min-w-0 flex-1 truncate max-md:line-clamp-2 max-md:whitespace-normal',
-              active ? 'font-semibold text-fg' : 'text-fg',
-            )}
+            className={cn('min-w-0 flex-1 truncate', active ? 'font-semibold text-fg' : 'text-fg')}
           >
             {prompt.title}
           </span>

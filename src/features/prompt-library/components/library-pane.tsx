@@ -3,6 +3,7 @@ import { type ReactNode } from 'react'
 
 import { Kbd } from '@/components/ui/kbd'
 import { Pane } from '@/components/ui/pane'
+import { SyncMark } from '@/features/prompt-library/components/sync-mark'
 import { isSameProject } from '@/features/prompt-library/model/prompt-projects'
 import { type PromptLibraryFacets } from '@/features/prompt-library/selectors/prompt-library-selectors'
 import {
@@ -113,20 +114,8 @@ export function LibraryPane({
           <span className="flex-1">capture</span>
           <Kbd className="font-normal max-md:hidden">c</Kbd>
         </button>
-        <FooterRow label="sync">
-          <span
-            aria-hidden="true"
-            className={cn(
-              'mr-[1ch]',
-              syncStatus === 'error'
-                ? 'text-red'
-                : syncStatus === 'loading'
-                  ? 'animate-pulse text-yellow'
-                  : 'text-green',
-            )}
-          >
-            ●
-          </span>
+        <FooterRow className="max-md:h-8" label="sync">
+          <SyncMark className="mr-[1ch]" mode={syncMode} status={syncStatus} />
           <span className={cn(syncStatus === 'error' && 'text-red')}>
             {syncStatus === 'error'
               ? 'error'
@@ -139,41 +128,52 @@ export function LibraryPane({
         </FooterRow>
         <FooterRow label="scheme">
           <button
-            className="-mx-[1ch] min-w-0 truncate px-[1ch] text-left transition-colors hover:bg-bg-hover hover:text-fg max-md:h-11"
+            className="-mx-[1ch] flex min-w-0 gap-[1ch] truncate px-[1ch] text-left transition-colors hover:bg-bg-hover hover:text-fg max-md:h-11 max-md:items-center"
             onClick={colorScheme.cycle}
             title="Cycle colorscheme (or :colorscheme <name>)"
             type="button"
           >
             {colorScheme.scheme}
             {colorScheme.preference === 'system' ? (
-              <span className="text-fg-faint"> · auto</span>
+              <span className="text-fg-faint">auto</span>
             ) : null}
           </button>
         </FooterRow>
-        <FooterRow label="account">
-          <Show when="signed-out">
-            <a className="link" href="/sign-in">
-              login
+        {/* A phone has the width for both on one row, and none of the height to spare. */}
+        <div className="max-md:flex">
+          <FooterRow className="max-md:flex-1" label="account">
+            <Show when="signed-out">
+              <a className="link" href="/sign-in">
+                login
+              </a>
+            </Show>
+            <Show when="signed-in">
+              <UserButton appearance={{ elements: { userButtonAvatarBox: 'size-5 rounded-sm' } }} />
+            </Show>
+          </FooterRow>
+          <FooterRow className="max-md:flex-1" label="source">
+            <a className="link" href={SITE_GITHUB_URL} rel="noreferrer" target="_blank">
+              github <span aria-hidden="true">↗</span>
             </a>
-          </Show>
-          <Show when="signed-in">
-            <UserButton appearance={{ elements: { userButtonAvatarBox: 'size-5 rounded-sm' } }} />
-          </Show>
-        </FooterRow>
-        <FooterRow label="source">
-          <a className="link" href={SITE_GITHUB_URL} rel="noreferrer" target="_blank">
-            github <span aria-hidden="true">↗</span>
-          </a>
-        </FooterRow>
+          </FooterRow>
+        </div>
       </div>
     </Pane>
   )
 }
 
 /** One line of the footer: what it is, then its value. */
-function FooterRow({ label, children }: { label: string; children: ReactNode }) {
+function FooterRow({
+  label,
+  className,
+  children,
+}: {
+  label: string
+  className?: string
+  children: ReactNode
+}) {
   return (
-    <p className="flex h-6 items-center px-[2ch] max-md:h-11">
+    <p className={cn('flex h-6 items-center px-[2ch] max-md:h-11', className)}>
       <span className="w-[8ch] shrink-0 text-fg-faint">{label}</span>
       <span className="flex min-w-0 items-center whitespace-nowrap">{children}</span>
     </p>
