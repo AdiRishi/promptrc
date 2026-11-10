@@ -55,20 +55,32 @@ export const hasPromptVariables = (body: string) => {
   return hasMatch
 }
 
+/** Fills the slots a reader can fill. Code is copied as written, the way it is shown. */
 export const fillPromptVariables = (body: string, values: Readonly<Record<string, string>>) => {
-  return body.replace(VARIABLE_PATTERN, (placeholder, name: string, fallback?: string) => {
-    const value = values[name]?.trim()
+  const fill = (text: string) =>
+    text.replace(VARIABLE_PATTERN, (placeholder, name: string, fallback?: string) => {
+      const value = values[name]?.trim()
 
-    if (value) {
-      return value
-    }
+      if (value) {
+        return value
+      }
 
-    if (fallback) {
-      return fallback
-    }
+      if (fallback) {
+        return fallback
+      }
 
-    return placeholder
-  })
+      return placeholder
+    })
+
+  let filled = ''
+  let cursor = 0
+
+  for (const code of body.matchAll(CODE_PATTERN)) {
+    filled += fill(body.slice(cursor, code.index)) + code[0]
+    cursor = code.index + code[0].length
+  }
+
+  return filled + fill(body.slice(cursor))
 }
 
 export type PromptTemplateSegment =

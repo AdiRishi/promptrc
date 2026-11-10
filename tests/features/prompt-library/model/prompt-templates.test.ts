@@ -104,6 +104,18 @@ describe('prompt templates', () => {
       expect(fillPromptVariables('{{a}}', { a: '{{b}}', b: 'nope' })).toBe('{{b}}')
     })
 
+    it('copies code as written, where a reader is given no slot to fill', () => {
+      const body =
+        'Tone: {{tone | calm}}. Write `{{tone | calm}}` in the template.\n\n```\n{{tone}}\n```'
+
+      expect(fillPromptVariables(body, { tone: 'dry' })).toBe(
+        'Tone: dry. Write `{{tone | calm}}` in the template.\n\n```\n{{tone}}\n```',
+      )
+      expect(fillPromptVariables(body, {})).toBe(
+        'Tone: calm. Write `{{tone | calm}}` in the template.\n\n```\n{{tone}}\n```',
+      )
+    })
+
     it('ignores values for names that are not in the body', () => {
       expect(fillPromptVariables('Plain text', { unused: 'x' })).toBe('Plain text')
     })

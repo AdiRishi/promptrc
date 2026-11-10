@@ -36,7 +36,7 @@ Lead with the decision they need to make. Separate confirmed facts from guesses.
 
 ## When you need literal braces
 
-Sometimes the prompt itself has to contain double braces, for example when you ask a model to write a template for you. Put them in a code span or a code block. promptrc leaves braces inside code as written and does not turn them into a variable.
+Sometimes the prompt itself has to contain double braces, for example when you ask a model to write a template for you. Put them in a code span or a code block. promptrc shows braces inside code as written, offers no blank for them, and copies them unchanged.
 
 ## Templates in promptrc
 

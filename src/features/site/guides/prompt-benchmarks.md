@@ -35,7 +35,7 @@ Keep each benchmark to one behaviour. A test that checks five things gives you a
 
 promptrc has an entry kind for this.
 
-- A benchmark holds the test prompt and the expected result side by side. Copying it gives you the test prompt exactly as saved.
+- A benchmark holds the test prompt and the expected result side by side. Copying it gives you the test prompt alone, so the expected result never reaches the model.
 - `:log claude-opus-5-5 pass asked for a link instead` records a run from the command line. The same form sits under the log in the reader.
 - The log lists each run with its verdict, model, note and date, and shows the pass rate across them.
 - A row of bars shows the recent verdicts at a glance, in the reader and beside the benchmark in the list.
