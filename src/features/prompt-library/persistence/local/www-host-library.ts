@@ -1,4 +1,7 @@
-import { parseLocalPromptLibrarySnapshot } from '@/features/prompt-library/persistence/local/local-prompt-library-storage'
+import {
+  parseLocalPromptLibrarySnapshot,
+  readLocalPromptLibrarySnapshot,
+} from '@/features/prompt-library/persistence/local/local-prompt-library-storage'
 import { type PromptLibraryPersistedSnapshot } from '@/features/prompt-library/types'
 import { WWW_LIBRARY_BRIDGE_PATH } from '@/lib/canonical-host'
 import { CANONICAL_SITE_URL } from '@/lib/site-config'
@@ -84,6 +87,17 @@ export const readWwwHostLibrary = (): Promise<
 
 export const markWwwHostLibraryImported = () => {
   localStorage.setItem(IMPORTED_KEY, '1')
+}
+
+/**
+ * Whether every entry of a merged library is in this host's storage. A write
+ * that storage refuses (it is full) is reported, not thrown, so this reads
+ * back what was kept.
+ */
+export const isWwwHostLibrarySaved = (merged: PromptLibraryPersistedSnapshot) => {
+  const savedIds = new Set(readLocalPromptLibrarySnapshot()?.prompts.map((prompt) => prompt.id))
+
+  return merged.prompts.every((prompt) => savedIds.has(prompt.id))
 }
 
 const hasDraft = (snapshot: PromptLibraryPersistedSnapshot) => snapshot.composer.mode !== 'view'

@@ -1,7 +1,12 @@
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { importWwwHostLibrary } from '@/features/prompt-library/lifecycle/www-host-library-import'
 import {
+  createLocalPromptLibraryStorage,
+  readLocalPromptLibrarySnapshot,
+} from '@/features/prompt-library/persistence/local/local-prompt-library-storage'
+import {
+  type PromptLibraryStoreApi,
   createPromptLibraryStore,
   getPromptLibraryPersistedSnapshot,
 } from '@/features/prompt-library/store/prompt-library-store'
@@ -26,10 +31,38 @@ const prompt = (id: string): PromptRecord => ({
   uses: 0,
 })
 
+/** Browser storage that can be told it is full. */
+const createBrowserStorage = () => {
+  const values = new Map<string, string>()
+  const storage = {
+    isFull: false,
+    getItem: (key: string) => values.get(key) ?? null,
+    setItem: (key: string, value: string) => {
+      if (storage.isFull) {
+        throw new DOMException('The quota has been exceeded.', 'QuotaExceededError')
+      }
+
+      values.set(key, value)
+    },
+  }
+
+  return storage
+}
+
+/** A signed-out library in use: loaded, and saving each change as the session does. */
 const createLoadedStore = (prompts: PromptRecord[]) => {
   const store = createPromptLibraryStore()
+  const storage = createLocalPromptLibraryStorage()
 
   store.getState().actions.replacePrompts(prompts, { isFresh: false })
+  storage.persistSnapshot(getPromptLibraryPersistedSnapshot(store.getState()))
+  store.subscribe((state) => {
+    try {
+      storage.persistSnapshot(getPromptLibraryPersistedSnapshot(state))
+    } catch {
+      // The session reports this as a sync error and carries on.
+    }
+  })
 
   return store
 }
@@ -41,7 +74,18 @@ const wwwLibrary = (prompts: PromptRecord[]) =>
     isFresh: false,
   }) satisfies PromptLibraryPersistedSnapshot
 
+const shownIds = (store: PromptLibraryStoreApi) => store.getState().prompts.map((entry) => entry.id)
+
+const savedIds = () => readLocalPromptLibrarySnapshot()?.prompts.map((entry) => entry.id)
+
 describe('importing a library saved on the www host', () => {
+  let browserStorage: ReturnType<typeof createBrowserStorage>
+
+  beforeEach(() => {
+    browserStorage = createBrowserStorage()
+    Object.defineProperty(window, 'localStorage', { configurable: true, value: browserStorage })
+  })
+
   it('adds the www entries without touching work started while the answer was on its way', async () => {
     const store = createLoadedStore([prompt('here')])
     const markImported = vi.fn()
@@ -60,13 +104,41 @@ describe('importing a library saved on the www host', () => {
     answer(wwwLibrary([prompt('there')]))
     await pending
 
-    const state = store.getState()
-
-    expect(state.prompts.map((entry) => entry.id)).toEqual(['here', 'there'])
-    expect(state.composer).toMatchObject({
+    expect(shownIds(store)).toEqual(['here', 'there'])
+    expect(store.getState().composer).toMatchObject({
       mode: 'new',
       draft: { title: 'Typed during the wait' },
     })
+    expect(savedIds()).toEqual(['here', 'there'])
+    expect(markImported).toHaveBeenCalledOnce()
+  })
+
+  it('asks again next time when storage had no room for what it brought over', async () => {
+    const store = createLoadedStore([prompt('here')])
+    const markImported = vi.fn()
+
+    browserStorage.isFull = true
+    await importWwwHostLibrary(store, {
+      isActive: () => true,
+      markImported,
+      readWwwLibrary: () => Promise.resolve(wwwLibrary([prompt('there')])),
+    })
+
+    expect(savedIds()).toEqual(['here'])
+    expect(markImported).not.toHaveBeenCalled()
+  })
+
+  it('is done when the www host has nothing to bring over', async () => {
+    const store = createLoadedStore([prompt('here')])
+    const markImported = vi.fn()
+
+    await importWwwHostLibrary(store, {
+      isActive: () => true,
+      markImported,
+      readWwwLibrary: () => Promise.resolve(null),
+    })
+
+    expect(shownIds(store)).toEqual(['here'])
     expect(markImported).toHaveBeenCalledOnce()
   })
 
@@ -80,7 +152,7 @@ describe('importing a library saved on the www host', () => {
       readWwwLibrary: () => Promise.resolve(undefined),
     })
 
-    expect(store.getState().prompts.map((entry) => entry.id)).toEqual(['here'])
+    expect(shownIds(store)).toEqual(['here'])
     expect(markImported).not.toHaveBeenCalled()
   })
 
@@ -94,7 +166,7 @@ describe('importing a library saved on the www host', () => {
       readWwwLibrary: () => Promise.resolve(wwwLibrary([prompt('there')])),
     })
 
-    expect(store.getState().prompts.map((entry) => entry.id)).toEqual(['here'])
+    expect(shownIds(store)).toEqual(['here'])
     expect(markImported).not.toHaveBeenCalled()
   })
 })
