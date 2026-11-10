@@ -6,11 +6,11 @@ import {
   readLocalPromptLibrarySnapshot,
 } from '@/features/prompt-library/persistence/local/local-prompt-library-storage'
 import {
-  type PromptLibraryStoreApi,
   createPromptLibraryStore,
   getPromptLibraryPersistedSnapshot,
 } from '@/features/prompt-library/store/prompt-library-store'
 import {
+  type ComposerState,
   type PromptLibraryPersistedSnapshot,
   type PromptRecord,
 } from '@/features/prompt-library/types'
@@ -50,33 +50,53 @@ const createBrowserStorage = () => {
 }
 
 /** A signed-out library in use: loaded, and saving each change as the session does. */
-const createLoadedStore = (prompts: PromptRecord[]) => {
+const createLoadedLibrary = (prompts: PromptRecord[]) => {
   const store = createPromptLibraryStore()
   const storage = createLocalPromptLibraryStorage()
+  const saveLibrary = () => {
+    try {
+      storage.persistSnapshot(getPromptLibraryPersistedSnapshot(store.getState()))
+      return true
+    } catch {
+      return false
+    }
+  }
 
   store.getState().actions.replacePrompts(prompts, { isFresh: false })
-  storage.persistSnapshot(getPromptLibraryPersistedSnapshot(store.getState()))
-  store.subscribe((state) => {
-    try {
-      storage.persistSnapshot(getPromptLibraryPersistedSnapshot(state))
-    } catch {
-      // The session reports this as a sync error and carries on.
-    }
-  })
+  saveLibrary()
+  store.subscribe(saveLibrary)
 
-  return store
+  return { store, saveLibrary }
 }
 
-const wwwLibrary = (prompts: PromptRecord[]) =>
+const wwwLibrary = (
+  prompts: PromptRecord[],
+  overrides: Partial<PromptLibraryPersistedSnapshot> = {},
+) =>
   ({
     ...getPromptLibraryPersistedSnapshot(createPromptLibraryStore().getState()),
     prompts,
     isFresh: false,
+    ...overrides,
   }) satisfies PromptLibraryPersistedSnapshot
 
-const shownIds = (store: PromptLibraryStoreApi) => store.getState().prompts.map((entry) => entry.id)
+const draftLeftOnWww = (): ComposerState => {
+  const store = createPromptLibraryStore()
 
-const savedIds = () => readLocalPromptLibrarySnapshot()?.prompts.map((entry) => entry.id)
+  store.getState().actions.startNew()
+  store.getState().actions.updateDraft('title', 'Left on www')
+
+  return store.getState().composer
+}
+
+const savedLibrary = () => {
+  const saved = readLocalPromptLibrarySnapshot()
+
+  return {
+    ids: saved?.prompts.map((entry) => entry.id),
+    draft: saved?.composer.draft.title,
+  }
+}
 
 describe('importing a library saved on the www host', () => {
   let browserStorage: ReturnType<typeof createBrowserStorage>
@@ -87,11 +107,12 @@ describe('importing a library saved on the www host', () => {
   })
 
   it('adds the www entries without touching work started while the answer was on its way', async () => {
-    const store = createLoadedStore([prompt('here')])
+    const { store, saveLibrary } = createLoadedLibrary([prompt('here')])
     const markImported = vi.fn()
     let answer: (snapshot: PromptLibraryPersistedSnapshot) => void = () => {}
     const pending = importWwwHostLibrary(store, {
       isActive: () => true,
+      saveLibrary,
       markImported,
       readWwwLibrary: () =>
         new Promise((resolve) => {
@@ -104,69 +125,87 @@ describe('importing a library saved on the www host', () => {
     answer(wwwLibrary([prompt('there')]))
     await pending
 
-    expect(shownIds(store)).toEqual(['here', 'there'])
-    expect(store.getState().composer).toMatchObject({
-      mode: 'new',
-      draft: { title: 'Typed during the wait' },
-    })
-    expect(savedIds()).toEqual(['here', 'there'])
+    expect(store.getState().prompts.map((entry) => entry.id)).toEqual(['here', 'there'])
+    expect(savedLibrary()).toEqual({ ids: ['here', 'there'], draft: 'Typed during the wait' })
     expect(markImported).toHaveBeenCalledOnce()
   })
 
-  it('asks again next time when storage had no room for what it brought over', async () => {
-    const store = createLoadedStore([prompt('here')])
+  it('asks again next time when storage had no room for the entries it brought over', async () => {
+    const { store, saveLibrary } = createLoadedLibrary([prompt('here')])
     const markImported = vi.fn()
 
     browserStorage.isFull = true
     await importWwwHostLibrary(store, {
       isActive: () => true,
+      saveLibrary,
       markImported,
       readWwwLibrary: () => Promise.resolve(wwwLibrary([prompt('there')])),
     })
 
-    expect(savedIds()).toEqual(['here'])
+    expect(savedLibrary().ids).toEqual(['here'])
+    expect(markImported).not.toHaveBeenCalled()
+  })
+
+  it('asks again next time when storage had no room for a draft it brought over', async () => {
+    const { store, saveLibrary } = createLoadedLibrary([prompt('here')])
+    const markImported = vi.fn()
+
+    browserStorage.isFull = true
+    await importWwwHostLibrary(store, {
+      isActive: () => true,
+      saveLibrary,
+      markImported,
+      readWwwLibrary: () =>
+        Promise.resolve(wwwLibrary([], { isFresh: true, composer: draftLeftOnWww() })),
+    })
+
+    expect(store.getState().composer.draft.title).toBe('Left on www')
+    expect(savedLibrary()).toEqual({ ids: ['here'], draft: '' })
     expect(markImported).not.toHaveBeenCalled()
   })
 
   it('is done when the www host has nothing to bring over', async () => {
-    const store = createLoadedStore([prompt('here')])
+    const { store, saveLibrary } = createLoadedLibrary([prompt('here')])
     const markImported = vi.fn()
 
     await importWwwHostLibrary(store, {
       isActive: () => true,
+      saveLibrary,
       markImported,
       readWwwLibrary: () => Promise.resolve(null),
     })
 
-    expect(shownIds(store)).toEqual(['here'])
+    expect(savedLibrary().ids).toEqual(['here'])
     expect(markImported).toHaveBeenCalledOnce()
   })
 
   it('asks again next time when the www host did not answer', async () => {
-    const store = createLoadedStore([prompt('here')])
+    const { store, saveLibrary } = createLoadedLibrary([prompt('here')])
     const markImported = vi.fn()
 
     await importWwwHostLibrary(store, {
       isActive: () => true,
+      saveLibrary,
       markImported,
       readWwwLibrary: () => Promise.resolve(undefined),
     })
 
-    expect(shownIds(store)).toEqual(['here'])
+    expect(savedLibrary().ids).toEqual(['here'])
     expect(markImported).not.toHaveBeenCalled()
   })
 
-  it('leaves the store alone once the signed-out session has ended', async () => {
-    const store = createLoadedStore([prompt('here')])
+  it('leaves the library alone once the signed-out session has ended', async () => {
+    const { store, saveLibrary } = createLoadedLibrary([prompt('here')])
     const markImported = vi.fn()
 
     await importWwwHostLibrary(store, {
       isActive: () => false,
+      saveLibrary,
       markImported,
       readWwwLibrary: () => Promise.resolve(wwwLibrary([prompt('there')])),
     })
 
-    expect(shownIds(store)).toEqual(['here'])
+    expect(store.getState().prompts.map((entry) => entry.id)).toEqual(['here'])
     expect(markImported).not.toHaveBeenCalled()
   })
 })

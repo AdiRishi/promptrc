@@ -1,5 +1,4 @@
 import {
-  isWwwHostLibrarySaved,
   markWwwHostLibraryImported,
   mergeWwwHostLibrary,
   readWwwHostLibrary,
@@ -12,8 +11,9 @@ import {
 type WwwHostLibraryImportOptions = {
   /** False once the session that asked has ended, for example after signing in. */
   isActive: () => boolean
+  /** Writes the library as it stands to storage, and says whether storage took it. */
+  saveLibrary: () => boolean
   readWwwLibrary?: typeof readWwwHostLibrary
-  isSaved?: typeof isWwwHostLibrarySaved
   markImported?: () => void
 }
 
@@ -23,15 +23,16 @@ type WwwHostLibraryImportOptions = {
  * merged into the store as it stands when the answer arrives, not as it stood
  * when the question was asked.
  *
- * The import counts as done only once the merged library is in storage.
- * Otherwise a reload would lose what was brought over and never ask again.
+ * The import counts as done only once storage has taken the merged library,
+ * entries and draft alike. Otherwise a reload would lose what was brought
+ * over and never ask again.
  */
 export const importWwwHostLibrary = async (
   store: PromptLibraryStoreApi,
   {
     isActive,
+    saveLibrary,
     readWwwLibrary = readWwwHostLibrary,
-    isSaved = isWwwHostLibrarySaved,
     markImported = markWwwHostLibraryImported,
   }: WwwHostLibraryImportOptions,
 ) => {
@@ -47,7 +48,7 @@ export const importWwwHostLibrary = async (
   if (merged !== current) {
     store.getState().actions.restoreLocalState(merged)
 
-    if (!isSaved(merged)) {
+    if (!saveLibrary()) {
       return
     }
   }

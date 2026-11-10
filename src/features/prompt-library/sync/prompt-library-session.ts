@@ -46,9 +46,14 @@ export const startPromptLibrarySession = ({ storage, store }: PromptLibrarySessi
       unsubscribe = localPersistence.unsubscribe
       store.getState().actions.setSyncState({ syncMode: storage.mode, syncStatus: 'ready' })
 
-      if (storage.mode === 'local') {
+      const { saveNow } = localPersistence
+
+      if (saveNow) {
         // Started once changes are being saved, so what it brings over is saved too.
-        void importWwwHostLibrary(store, { isActive: () => isActive }).catch(setSyncError)
+        void importWwwHostLibrary(store, {
+          isActive: () => isActive,
+          saveLibrary: saveNow,
+        }).catch(setSyncError)
       }
     })
     .catch((error: unknown) => {
@@ -85,6 +90,7 @@ const startLocalPromptLibraryPersistence = ({
   return {
     started: true as const,
     unsubscribe: store.subscribe(persistSnapshot),
+    saveNow: () => persistSnapshot(store.getState()),
   }
 }
 
