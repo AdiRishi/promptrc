@@ -60,7 +60,8 @@ File-based routes in `src/routes/`. The generated `routeTree.gen.ts` is `.gitign
 - A guide is a markdown file in `src/features/site/guides/`, an entry in `guides.ts`, and a route file. Write the route as a static file (`guides.<slug>.tsx`): `src/lib/vite-sitemap-plugin.ts` builds `sitemap.xml` from the static routes and skips dynamic ones.
 - A title fits about 60 characters and a description about 155 before a search result cuts them. `tests/features/site/guides.test.ts` holds the home page and the guides to that.
 - The home page's server HTML carries `ReaderBanner` (what promptrc is, with links to these pages) until the library loads.
-- `src/start.ts` redirects `www.promptrc.app` to the canonical host, so each page has one address.
+- `src/start.ts` redirects page visits on `www.promptrc.app` to the canonical host, so each page has one address. Server-function calls are left alone, because a tab that was already open on `www` still makes them there.
+- `www` used to serve the app, so a signed-out library may sit in that origin's `localStorage`. The canonical host fetches it once through a hidden frame on `/www-library` (`persistence/local/www-host-library.ts`) and merges it into its own. Delete the route, that module and the exemption in `src/lib/canonical-host.ts` once old `www` visitors have had time to come back, for example after November 2027.
 
 ### Interface
 

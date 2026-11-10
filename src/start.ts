@@ -9,7 +9,7 @@ const csrfMiddleware = createCsrfMiddleware({
 
 // One address per page: search engines split a site's standing across duplicate hosts.
 const canonicalHostMiddleware = createMiddleware().server(({ request, next }) => {
-  const location = getCanonicalHostRedirect(request.url)
+  const location = getCanonicalHostRedirect(request)
 
   return location ? Response.redirect(location, 301) : next()
 })

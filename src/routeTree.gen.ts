@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as ManualRouteImport } from './routes/manual'
+import { Route as WwwLibraryRouteImport } from './routes/www-library'
 import { Route as GuidesIndexRouteImport } from './routes/guides.index'
 import { Route as GuidesPromptBenchmarksRouteImport } from './routes/guides.prompt-benchmarks'
 import { Route as GuidesPromptChainingRouteImport } from './routes/guides.prompt-chaining'
@@ -35,6 +36,11 @@ const AboutRoute = AboutRouteImport.update({
 const ManualRoute = ManualRouteImport.update({
   id: '/manual',
   path: '/manual',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const WwwLibraryRoute = WwwLibraryRouteImport.update({
+  id: '/www-library',
+  path: '/www-library',
   getParentRoute: () => rootRouteImport,
 } as any)
 const GuidesIndexRoute = GuidesIndexRouteImport.update({
@@ -88,6 +94,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/manual': typeof ManualRoute
+  '/www-library': typeof WwwLibraryRoute
   '/guides/prompt-benchmarks': typeof GuidesPromptBenchmarksRoute
   '/guides/prompt-chaining': typeof GuidesPromptChainingRoute
   '/guides/prompt-templates': typeof GuidesPromptTemplatesRoute
@@ -102,6 +109,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/manual': typeof ManualRoute
+  '/www-library': typeof WwwLibraryRoute
   '/guides/prompt-benchmarks': typeof GuidesPromptBenchmarksRoute
   '/guides/prompt-chaining': typeof GuidesPromptChainingRoute
   '/guides/prompt-templates': typeof GuidesPromptTemplatesRoute
@@ -117,6 +125,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/manual': typeof ManualRoute
+  '/www-library': typeof WwwLibraryRoute
   '/guides/prompt-benchmarks': typeof GuidesPromptBenchmarksRoute
   '/guides/prompt-chaining': typeof GuidesPromptChainingRoute
   '/guides/prompt-templates': typeof GuidesPromptTemplatesRoute
@@ -133,6 +142,7 @@ export interface FileRouteTypes {
     | '/'
     | '/about'
     | '/manual'
+    | '/www-library'
     | '/guides/prompt-benchmarks'
     | '/guides/prompt-chaining'
     | '/guides/prompt-templates'
@@ -147,6 +157,7 @@ export interface FileRouteTypes {
     | '/'
     | '/about'
     | '/manual'
+    | '/www-library'
     | '/guides/prompt-benchmarks'
     | '/guides/prompt-chaining'
     | '/guides/prompt-templates'
@@ -161,6 +172,7 @@ export interface FileRouteTypes {
     | '/'
     | '/about'
     | '/manual'
+    | '/www-library'
     | '/guides/prompt-benchmarks'
     | '/guides/prompt-chaining'
     | '/guides/prompt-templates'
@@ -176,6 +188,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AboutRoute: typeof AboutRoute
   ManualRoute: typeof ManualRoute
+  WwwLibraryRoute: typeof WwwLibraryRoute
   GuidesPromptBenchmarksRoute: typeof GuidesPromptBenchmarksRoute
   GuidesPromptChainingRoute: typeof GuidesPromptChainingRoute
   GuidesPromptTemplatesRoute: typeof GuidesPromptTemplatesRoute
@@ -208,6 +221,13 @@ declare module '@tanstack/react-router' {
       path: '/manual'
       fullPath: '/manual'
       preLoaderRoute: typeof ManualRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/www-library': {
+      id: '/www-library'
+      path: '/www-library'
+      fullPath: '/www-library'
+      preLoaderRoute: typeof WwwLibraryRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/guides/': {
@@ -280,6 +300,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AboutRoute: AboutRoute,
   ManualRoute: ManualRoute,
+  WwwLibraryRoute: WwwLibraryRoute,
   GuidesPromptBenchmarksRoute: GuidesPromptBenchmarksRoute,
   GuidesPromptChainingRoute: GuidesPromptChainingRoute,
   GuidesPromptTemplatesRoute: GuidesPromptTemplatesRoute,
