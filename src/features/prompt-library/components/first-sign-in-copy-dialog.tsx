@@ -47,7 +47,7 @@ export function FirstSignInCopyDialog() {
   return (
     <Dialog open={isOpen}>
       <DialogContent
-        className="gap-0 p-0 sm:max-w-[520px]"
+        className="gap-0 p-0 sm:max-w-[60ch]"
         // y / n answer the prompt, like any good installer.
         onKeyDown={(event) => {
           if (isBusy) {
@@ -64,30 +64,26 @@ export function FirstSignInCopyDialog() {
         }}
         showCloseButton={false}
       >
-        <DialogTitle className="pane-title text-accent">first sign-in</DialogTitle>
-        <div className="px-[2ch] pt-5 pb-4 text-[13px] leading-[1.75]">
-          <p className="text-fg-dim">
-            <span className="text-fg-faint">$</span> promptrc sync --from=this-browser
-          </p>
-          <DialogDescription className="mt-1 text-fg-dim">
-            found <span className="font-bold text-fg">{entries}</span> here that aren’t in your
-            account yet.
-            <br />
-            <span className="text-fg-faint"># nothing on this device is removed either way</span>
+        <DialogTitle className="pane-title font-normal text-fg">first sign-in</DialogTitle>
+        <div className="px-[3ch] pt-6 pb-4">
+          <p className="text-meta text-fg-faint">$ promptrc sync --from=this-browser</p>
+          <DialogDescription className="mt-2 text-fg-dim">
+            Found <span className="font-semibold text-fg">{entries}</span> here that aren’t in your
+            account yet. Nothing on this device is removed either way.
           </DialogDescription>
           {firstSignInCopy.error ? (
             <p className="mt-2 text-red">error: {firstSignInCopy.error}</p>
           ) : null}
-          <p className="mt-3 text-fg">
-            copy {promptCount === 1 ? 'it' : `all ${promptCount}`} into your account?{' '}
-            <span className="text-fg-dim">[Y/n]</span>{' '}
+          <p className="mt-4 text-fg">
+            Copy {promptCount === 1 ? 'it' : `all ${promptCount}`} into your account?{' '}
+            <span className="text-fg-faint">[Y/n]</span>{' '}
             {isBusy ? (
-              <span className="text-yellow">copying…</span>
+              <span className="text-fg-dim">copying…</span>
             ) : (
-              <span className="cursor-block" />
+              <span className="cursor-block cursor-blink" />
             )}
           </p>
-          <div className="mt-4 flex justify-end gap-[2ch]">
+          <div className="mt-5 flex justify-end gap-[1ch]">
             <Button disabled={isBusy} onClick={declineCopy} type="button" variant="ghost">
               n · start empty
             </Button>

@@ -3,19 +3,14 @@ import { type ReactNode, useState } from 'react'
 
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
 import { KeyCombo } from '@/components/ui/kbd'
-import {
-  KIND_GLYPHS,
-  KIND_TEXT_CLASS,
-  KindTag,
-} from '@/features/prompt-library/components/kind-mark'
+import { KindMark, KindTag } from '@/features/prompt-library/components/kind-mark'
 import { promptPath } from '@/features/prompt-library/components/prompt-reader'
 import { PROMPT_KIND_DEFINITIONS, PROMPT_KINDS } from '@/features/prompt-library/model/prompt-kinds'
+import { PromptBodyMarkdown } from '@/features/prompt-library/rendering/prompt-body-markdown'
 import { formatCatalogNumber } from '@/features/prompt-library/rendering/prompt-library-formatting'
-import { PromptSourceView } from '@/features/prompt-library/rendering/prompt-source-view'
 import { type PromptLibraryFacets } from '@/features/prompt-library/selectors/prompt-library-selectors'
 import { type PromptLibraryFilter, type PromptRecord } from '@/features/prompt-library/types'
 import { COLOR_SCHEMES, type ColorSchemePreference } from '@/lib/theme'
-import { cn } from '@/lib/utils'
 
 export type FinderAction = {
   id: string
@@ -46,22 +41,24 @@ type FinderItem =
   | {
       kind: 'filter'
       label: string
+      /** What typing matches: `@project/`, `#tag`, or the plain label. */
+      token: string
       /** The `:` command that does the same, shown in the preview. */
       command: string
       patch: Partial<PromptLibraryFilter>
       count: number
-      glyph?: ReactNode
+      glyph: ReactNode
     }
   | { kind: 'scheme'; id: ColorSchemePreference; description: string }
 
 const itemClass =
-  'flex h-7 cursor-pointer items-center gap-[1ch] rounded-sm px-[1ch] text-[13px] text-fg-dim outline-none select-none data-[disabled=true]:pointer-events-none data-[disabled=true]:opacity-35 data-[selected=true]:bg-bg-sel data-[selected=true]:text-fg'
+  'flex h-8 cursor-pointer items-center gap-[1ch] px-[2ch] text-fg-dim outline-none select-none data-[disabled=true]:pointer-events-none data-[disabled=true]:opacity-40 data-[selected=true]:bg-bg-sel data-[selected=true]:text-fg data-[selected=true]:shadow-[inset_2px_0_0_var(--accent)] max-md:h-11'
 
 const groupClass =
-  '[&_[cmdk-group-heading]]:px-[1ch] [&_[cmdk-group-heading]]:pt-2 [&_[cmdk-group-heading]]:pb-0.5 [&_[cmdk-group-heading]]:text-[11.5px] [&_[cmdk-group-heading]]:text-cyan'
+  '[&_[cmdk-group-heading]]:px-[2ch] [&_[cmdk-group-heading]]:pt-3 [&_[cmdk-group-heading]]:pb-1 [&_[cmdk-group-heading]]:text-meta [&_[cmdk-group-heading]]:text-fg-faint'
 
 const entryValue = (prompt: PromptRecord) => `${prompt.title} ${promptPath(prompt)} ${prompt.id}`
-const filterValue = (label: string) => `go ${label}`
+const filterValue = (token: string) => `go ${token}`
 const actionValue = (label: string) => `> ${label}`
 const schemeValue = (id: string) => `> colorscheme ${id}`
 
@@ -70,7 +67,7 @@ export function Finder({ open, onOpenChange, ...props }: FinderProps) {
   return (
     <Dialog onOpenChange={onOpenChange} open={open}>
       <DialogContent
-        className="top-[10vh] translate-y-0 gap-0 overflow-visible p-0 sm:max-w-[min(1040px,calc(100%-2rem))]"
+        className="top-[12vh] translate-y-0 gap-0 overflow-visible p-0 sm:max-w-[min(112ch,calc(100%-2rem))]"
         showCloseButton={false}
       >
         <DialogTitle className="sr-only">Find</DialogTitle>
@@ -102,30 +99,35 @@ function FinderBody({
   const filters: Array<Extract<FinderItem, { kind: 'filter' }>> = [
     {
       kind: 'filter',
-      label: '~ everything',
+      label: 'everything',
+      token: '~ everything',
       command: 'cd ~',
       patch: { project: null, kind: null, pinned: false, tag: null },
       count: facets.total,
-      glyph: <span className="text-accent">~</span>,
+      glyph: <span className="text-fg-faint">~</span>,
     },
     ...facets.projects.map((project) => ({
       kind: 'filter' as const,
-      label: `@${project.label}/`,
+      label: `${project.label}/`,
+      token: `@${project.label}/`,
       command: `cd ${project.label}`,
       patch: { project: project.label, tag: null },
       count: project.count,
+      glyph: '@',
     })),
     ...PROMPT_KINDS.map((kind) => ({
       kind: 'filter' as const,
       label: PROMPT_KIND_DEFINITIONS[kind].plural.toLowerCase(),
+      token: PROMPT_KIND_DEFINITIONS[kind].plural.toLowerCase(),
       command: PROMPT_KIND_DEFINITIONS[kind].plural.toLowerCase(),
       patch: { kind },
       count: facets.here.kinds[kind],
-      glyph: <span className={KIND_TEXT_CLASS[kind]}>{KIND_GLYPHS[kind]}</span>,
+      glyph: <KindMark kind={kind} label={false} />,
     })),
     {
       kind: 'filter',
-      label: '★ pinned',
+      label: 'pinned',
+      token: '★ pinned',
       command: 'pinned',
       patch: { pinned: true },
       count: facets.here.pinned,
@@ -133,10 +135,12 @@ function FinderBody({
     },
     ...facets.tags.map((tag) => ({
       kind: 'filter' as const,
-      label: `#${tag.label}`,
+      label: tag.label,
+      token: `#${tag.label}`,
       command: `tag ${tag.label}`,
       patch: { tag: tag.key },
       count: tag.count,
+      glyph: '#',
     })),
   ]
   const schemes = [
@@ -146,7 +150,7 @@ function FinderBody({
   const selectedKey = selected.toLowerCase()
   const selectedPrompt = prompts.find((prompt) => entryValue(prompt).toLowerCase() === selectedKey)
   const selectedFilter = filters.find(
-    (item) => filterValue(item.label).toLowerCase() === selectedKey,
+    (item) => filterValue(item.token).toLowerCase() === selectedKey,
   )
   const selectedAction = actions.find(
     (action) => actionValue(action.label).toLowerCase() === selectedKey,
@@ -173,17 +177,15 @@ function FinderBody({
     <Command.Group className={groupClass} heading="entries">
       {prompts.map((prompt) => (
         <Command.Item
-          className={cn(itemClass, 'h-auto min-h-7 py-0.5')}
+          className={itemClass}
           key={prompt.id}
           keywords={[...prompt.tags.map((tag) => `#${tag}`), `@${prompt.category}`, prompt.kind]}
           onSelect={run(() => onSelectPrompt(prompt.id))}
           value={entryValue(prompt)}
         >
-          <span className={cn('w-[1ch]', KIND_TEXT_CLASS[prompt.kind])}>
-            {KIND_GLYPHS[prompt.kind]}
-          </span>
+          <KindMark kind={prompt.kind} label={false} />
           <span className="min-w-0 flex-1 truncate">{prompt.title}</span>
-          <span className="text-[11.5px] text-fg-faint">
+          <span className="text-meta text-fg-faint tabular-nums">
             {formatCatalogNumber(catalogNumbers.get(prompt.id))}
           </span>
         </Command.Item>
@@ -193,7 +195,7 @@ function FinderBody({
 
   return (
     <Command
-      className="grid h-[min(620px,78vh)] grid-rows-[auto_minmax(0,1fr)_auto]"
+      className="grid max-h-[min(560px,76dvh)] min-h-[min(280px,76dvh)] grid-rows-[auto_minmax(0,1fr)_auto]"
       filter={(value, query, keywords) =>
         scoreItem(value, query.replace(/^[>]\s*/, ''), keywords, mode)
       }
@@ -203,25 +205,26 @@ function FinderBody({
       shouldFilter
       value={selected}
     >
-      <div className="relative flex items-center gap-[1ch] border-b border-line px-[2ch] pt-4 pb-2.5">
-        <span className="pane-title text-accent">find</span>
-        <span className="text-accent">❯</span>
+      <div className="relative flex h-12 items-center gap-[1ch] border-b border-line px-[2ch]">
+        <span className="pane-title text-fg">find</span>
+        <span aria-hidden="true" className="font-bold text-accent">
+          ❯
+        </span>
         <Command.Input
           // The finder exists to be typed into immediately.
           // oxlint-disable-next-line jsx-a11y/no-autofocus
           autoFocus
-          className="min-w-0 flex-1 bg-transparent text-[14px] text-fg outline-none placeholder:text-fg-faint"
+          className="min-w-0 flex-1 bg-transparent text-body text-fg outline-none placeholder:text-fg-faint max-md:text-[16px]"
           onValueChange={setSearch}
           placeholder="entries · @projects · #tags · >commands"
           value={search}
         />
-        <KeyCombo keys={['Esc']} />
       </div>
 
-      <div className="grid min-h-0 md:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
-        <Command.List className="scrollbar-term min-h-0 overflow-y-auto p-1.5">
-          <Command.Empty className="px-[1ch] py-6 text-[13px] text-fg-faint">
-            0 results — try fewer letters
+      <div className="grid min-h-0 md:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)]">
+        <Command.List className="scrollbar-term min-h-0 scroll-py-2 overflow-y-auto pb-2">
+          <Command.Empty className="px-[2ch] py-6 text-fg-dim">
+            No results. Try fewer letters.
           </Command.Empty>
 
           {mode === 'all' ? entryGroup : null}
@@ -231,15 +234,15 @@ function FinderBody({
               {filters.map((item) => (
                 <Command.Item
                   className={itemClass}
-                  key={item.label}
+                  key={item.token}
                   onSelect={run(() => onFilter(item.patch))}
-                  value={filterValue(item.label)}
+                  value={filterValue(item.token)}
                 >
-                  <span className="w-[1ch]">
-                    {item.glyph ?? <span className="text-blue">▸</span>}
+                  <span className="inline-block w-[2ch] shrink-0 text-center text-fg-faint">
+                    {item.glyph}
                   </span>
                   <span className="flex-1 truncate">{item.label}</span>
-                  <span className="text-[11.5px] text-fg-faint tabular-nums">{item.count}</span>
+                  <span className="text-meta text-fg-faint tabular-nums">{item.count}</span>
                 </Command.Item>
               ))}
             </Command.Group>
@@ -255,7 +258,7 @@ function FinderBody({
                   onSelect={run(action.run)}
                   value={actionValue(action.label)}
                 >
-                  <span className="w-[1ch] text-accent">:</span>
+                  <span className="inline-block w-[2ch] shrink-0 text-center text-fg-faint">:</span>
                   <span className="flex-1 truncate">{action.label}</span>
                   {action.keys ? <KeyCombo keys={action.keys} /> : null}
                 </Command.Item>
@@ -267,7 +270,7 @@ function FinderBody({
                   onSelect={run(() => onColorScheme(scheme.id))}
                   value={schemeValue(scheme.id)}
                 >
-                  <span className="w-[1ch] text-accent">◐</span>
+                  <span className="inline-block w-[2ch] shrink-0 text-center text-fg-faint">:</span>
                   <span className="flex-1 truncate">colorscheme {scheme.id}</span>
                 </Command.Item>
               ))}
@@ -275,20 +278,22 @@ function FinderBody({
           ) : null}
         </Command.List>
 
-        <div className="relative hidden min-h-0 border-l border-line md:flex md:flex-col">
-          <span className="pane-title -top-px text-fg-faint">preview</span>
+        <div className="hidden min-h-0 border-l border-line md:flex md:flex-col">
           <FinderPreview item={selectedItem} />
         </div>
       </div>
 
-      <div className="flex items-center gap-[2ch] border-t border-line bg-bg-sunken/60 px-[2ch] py-1.5 text-[11.5px] text-fg-faint">
+      <div className="flex h-9 items-center gap-[2ch] border-t border-line px-[2ch] text-meta text-fg-faint">
         <span className="flex items-center gap-[1ch]">
           <KeyCombo keys={['ArrowUp', 'ArrowDown']} /> move
         </span>
         <span className="flex items-center gap-[1ch]">
           <KeyCombo keys={['Enter']} /> open
         </span>
-        <span className="ml-auto">{prompts.length} entries indexed</span>
+        <span className="flex items-center gap-[1ch]">
+          <KeyCombo keys={['Esc']} /> close
+        </span>
+        <span className="ml-auto max-sm:hidden">{prompts.length} entries</span>
       </div>
     </Command>
   )
@@ -296,63 +301,58 @@ function FinderBody({
 
 function FinderPreview({ item }: { item: FinderItem | undefined }) {
   if (!item) {
-    return <p className="px-[2ch] pt-4 text-[12.5px] text-fg-faint">~</p>
+    return null
   }
 
   if (item.kind === 'entry') {
     const { prompt } = item
-    const lines = prompt.body.split('\n')
 
     return (
-      <div className="scrollbar-term min-h-0 flex-1 overflow-y-auto px-[2ch] pt-4 pb-4">
-        <div className="mb-2 flex items-center gap-[2ch] text-[12px] text-fg-faint">
+      <div className="scrollbar-term min-h-0 flex-1 overflow-y-auto px-[3ch] pt-4 pb-6">
+        <div className="flex items-center gap-[1ch] text-meta text-fg-faint">
           <KindTag kind={prompt.kind} />
-          <span>{promptPath(prompt)}</span>
+          <span aria-hidden="true">·</span>
+          <span className="truncate">{promptPath(prompt)}</span>
         </div>
-        <p className="voice-title mb-3 text-[17px] text-fg">{prompt.title}</p>
-        <PromptSourceView body={lines.slice(0, 60).join('\n')} images={prompt.images} />
-        {lines.length > 60 ? (
-          <p className="mt-1 text-[12px] text-fg-faint">… {lines.length - 60} more lines</p>
-        ) : null}
+        <p className="voice-title mt-1 mb-4 text-head text-fg">{prompt.title}</p>
+        <PromptBodyMarkdown body={prompt.body} className="text-ui" images={prompt.images} />
       </div>
     )
   }
 
   if (item.kind === 'filter') {
     return (
-      <div className="px-[2ch] pt-4 text-[12.5px] leading-[1.8] text-fg-dim">
-        <p>
-          <span className="text-accent">:</span>
-          {item.command}
-        </p>
-        <p className="text-fg-faint">{item.count} entries</p>
-      </div>
+      <PreviewNote command={item.command}>
+        {item.count === 1 ? '1 entry' : `${item.count} entries`}
+      </PreviewNote>
     )
   }
 
   if (item.kind === 'scheme') {
-    return (
-      <div className="px-[2ch] pt-4 text-[12.5px] leading-[1.8] text-fg-dim">
-        <p>
-          <span className="text-accent">:</span>colorscheme {item.id}
-        </p>
-        <p className="text-fg-faint"># {item.description}</p>
-      </div>
-    )
+    return <PreviewNote command={`colorscheme ${item.id}`}>{item.description}</PreviewNote>
   }
 
   return (
-    <div className="px-[2ch] pt-4 text-[12.5px] leading-[1.8] text-fg-dim">
-      <p>
-        <span className="text-accent">:</span>
-        {item.action.label}
-      </p>
-      {item.action.detail ? <p className="text-fg-faint"># {item.action.detail}</p> : null}
+    <PreviewNote command={item.action.label}>
+      {item.action.detail}
       {item.action.keys ? (
-        <p className="mt-1 flex items-center gap-[1ch] text-fg-faint">
-          key <KeyCombo keys={item.action.keys} />
-        </p>
+        <span className="mt-2 flex items-center gap-[1ch]">
+          <KeyCombo keys={item.action.keys} />
+        </span>
       ) : null}
+    </PreviewNote>
+  )
+}
+
+/** What a place or command would do, as the `:` line you could have typed. */
+function PreviewNote({ command, children }: { command: string; children: ReactNode }) {
+  return (
+    <div className="px-[3ch] pt-4">
+      <p className="text-fg">
+        <span className="text-accent">:</span>
+        {command}
+      </p>
+      <div className="mt-1 text-meta text-fg-faint">{children}</div>
     </div>
   )
 }

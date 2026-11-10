@@ -29,7 +29,7 @@ export function PromptVariableSlot({ name, fallback, raw }: PromptVariableSlotPr
   const id = useId()
 
   if (!context) {
-    return <span className="rounded-sm bg-accent/12 px-[0.5ch] text-accent">{raw}</span>
+    return <span className="bg-bg-sel px-[0.5ch] text-accent">{raw}</span>
   }
 
   const value = context.values[name] ?? ''
@@ -43,10 +43,10 @@ export function PromptVariableSlot({ name, fallback, raw }: PromptVariableSlotPr
       <input
         autoComplete="off"
         className={cn(
-          'mx-[0.25ch] [field-sizing:content] max-w-[min(40ch,100%)] min-w-[4ch] rounded-sm border-b px-[0.5ch] py-0 align-baseline font-mono text-[0.95em] leading-[1.45] transition-colors outline-none',
+          'mx-[0.25ch] [field-sizing:content] max-w-[min(40ch,100%)] min-w-[4ch] border-b bg-bg-sel px-[0.5ch] py-0 align-baseline font-mono text-[1em] leading-[1.5] transition-colors outline-none focus:border-solid focus:border-accent focus:outline-2 focus:outline-offset-1 focus:outline-accent',
           value
-            ? 'border-accent bg-accent/10 font-semibold text-accent focus:bg-accent/20'
-            : 'border-dashed border-accent/70 bg-accent/12 text-accent placeholder:text-accent/75 focus:border-solid focus:bg-accent/20',
+            ? 'border-line-strong text-fg'
+            : 'border-dashed border-accent text-accent placeholder:text-accent',
         )}
         data-prompt-variable={name}
         id={id}

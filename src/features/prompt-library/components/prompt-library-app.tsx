@@ -1,7 +1,6 @@
 import { useAuth } from '@clerk/tanstack-react-start'
 import { useDeferredValue, useEffect, useRef, useState, useSyncExternalStore } from 'react'
 
-import { KeyCombo } from '@/components/ui/kbd'
 import { runPromptLibraryCommand } from '@/features/prompt-library/commands/prompt-library-command-router'
 import {
   type PromptLibraryCommandId,
@@ -790,17 +789,17 @@ function PromptLibraryScreen() {
   const position = activePromptId ? visibleState.orderedPromptIds.indexOf(activePromptId) + 1 : 0
 
   return (
-    <div className="relative z-10 flex h-dvh flex-col overflow-hidden px-1.5 pt-1 sm:px-2.5">
+    <div className="relative z-10 flex h-dvh flex-col overflow-hidden px-2 sm:px-3">
       <h1 className="sr-only">promptrc — a place for the prompts that worked</h1>
 
-      <TabLine activePane={activePane} onFocusPane={focusPane} onOpenFinder={() => openFinder()} />
+      <TabLine activePane={activePane} onFocusPane={focusPane} />
 
-      <div className="relative grid min-h-0 flex-1 gap-x-2 pt-3 pb-1.5 md:grid-cols-[minmax(290px,350px)_minmax(0,1fr)] lg:grid-cols-[minmax(200px,236px)_minmax(290px,360px)_minmax(0,1fr)] xl:grid-cols-[250px_390px_minmax(0,1fr)]">
+      <div className="relative grid min-h-0 flex-1 gap-x-3 pt-3 pb-2 md:grid-cols-[minmax(34ch,40ch)_minmax(0,1fr)] lg:grid-cols-[26ch_38ch_minmax(0,1fr)] xl:grid-cols-[28ch_46ch_minmax(0,1fr)]">
         {/* Library: a column on wide screens, a drawer on medium ones, a tab on phones. */}
         <button
           aria-label="Close library"
           className={cn(
-            'fixed inset-0 z-30 hidden bg-black/50 lg:hidden',
+            'fixed inset-0 z-30 hidden bg-scrim lg:hidden',
             activePane === 1 && 'md:block',
           )}
           onClick={() => setActivePane(2)}
@@ -811,19 +810,17 @@ function PromptLibraryScreen() {
           className={cn(
             'min-h-0 min-w-0 lg:flex',
             activePane === 1
-              ? 'flex md:fixed md:inset-y-10 md:left-3 md:z-40 md:w-[270px] md:animate-pop md:shadow-[0_20px_60px_rgb(0_0_0/0.5)] lg:static lg:z-auto lg:w-auto lg:animate-none lg:shadow-none'
+              ? 'flex md:fixed md:inset-y-11 md:left-3 md:z-40 md:w-[30ch] md:animate-pop md:shadow-overlay lg:static lg:z-auto lg:w-auto lg:animate-none lg:shadow-none'
               : 'hidden',
           )}
         >
           <LibraryPane
+            active={activePane === 1}
             className="flex-1"
             facets={visibleState.facets}
             filter={filter}
             onCapture={openCapture}
             onFilterChange={changeFilter}
-            onOpenCommandLine={openCommandLine}
-            onOpenFinder={() => openFinder()}
-            onOpenHelp={() => setIsHelpOpen(true)}
             syncMode={syncMode}
             syncStatus={syncStatus}
           />
@@ -831,6 +828,7 @@ function PromptLibraryScreen() {
 
         <div className={cn('min-h-0 min-w-0 md:flex', activePane === 2 ? 'flex' : 'hidden')}>
           <PromptList
+            active={activePane === 2}
             activePromptId={activePromptId}
             catalogNumbers={catalogNumbers}
             className="flex-1"
@@ -866,6 +864,7 @@ function PromptLibraryScreen() {
         >
           {isEditing ? (
             <PromptEditor
+              active={activePane === 3}
               projects={visibleState.facets.projects}
               composer={composer}
               // Fresh editor state for every editing session.
@@ -883,6 +882,7 @@ function PromptLibraryScreen() {
             />
           ) : activePrompt ? (
             <PromptReader
+              active={activePane === 3}
               canSharePrompts={library.canSharePrompts}
               catalogNumber={catalogNumbers.get(activePrompt.id)}
               hasActivePromptShare={activePromptShare?.promptId === activePromptId}
@@ -908,34 +908,42 @@ function PromptLibraryScreen() {
               viewMode={viewMode}
             />
           ) : isLoading ? null : (
-            <ReaderPlaceholder onCapture={openCapture} />
+            <ReaderPlaceholder active={activePane === 3} onCapture={openCapture} />
           )}
         </main>
       </div>
 
-      <StatusLine
-        blanks={{
-          filled: blankVariables.filter((variable) => blanks.values[variable.name]?.trim()).length,
-          total: blankVariables.length,
-        }}
-        filter={filter}
-        isDirty={isEditing}
-        mode={mode}
-        position={position}
-        prompt={composer.mode === 'new' ? null : activePrompt}
-        query={query}
-        syncMode={syncMode}
-        syncStatus={syncStatus}
-        total={visibleState.orderedPromptIds.length}
-      />
-      <CommandLine
-        projects={visibleState.facets.projects.map((project) => project.label)}
-        onClose={closeCommandLine}
-        onOpen={openCommandLine}
-        onSubmit={submitCommandLine}
-        open={isCommandLineOpen}
-        tags={visibleState.facets.tags.map((tag) => tag.label)}
-      />
+      {/* On a phone the message row covers the status line while it has something to say. */}
+      <div className="relative shrink-0 max-md:pb-2">
+        <StatusLine
+          blanks={{
+            filled: blankVariables.filter((variable) => blanks.values[variable.name]?.trim())
+              .length,
+            total: blankVariables.length,
+          }}
+          filter={filter}
+          isDirty={isEditing}
+          mode={mode}
+          position={position}
+          prompt={composer.mode === 'new' ? null : activePrompt}
+          query={query}
+          syncMode={syncMode}
+          syncStatus={syncStatus}
+          total={visibleState.orderedPromptIds.length}
+        />
+        <div className="max-md:absolute max-md:inset-x-0 max-md:top-0 max-md:bg-bg max-md:[&:not(:has([data-echo],input))]:hidden">
+          <CommandLine
+            projects={visibleState.facets.projects.map((project) => project.label)}
+            onClose={closeCommandLine}
+            onOpen={openCommandLine}
+            onOpenFinder={() => openFinder()}
+            onOpenHelp={() => setIsHelpOpen(true)}
+            onSubmit={submitCommandLine}
+            open={isCommandLineOpen}
+            tags={visibleState.facets.tags.map((tag) => tag.label)}
+          />
+        </div>
+      </div>
 
       <QuickCaptureDialog
         defaultCategory={filter.project ?? ''}
@@ -994,48 +1002,40 @@ const readClock = () =>
 function TabLine({
   activePane,
   onFocusPane,
-  onOpenFinder,
 }: {
   activePane: PaneId
   onFocusPane: (pane: PaneId) => void
-  onOpenFinder: () => void
 }) {
   const clock = useSyncExternalStore(subscribeToMinute, readClock, () => '')
 
   return (
-    <nav aria-label="Panes" className="flex h-6 shrink-0 items-center gap-[2ch] text-[12px]">
-      <Wordmark className="text-[13px]" />
-      <ol className="flex items-center gap-[1ch]">
+    <nav aria-label="Panes" className="flex h-8 shrink-0 items-stretch gap-[2ch] max-md:h-11">
+      <Wordmark className="self-center" />
+      <ol className="flex items-stretch">
         {([1, 2, 3] as const).map((pane) => {
           const active = activePane === pane
 
           return (
-            <li key={pane}>
+            <li className="flex" key={pane}>
               <button
                 aria-current={active ? 'true' : undefined}
                 className={cn(
-                  'rounded-sm px-[0.75ch] transition-colors',
-                  active ? 'bg-bg-sel text-fg' : 'text-fg-faint hover:text-fg',
+                  'px-[1ch] -outline-offset-2 transition-colors',
+                  active ? 'bg-bg-sel text-fg' : 'text-fg-faint hover:bg-bg-hover hover:text-fg',
                 )}
                 onClick={() => onFocusPane(pane)}
                 type="button"
               >
                 <span className={active ? 'text-accent' : undefined}>{pane}</span>:
                 {PANE_LABELS[pane]}
-                {active ? <span className="text-accent">*</span> : null}
               </button>
             </li>
           )
         })}
       </ol>
-      <button
-        className="ml-auto hidden items-center gap-[1ch] text-fg-faint hover:text-fg sm:flex"
-        onClick={onOpenFinder}
-        type="button"
-      >
-        <span className="text-accent">❯</span> find <KeyCombo keys={['Mod', 'K']} />
-      </button>
-      <span className="text-fg-faint tabular-nums max-sm:ml-auto">{clock}</span>
+      <span className="ml-auto self-center text-meta text-fg-faint tabular-nums max-sm:hidden">
+        {clock}
+      </span>
     </nav>
   )
 }

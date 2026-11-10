@@ -1,4 +1,3 @@
-import { ArrowLeft } from 'lucide-react'
 import { type ReactNode, useState } from 'react'
 
 import { Kbd } from '@/components/ui/kbd'
@@ -6,7 +5,7 @@ import { Pane } from '@/components/ui/pane'
 import { type PromptRunRequest } from '@/features/prompt-library/commands/prompt-library-command-executor'
 import { type PromptViewMode } from '@/features/prompt-library/commands/prompt-library-ex-commands'
 import { BenchmarkLedger } from '@/features/prompt-library/components/benchmark-ledger'
-import { KindMark, KindTag } from '@/features/prompt-library/components/kind-mark'
+import { KindTag } from '@/features/prompt-library/components/kind-mark'
 import { getPromptKindDefinition } from '@/features/prompt-library/model/prompt-kinds'
 import { splitSequenceSteps } from '@/features/prompt-library/model/prompt-sequences'
 import { extractFillablePromptVariables } from '@/features/prompt-library/model/prompt-templates'
@@ -59,6 +58,7 @@ type PromptReaderProps = PromptReaderActions & {
   onSelectTag: (tag: string) => void
   onSelectCategory: (category: string) => void
   onBack?: () => void
+  active?: boolean
 }
 
 const slug = (value: string) =>
@@ -85,6 +85,7 @@ export function PromptReader({
   onSelectTag,
   onSelectCategory,
   onBack,
+  active,
   ...actions
 }: PromptReaderProps) {
   const variables = extractFillablePromptVariables(prompt.body)
@@ -92,16 +93,12 @@ export function PromptReader({
 
   return (
     <Pane
+      active={active}
       aria-labelledby="prompt-reader-title"
       aside={<ViewModeToggle mode={viewMode} onChange={onViewModeChange} />}
       className="h-full"
       index={3}
-      title={
-        <span className="flex items-center gap-[1ch]">
-          <KindMark className="text-[13px]" kind={prompt.kind} label={false} />
-          {promptPath(prompt)}
-        </span>
-      }
+      title={promptPath(prompt)}
     >
       <div
         className="scrollbar-term min-h-0 flex-1 overflow-y-auto outline-none"
@@ -109,100 +106,119 @@ export function PromptReader({
         key={prompt.id}
         tabIndex={-1}
       >
-        <header className="px-[2ch] pt-4 pb-3">
-          <div className="mb-2 flex flex-wrap items-center gap-x-[2ch] gap-y-1 text-[12px] text-fg-faint">
-            {onBack ? (
+        <header className="px-[2ch] pt-5 md:px-[3ch]">
+          <div className="measure">
+            <div className="flex flex-wrap items-center gap-x-[1ch] text-meta text-fg-faint">
+              {onBack ? (
+                <button
+                  className="mr-[1ch] inline-flex items-center gap-[1ch] text-fg-dim hover:text-fg max-md:h-11 md:hidden"
+                  onClick={onBack}
+                  type="button"
+                >
+                  <span aria-hidden="true">←</span> back
+                </button>
+              ) : null}
+              <KindTag kind={prompt.kind} />
+              <span aria-hidden="true">·</span>
               <button
-                className="inline-flex items-center gap-[0.5ch] text-fg-dim hover:text-accent md:hidden"
-                onClick={onBack}
+                className="transition-colors hover:text-fg"
+                onClick={() => onSelectCategory(prompt.category)}
+                title={`cd ${prompt.category}`}
                 type="button"
               >
-                <ArrowLeft aria-hidden="true" className="size-3.5" />
-                back
+                {prompt.category}/
               </button>
-            ) : null}
-            <KindTag kind={prompt.kind} />
-            <button
-              className="hover:text-accent"
-              onClick={() => onSelectCategory(prompt.category)}
-              title={`cd ${prompt.category}`}
-              type="button"
+              <span aria-hidden="true">·</span>
+              <span className="tabular-nums">{formatCatalogNumber(catalogNumber)}</span>
+              {prompt.pinned ? (
+                <>
+                  <span aria-hidden="true">·</span>
+                  <span>
+                    <span className="text-accent">★</span> pinned
+                  </span>
+                </>
+              ) : null}
+            </div>
+
+            <h2
+              className={cn(
+                'voice-title mt-2 animate-boot text-title text-balance text-fg',
+                prompt.kind === 'fragment' && 'voice-note',
+              )}
+              id="prompt-reader-title"
             >
-              ~/{prompt.category}/
-            </button>
-            <span>{formatCatalogNumber(catalogNumber)}</span>
-            {prompt.pinned ? <span className="text-accent">★ pinned</span> : null}
-          </div>
+              {prompt.title}
+            </h2>
 
-          <h2
-            className={cn(
-              'voice-title animate-type-in text-[clamp(1.35rem,2.6vw,1.85rem)] leading-[1.15] text-balance text-fg',
-              prompt.kind === 'fragment' && 'voice-note font-semibold',
-            )}
-            id="prompt-reader-title"
-          >
-            {prompt.title}
-          </h2>
-
-          <div className="mt-2 flex flex-wrap items-center gap-x-[2ch] gap-y-1 text-[12px] text-fg-faint">
-            {prompt.tags.map((tag) => (
-              <button
-                className="text-magenta hover:underline"
-                key={tag}
-                onClick={() => onSelectTag(tag)}
-                type="button"
-              >
-                #{tag}
-              </button>
-            ))}
-            <span title={new Date(prompt.createdAt).toLocaleString()}>
-              kept {prompt.createdAt.slice(0, 10)}
-            </span>
-            {prompt.uses > 0 ? <span>yanked {prompt.uses}×</span> : null}
+            <div className="mt-2 flex flex-wrap items-center gap-x-[1ch] text-meta text-fg-faint">
+              {prompt.tags.map((tag) => (
+                <button
+                  className="text-fg-dim transition-colors hover:text-fg"
+                  key={tag}
+                  onClick={() => onSelectTag(tag)}
+                  type="button"
+                >
+                  #{tag}
+                </button>
+              ))}
+              {prompt.tags.length > 0 ? <span aria-hidden="true">·</span> : null}
+              <span title={new Date(prompt.createdAt).toLocaleString()}>
+                kept {prompt.createdAt.slice(0, 10)}
+              </span>
+              {prompt.uses > 0 ? (
+                <>
+                  <span aria-hidden="true">·</span>
+                  <span>yanked {prompt.uses}×</span>
+                </>
+              ) : null}
+            </div>
           </div>
         </header>
 
         <ReaderActions prompt={prompt} {...actions} />
 
-        <div className="px-[2ch] pt-4 pb-10">
-          <PromptVariableProvider value={{ values: variableValues, onChange: onVariableChange }}>
-            {variables.length > 0 ? (
-              <BlanksHint
-                filledCount={filledCount}
-                onReset={onResetVariables}
-                total={variables.length}
+        <div className="px-[2ch] pt-6 pb-12 md:px-[3ch]">
+          <div className="measure">
+            <PromptVariableProvider value={{ values: variableValues, onChange: onVariableChange }}>
+              {variables.length > 0 ? (
+                <BlanksHint
+                  filledCount={filledCount}
+                  onReset={onResetVariables}
+                  total={variables.length}
+                />
+              ) : null}
+
+              <PromptBody onCopy={actions.onCopy} prompt={prompt} viewMode={viewMode} />
+            </PromptVariableProvider>
+
+            <PromptImageAttachments images={prompt.images} />
+
+            {prompt.kind === 'benchmark' ? (
+              <BenchmarkLedger
+                expected={prompt.notes}
+                knownModels={knownModels}
+                onLogRun={actions.onLogRun}
+                onRemoveRun={actions.onRemoveRun}
+                runs={prompt.runs}
               />
+            ) : prompt.notes ? (
+              <Annotation label={getPromptKindDefinition(prompt.kind).notesLabel}>
+                {prompt.notes}
+              </Annotation>
             ) : null}
 
-            <PromptBody onCopy={actions.onCopy} prompt={prompt} viewMode={viewMode} />
-          </PromptVariableProvider>
-
-          <PromptImageAttachments images={prompt.images} />
-
-          {prompt.kind === 'benchmark' ? (
-            <BenchmarkLedger
-              expected={prompt.notes}
-              knownModels={knownModels}
-              onLogRun={actions.onLogRun}
-              onRemoveRun={actions.onRemoveRun}
-              runs={prompt.runs}
-            />
-          ) : prompt.notes ? (
-            <Annotation label={getPromptKindDefinition(prompt.kind).notesLabel}>
-              {prompt.notes}
-            </Annotation>
-          ) : null}
-
-          <footer className="mt-8 flex flex-wrap gap-x-[2ch] gap-y-1 border-t border-dashed border-line pt-2 text-[11.5px] text-fg-faint">
-            <span>{pluralize(countWords(prompt.body), 'word')}</span>
-            <span title="Rough estimate at about four characters per token">
-              ~{pluralize(estimateTokens(prompt.body), 'token')}
-            </span>
-            <span title={new Date(prompt.updatedAt).toLocaleString()}>
-              modified {relativeTime(prompt.updatedAt)}
-            </span>
-            <span>utf-8</span>
-          </footer>
+            <footer className="mt-8 flex flex-wrap gap-x-[1ch] border-t border-line pt-3 text-meta text-fg-faint">
+              <span>{pluralize(countWords(prompt.body), 'word')}</span>
+              <span aria-hidden="true">·</span>
+              <span title="Rough estimate at about four characters per token">
+                ~{pluralize(estimateTokens(prompt.body), 'token')}
+              </span>
+              <span aria-hidden="true">·</span>
+              <span title={new Date(prompt.updatedAt).toLocaleString()}>
+                modified {relativeTime(prompt.updatedAt)}
+              </span>
+            </footer>
+          </div>
         </div>
       </div>
     </Pane>
@@ -223,7 +239,7 @@ export function ViewModeToggle({
           aria-pressed={mode === option}
           className={cn(
             'transition-colors',
-            mode === option ? 'text-accent' : 'text-fg-faint hover:text-fg',
+            mode === option ? 'text-fg' : 'text-fg-faint hover:text-fg',
           )}
           key={option}
           onClick={() => onChange(option)}
@@ -241,7 +257,7 @@ type ReaderActionsProps = Omit<PromptReaderActions, 'onLogRun' | 'onRemoveRun'> 
   prompt: PromptRecord
 }
 
-/** lazygit-style key hints that double as buttons. */
+/** lazygit-style key hints that double as buttons. Yank is the one that leads. */
 function ReaderActions({
   prompt,
   canSharePrompts,
@@ -256,56 +272,64 @@ function ReaderActions({
   onDelete,
 }: ReaderActionsProps) {
   return (
-    <div className="flex flex-wrap items-center gap-x-[2ch] gap-y-1.5 border-y border-line bg-bg-sunken/60 px-[2ch] py-1.5 text-[12.5px]">
-      <button
-        className="inline-flex items-center gap-[1ch] rounded-sm bg-accent px-[1ch] font-semibold text-accent-fg hover:brightness-110"
-        onClick={() => void onCopy()}
-        type="button"
-      >
-        <span className="opacity-70">y</span> yank
-      </button>
-      <KeyAction keyLabel="e" label="edit" onClick={onEdit} />
-      <KeyAction keyLabel="p" label={prompt.pinned ? 'unpin' : 'pin'} onClick={onTogglePin} />
-      <KeyAction keyLabel="d" label="dup" onClick={onDuplicate} />
-      {canSharePrompts ? <KeyAction keyLabel="s" label="share" onClick={onShare} /> : null}
-      {canSharePrompts && hasActivePromptShare ? (
-        <KeyAction label="unshare" onClick={onRevokeShare} />
-      ) : null}
-      <KeyAction
-        ariaLabel={isConfirmingDelete ? 'Press again to delete' : 'Delete'}
-        className={isConfirmingDelete ? 'animate-pulse text-red' : undefined}
-        keyLabel="x"
-        label={isConfirmingDelete ? 'x again to delete' : 'delete'}
-        onClick={onDelete}
-      />
+    <div className="mt-4 border-b border-line px-[2ch] pb-3 md:px-[3ch]">
+      <div className="-mx-[1ch] flex flex-wrap items-center gap-y-1">
+        <KeyAction keyLabel="y" label="yank" onClick={() => onCopy()} primary />
+        <KeyAction keyLabel="e" label="edit" onClick={onEdit} />
+        <KeyAction keyLabel="p" label={prompt.pinned ? 'unpin' : 'pin'} onClick={onTogglePin} />
+        <KeyAction keyLabel="d" label="dup" onClick={onDuplicate} />
+        {canSharePrompts ? <KeyAction keyLabel="s" label="share" onClick={onShare} /> : null}
+        {canSharePrompts && hasActivePromptShare ? (
+          <KeyAction label="unshare" onClick={onRevokeShare} />
+        ) : null}
+        <KeyAction
+          ariaLabel={isConfirmingDelete ? 'Press again to delete' : 'Delete'}
+          className={isConfirmingDelete ? 'text-red hover:text-red' : undefined}
+          keyLabel="x"
+          label={isConfirmingDelete ? 'x again to delete' : 'delete'}
+          onClick={onDelete}
+        />
+      </div>
     </div>
   )
 }
 
-function KeyAction({
+/** `y yank`: the key that does it, then what it does. The pattern for every action bar. */
+export function KeyAction({
   keyLabel,
   label,
   onClick,
+  primary = false,
+  type = 'button',
+  disabled,
   className,
   ariaLabel,
 }: {
   keyLabel?: string
   label: string
-  onClick: () => void | Promise<void>
+  onClick?: () => void | Promise<void>
+  /** The action the bar exists for. One per bar. */
+  primary?: boolean
+  type?: 'button' | 'submit'
+  disabled?: boolean
   className?: string
   ariaLabel?: string
 }) {
   return (
     <button
       aria-label={ariaLabel ?? label}
+      disabled={disabled}
       className={cn(
-        'inline-flex items-center gap-[1ch] text-fg-dim transition-colors hover:text-fg',
+        'inline-flex h-7 items-center gap-[1ch] px-[1ch] transition-colors disabled:pointer-events-none disabled:opacity-40 max-md:h-11',
+        primary
+          ? 'mr-[1ch] bg-bg-sel font-semibold text-accent hover:bg-accent hover:text-accent-fg'
+          : 'text-fg-dim hover:bg-bg-hover hover:text-fg',
         className,
       )}
-      onClick={() => void onClick()}
-      type="button"
+      onClick={onClick ? () => void onClick() : undefined}
+      type={type}
     >
-      {keyLabel ? <span className="text-accent">{keyLabel}</span> : null}
+      {keyLabel ? <span className={primary ? undefined : 'text-accent'}>{keyLabel}</span> : null}
       {label}
     </button>
   )
@@ -339,10 +363,10 @@ export function PromptBody({
 
   if (prompt.kind === 'fragment') {
     return (
-      <blockquote className="relative border-l-2 border-magenta py-1 pl-[3ch]">
+      <blockquote className="border-l-2 border-kind-fragment pl-[2ch]">
         <PromptBodyMarkdown
           body={prompt.body}
-          className="voice-note text-[16px] leading-[1.6]"
+          className="voice-note text-head"
           imageUrlFor={imageUrlFor}
           images={prompt.images}
         />
@@ -352,9 +376,7 @@ export function PromptBody({
 
   return (
     <div>
-      {prompt.kind === 'benchmark' ? (
-        <p className="mb-2 text-[12px] text-cyan">## test prompt</p>
-      ) : null}
+      {prompt.kind === 'benchmark' ? <SectionLabel>test prompt</SectionLabel> : null}
       <PromptBodyMarkdown body={prompt.body} imageUrlFor={imageUrlFor} images={prompt.images} />
     </div>
   )
@@ -393,7 +415,7 @@ function SequenceSteps({
   }
 
   return (
-    <ol aria-label="Steps" className="flex flex-col gap-4">
+    <ol aria-label="Steps" className="flex flex-col gap-8">
       {steps.map((step, index) => {
         const isCopied = copiedSteps.includes(index)
         const isNext = !isCopied && copiedSteps.length > 0 && index === Math.max(...copiedSteps) + 1
@@ -402,22 +424,19 @@ function SequenceSteps({
           // A step is identified by its position in the sequence.
           // oxlint-disable-next-line react/no-array-index-key
           <li key={`${index}-${step.slice(0, 12)}`}>
-            <div className="mb-1.5 flex items-center gap-[1ch] text-[12px]">
-              <span className={cn('font-semibold', isCopied ? 'text-fg-faint' : 'text-green')}>
+            <div className="mb-2 flex items-center gap-[1ch] text-meta">
+              <span
+                className={cn('font-semibold', isCopied ? 'text-fg-faint' : 'text-kind-sequence')}
+              >
                 {isCopied ? '✓' : '»'} Step {index + 1} of {steps.length}
               </span>
-              {isNext ? <span className="text-accent">◂ next</span> : null}
-              <span
-                aria-hidden="true"
-                className="h-0 flex-1 border-t border-dashed border-line-strong"
-              />
+              {isNext ? <span className="text-accent">← next</span> : null}
+              <span aria-hidden="true" className="h-0 flex-1 border-t border-dashed border-line" />
               <button
                 aria-label={`Copy step ${index + 1}`}
                 className={cn(
-                  'inline-flex items-center gap-[1ch] rounded-sm px-[1ch] transition-colors',
-                  isCopied
-                    ? 'text-fg-faint hover:text-fg'
-                    : 'text-fg-dim hover:bg-bg-hover hover:text-accent',
+                  'inline-flex h-6 items-center gap-[1ch] px-[1ch] transition-colors hover:bg-bg-hover max-md:h-11',
+                  isCopied ? 'text-fg-faint hover:text-fg' : 'text-fg-dim hover:text-fg',
                 )}
                 onClick={() => void copyStep(index)}
                 type="button"
@@ -429,7 +448,7 @@ function SequenceSteps({
             <div
               className={cn(
                 'border-l-2 pl-[2ch] transition-colors',
-                isNext ? 'border-accent' : isCopied ? 'border-line' : 'border-green/60',
+                isNext ? 'border-accent' : isCopied ? 'border-line' : 'border-kind-sequence/60',
                 isCopied && 'opacity-60',
               )}
             >
@@ -451,6 +470,18 @@ function SequenceSteps({
   )
 }
 
+/** `## expected`: a markdown heading as a quiet section label, or the label of a field. */
+export function SectionLabel({ children, htmlFor }: { children: ReactNode; htmlFor?: string }) {
+  const Label = htmlFor ? 'label' : 'p'
+
+  return (
+    <Label className="mb-2 block text-meta text-fg-faint" htmlFor={htmlFor}>
+      <span aria-hidden="true">## </span>
+      {children}
+    </Label>
+  )
+}
+
 export function BlanksHint({
   filledCount,
   total,
@@ -460,66 +491,65 @@ export function BlanksHint({
   total: number
   onReset: () => void
 }) {
+  const done = filledCount === total
+
   return (
-    <div className="mb-4 flex flex-wrap items-center gap-x-[1ch] text-[12px] text-fg-dim">
-      <span className="text-accent">{filledCount === total ? '●' : '○'}</span>
-      <span>
-        {filledCount === total
-          ? `${pluralize(total, 'blank')} filled — yank copies your words.`
-          : `${filledCount} of ${pluralize(total, 'blank')} filled — type into the ‹fields› below.`}
+    <p className="mb-5 text-meta text-fg-dim">
+      <span aria-hidden="true" className={done ? 'text-green' : 'text-fg-faint'}>
+        {done ? '●' : '○'}{' '}
       </span>
+      {done
+        ? `${pluralize(total, 'blank')} filled. Yank copies your words.`
+        : `${filledCount} of ${pluralize(total, 'blank')} filled`}
+      {done ? null : <span className="max-sm:hidden">. Type into the ‹fields› below.</span>}
       {filledCount > 0 ? (
         <button
-          className="text-fg-faint underline-offset-2 hover:text-accent hover:underline"
+          className="ml-[2ch] text-fg-faint underline-offset-2 hover:text-fg hover:underline"
           onClick={onReset}
           type="button"
         >
           clear
         </button>
       ) : null}
-    </div>
+    </p>
   )
 }
 
 /** Notes read like comments someone left in the margin of the file. */
 export function Annotation({ label, children }: { label: string; children: string }) {
   return (
-    <aside className="mt-8 text-[13px] leading-[1.65]">
-      <p className="text-fg-faint"># {label.toLowerCase()}</p>
-      <div className="voice-note text-fg-dim">
-        {children.split('\n').map((line, index) => (
-          // Lines of a note have no identity beyond their order.
-          // oxlint-disable-next-line react/no-array-index-key
-          <p className="before:mr-[1ch] before:text-fg-faint before:content-['#']" key={index}>
-            {line}
-          </p>
-        ))}
+    <aside className="mt-8">
+      <SectionLabel>{label.toLowerCase()}</SectionLabel>
+      <div className="voice-note border-l-2 border-line pl-[2ch] text-body whitespace-pre-line text-fg-dim">
+        {children}
       </div>
     </aside>
   )
 }
 
-export function ReaderPlaceholder({ onCapture }: { onCapture: () => void }) {
+export function ReaderPlaceholder({
+  active,
+  onCapture,
+}: {
+  active?: boolean
+  onCapture: () => void
+}) {
   return (
-    <Pane className="h-full" index={3} title="[No Name]">
-      <div className="flex-1 px-[2ch] pt-4 text-[12.5px] leading-[1.9] text-fg-faint">
+    <Pane active={active} className="h-full" index={3} title="[No Name]">
+      <div className="flex-1 px-[2ch] pt-5 text-fg-dim md:px-[3ch]">
         <EmptyBufferLine>
-          <span className="text-accent">promptrc</span> — nothing open
+          <span className="text-fg">promptrc</span>, nothing open
         </EmptyBufferLine>
         <EmptyBufferLine />
         <EmptyBufferLine>
-          select an entry with <Kbd>j</Kbd> <Kbd>k</Kbd>, or press <Kbd>c</Kbd> to{' '}
+          Select an entry with <Kbd>j</Kbd> <Kbd>k</Kbd>, or press <Kbd>c</Kbd> to{' '}
           <button className="text-accent hover:underline" onClick={onCapture} type="button">
             capture
           </button>{' '}
-          something new
+          something new.
         </EmptyBufferLine>
-        <EmptyBufferLine>
-          <Kbd>:</Kbd> for commands · <Kbd>?</Kbd> for the manual
-        </EmptyBufferLine>
-        {Array.from({ length: 8 }, (_, index) => (
-          <EmptyBufferLine key={index} />
-        ))}
+        <EmptyBufferLine />
+        <EmptyBufferLine />
       </div>
     </Pane>
   )
@@ -527,9 +557,11 @@ export function ReaderPlaceholder({ onCapture }: { onCapture: () => void }) {
 
 function EmptyBufferLine({ children }: { children?: ReactNode }) {
   return (
-    <p>
-      <span className="mr-[1ch] text-blue/70">~</span>
-      {children}
+    <p className="flex min-h-[1lh] gap-[2ch]">
+      <span aria-hidden="true" className="text-line-strong">
+        ~
+      </span>
+      <span>{children}</span>
     </p>
   )
 }

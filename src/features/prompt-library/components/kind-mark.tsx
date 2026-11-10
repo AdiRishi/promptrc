@@ -3,9 +3,10 @@ import { type PromptKind } from '@/features/prompt-library/types'
 import { cn } from '@/lib/utils'
 
 /**
- * Each kind gets a glyph and an ANSI colour, the way `ls --color` marks file
- * types: ❯ a prompt you run, “ a fragment you quote, » a sequence you step
- * through, ◆ a benchmark you test against.
+ * Each kind gets a glyph, the way `ls --color` marks file types: ❯ a prompt
+ * you run, “ a fragment you quote, » a sequence you step through, ◆ a benchmark
+ * you test against. Prompts are the default and stay neutral; the others carry
+ * an ANSI colour.
  */
 export const KIND_GLYPHS: Record<PromptKind, string> = {
   prompt: '❯',
@@ -21,11 +22,16 @@ export const KIND_TEXT_CLASS: Record<PromptKind, string> = {
   benchmark: 'text-kind-benchmark',
 }
 
-export const KIND_BG_CLASS: Record<PromptKind, string> = {
-  prompt: 'bg-kind-prompt',
-  fragment: 'bg-kind-fragment',
-  sequence: 'bg-kind-sequence',
-  benchmark: 'bg-kind-benchmark',
+/**
+ * The glyphs come from two fonts and sit at different heights and weights.
+ * These nudges give them one optical size and centre them on the x-height;
+ * the quote mark hangs at cap height by nature, so it is enlarged and lowered.
+ */
+const KIND_OPTICAL_CLASS: Record<PromptKind, string> = {
+  prompt: 'font-bold',
+  fragment: 'translate-y-[0.3em] scale-[1.55] font-extrabold',
+  sequence: 'scale-110 font-bold',
+  benchmark: 'scale-90',
 }
 
 type KindMarkProps = {
@@ -43,14 +49,10 @@ export function KindMark({ kind, className, label }: KindMarkProps) {
     <span
       aria-hidden={accessibleLabel ? undefined : true}
       aria-label={accessibleLabel}
-      className={cn(
-        'inline-block w-[1ch] text-center leading-none',
-        KIND_TEXT_CLASS[kind],
-        className,
-      )}
+      className={cn('inline-block w-[2ch] shrink-0 text-center', KIND_TEXT_CLASS[kind], className)}
       role={accessibleLabel ? 'img' : undefined}
     >
-      {KIND_GLYPHS[kind]}
+      <span className={cn('inline-block', KIND_OPTICAL_CLASS[kind])}>{KIND_GLYPHS[kind]}</span>
     </span>
   )
 }
@@ -65,7 +67,7 @@ export function KindTag({ kind, className }: { kind: PromptKind; className?: str
         className,
       )}
     >
-      <KindMark kind={kind} label={false} />
+      <KindMark className="w-[1ch]" kind={kind} label={false} />
       {kind}
     </span>
   )

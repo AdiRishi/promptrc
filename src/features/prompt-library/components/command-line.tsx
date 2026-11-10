@@ -10,6 +10,8 @@ type CommandLineProps = {
   projects: readonly string[]
   tags: readonly string[]
   onOpen: () => void
+  onOpenFinder: () => void
+  onOpenHelp: () => void
   onClose: () => void
   onSubmit: (input: string) => void
 }
@@ -22,16 +24,37 @@ const history: string[] = []
  * The bottom row of the screen. Closed, it prints the latest message (vim's
  * echo area). Open, it's the `:` command line with a wildmenu of completions.
  */
-export function CommandLine({ open, ...props }: CommandLineProps) {
-  return open ? <CommandLineInput {...props} /> : <EchoLine onOpen={props.onOpen} />
+export function CommandLine({
+  open,
+  onOpen,
+  onOpenFinder,
+  onOpenHelp,
+  ...props
+}: CommandLineProps) {
+  return open ? (
+    <CommandLineInput {...props} />
+  ) : (
+    <EchoLine
+      hints={[
+        { keys: ['Mod', 'K'], label: 'find', onClick: onOpenFinder },
+        { keys: [':'], label: 'command', onClick: onOpen },
+        { keys: ['?'], label: 'manual', onClick: onOpenHelp },
+      ]}
+    />
+  )
 }
 
-/** vim's message area: the latest echo, fading after a moment. */
-export function EchoLine({ onOpen }: { onOpen?: () => void }) {
+type EchoHint = { keys: readonly string[]; label: string; onClick: () => void }
+
+/**
+ * vim's message area: the latest echo on the left. The right side is the one
+ * place the screen lists its way in: find, the command line and the manual.
+ */
+export function EchoLine({ hints = [] }: { hints?: readonly EchoHint[] }) {
   const message = useEcho()
 
   return (
-    <div className="flex h-6 shrink-0 items-center gap-[2ch] px-[1ch] text-[12.5px]">
+    <div className="flex h-7 shrink-0 items-center gap-[2ch] px-[1ch]">
       <p
         aria-live="polite"
         className={cn(
@@ -44,22 +67,22 @@ export function EchoLine({ onOpen }: { onOpen?: () => void }) {
         )}
         key={message?.id}
       >
-        {message ? <span className="animate-type-in">{message.text}</span> : null}
-      </p>
-      {onOpen ? (
-        <>
-          <button
-            className="hidden shrink-0 items-center gap-[1ch] text-[11.5px] text-fg-faint hover:text-fg sm:flex"
-            onClick={onOpen}
-            type="button"
-          >
-            <KeyCombo keys={[':']} /> command
-          </button>
-          <span className="hidden shrink-0 items-center gap-[1ch] text-[11.5px] text-fg-faint md:flex">
-            <KeyCombo keys={['?']} /> manual
+        {message ? (
+          <span className="animate-type-in" data-echo>
+            {message.text}
           </span>
-        </>
-      ) : null}
+        ) : null}
+      </p>
+      {hints.map((hint) => (
+        <button
+          className="hidden shrink-0 items-center gap-[1ch] text-meta text-fg-faint transition-colors hover:text-fg md:flex"
+          key={hint.label}
+          onClick={hint.onClick}
+          type="button"
+        >
+          <KeyCombo keys={hint.keys} /> {hint.label}
+        </button>
+      ))}
     </div>
   )
 }
@@ -69,7 +92,7 @@ function CommandLineInput({
   tags,
   onClose,
   onSubmit,
-}: Omit<CommandLineProps, 'open' | 'onOpen'>) {
+}: Pick<CommandLineProps, 'projects' | 'tags' | 'onClose' | 'onSubmit'>) {
   const [value, setValue] = useState('')
   const [highlighted, setHighlighted] = useState(-1)
   const historyIndexRef = useRef<number | null>(null)
@@ -197,21 +220,19 @@ function CommandLineInput({
   }
 
   return (
-    <div className="relative h-6 shrink-0">
+    <div className="relative h-7 shrink-0">
       {completions.length > 0 ? (
         <ul
           aria-label="Completions"
-          className="scrollbar-term absolute bottom-full left-0 z-30 mb-7 max-h-[50vh] w-[min(560px,100%)] animate-pop overflow-y-auto rounded-sm border border-line-strong bg-bg-raised py-1 text-[12.5px] shadow-[0_-8px_30px_rgb(0_0_0/0.35)]"
+          className="scrollbar-term absolute bottom-full left-0 z-30 max-h-[50vh] w-[min(64ch,100%)] animate-pop overflow-y-auto rounded-md border border-line-strong bg-bg-raised py-1 shadow-overlay md:mb-7"
         >
           {completions.map((completion, index) => (
             <li key={completion.value}>
               <button
                 aria-current={index === highlighted ? 'true' : undefined}
                 className={cn(
-                  'flex w-full gap-[2ch] px-[1ch] text-left',
-                  index === highlighted
-                    ? 'bg-accent text-accent-fg'
-                    : 'text-fg-dim hover:bg-bg-hover',
+                  'flex h-7 w-full items-center gap-[2ch] px-[2ch] text-left',
+                  index === highlighted ? 'row-selected text-fg' : 'text-fg-dim hover:bg-bg-hover',
                 )}
                 // Keep focus in the input while clicking a completion.
                 onMouseDown={(event) => {
@@ -221,18 +242,17 @@ function CommandLineInput({
                 tabIndex={-1}
                 type="button"
               >
-                <span className="w-[24ch] shrink-0 truncate font-bold">{completion.label}</span>
-                <span
-                  className={cn('truncate', index === highlighted ? 'opacity-80' : 'text-fg-faint')}
-                >
-                  {completion.detail}
-                </span>
+                <span className="w-[24ch] shrink-0 truncate text-fg">{completion.label}</span>
+                <span className="truncate text-meta text-fg-faint">{completion.detail}</span>
               </button>
             </li>
           ))}
+          <li className="mt-1 flex items-center gap-[1ch] border-t border-line px-[2ch] pt-1.5 pb-0.5 text-meta text-fg-faint">
+            <KeyCombo keys={['Tab']} /> complete
+          </li>
         </ul>
       ) : null}
-      <div className="flex h-6 items-center px-[1ch] text-[13px]">
+      <div className="flex h-7 items-center px-[1ch]">
         <span className="text-accent">:</span>
         <input
           aria-label="Command line"
@@ -242,7 +262,7 @@ function CommandLineInput({
           autoCapitalize="off"
           autoComplete="off"
           autoCorrect="off"
-          className="min-w-0 flex-1 bg-transparent text-fg outline-none"
+          className="min-w-0 flex-1 bg-transparent text-fg outline-none max-md:text-[16px]"
           onBlur={onClose}
           onChange={(event) => {
             historyIndexRef.current = null

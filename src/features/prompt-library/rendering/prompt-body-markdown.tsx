@@ -1,4 +1,3 @@
-import { ImageIcon } from 'lucide-react'
 import { type ComponentProps, type ReactNode, isValidElement, memo, useMemo } from 'react'
 import Markdown, { type Components, defaultUrlTransform } from 'react-markdown'
 import remarkBreaks from 'remark-breaks'
@@ -46,12 +45,7 @@ export const PromptBodyMarkdown = memo(function PromptBodyMarkdownComponent({
   )
 
   return (
-    <div
-      className={cn(
-        'prompt-markdown text-[13.5px] leading-[1.7] [overflow-wrap:anywhere] text-fg',
-        className,
-      )}
-    >
+    <div className={cn('prompt-markdown text-body [overflow-wrap:anywhere] text-fg', className)}>
       <Markdown components={components} remarkPlugins={remarkPlugins} urlTransform={urlTransform}>
         {body}
       </Markdown>
@@ -72,10 +66,7 @@ export function PromptImageAttachments({
 
   return (
     <section aria-label="Prompt images" className="mt-6">
-      <div className="mb-2 flex items-center gap-[1ch] text-[12px] text-fg-faint">
-        <ImageIcon aria-hidden="true" className="size-3.5" />
-        attachments/
-      </div>
+      <p className="mb-2 text-meta text-fg-faint">attachments/</p>
 
       <div className="grid gap-3 sm:grid-cols-2">
         {images.map((image) => {
@@ -83,7 +74,7 @@ export function PromptImageAttachments({
 
           return (
             <a
-              className="group grid grid-cols-[72px_minmax(0,1fr)] items-center gap-[1.5ch] rounded-sm border border-line bg-bg-sunken p-1.5 transition-colors hover:border-accent"
+              className="group grid grid-cols-[72px_minmax(0,1fr)] items-center gap-[1.5ch] border border-line bg-bg-sunken p-1.5 transition-colors hover:border-accent"
               href={imageUrl}
               key={image.id}
               rel="noreferrer"
@@ -91,17 +82,15 @@ export function PromptImageAttachments({
             >
               <img
                 alt=""
-                className="h-14 w-[72px] rounded-sm bg-bg object-cover"
+                className="h-14 w-[72px] bg-bg object-cover"
                 loading="eager"
                 src={imageUrl}
               />
               <span className="min-w-0">
-                <span className="block truncate text-[12.5px] text-fg group-hover:text-accent">
+                <span className="block truncate text-meta text-fg group-hover:text-accent">
                   {image.fileName}
                 </span>
-                <span className="block text-[11px] text-fg-faint">
-                  {formatImageSize(image.size)}
-                </span>
+                <span className="block text-meta text-fg-faint">{formatImageSize(image.size)}</span>
               </span>
             </a>
           )
@@ -135,7 +124,7 @@ const createMarkdownComponents = (
       return (
         <a
           className={cn(
-            'text-blue underline decoration-blue/40 underline-offset-[3px] transition-colors hover:decoration-blue',
+            'text-accent underline decoration-accent/40 underline-offset-[3px] transition-colors hover:decoration-accent',
             className,
           )}
           href={href}
@@ -151,7 +140,7 @@ const createMarkdownComponents = (
       return (
         <blockquote
           className={cn(
-            'my-4 border-l-2 border-magenta/70 pl-[2ch] text-fg-dim [&>p:first-child]:mt-0 [&>p:last-child]:mb-0',
+            'my-4 border-l-2 border-line-strong pl-[2ch] text-fg-dim [&>p:first-child]:mt-0 [&>p:last-child]:mb-0',
             className,
           )}
           {...props}
@@ -167,17 +156,14 @@ const createMarkdownComponents = (
 
       if (isBlock) {
         return (
-          <code
-            className={cn('block min-w-max text-[12.5px] leading-[1.65] text-green', className)}
-            {...props}
-          >
+          <code className={cn('block min-w-max text-ui text-fg', className)} {...props}>
             {children}
           </code>
         )
       }
 
       return (
-        <code className={cn('rounded-sm bg-bg-sunken px-[0.5ch] text-cyan', className)} {...props}>
+        <code className={cn('bg-bg-sunken px-[0.5ch] text-fg', className)} {...props}>
           {children}
         </code>
       )
@@ -212,12 +198,7 @@ const createMarkdownComponents = (
       return <MarkdownHeading className={className} rank={6} {...props} />
     },
     hr({ className, node: _node, ...props }) {
-      return (
-        <hr
-          className={cn('my-5 h-0 border-0 border-t border-dashed border-line-strong', className)}
-          {...props}
-        />
-      )
+      return <hr className={cn('my-6 h-0 border-0 border-t border-line', className)} {...props} />
     },
     img({ alt, className, node: _node, src, ...props }) {
       const imageId = promptImageIdFromSrc(src)
@@ -229,12 +210,11 @@ const createMarkdownComponents = (
           return (
             <span
               className={cn(
-                'my-3 flex min-h-16 items-center gap-[1ch] rounded-sm border border-dashed border-line-strong px-[2ch] py-2 text-[12.5px] text-fg-faint',
+                'my-3 flex min-h-16 items-center gap-[1ch] border border-dashed border-line-strong px-[2ch] py-2 text-meta text-fg-faint',
                 className,
               )}
               role="note"
             >
-              <ImageIcon aria-hidden="true" className="size-4" />
               image unavailable
             </span>
           )
@@ -247,11 +227,11 @@ const createMarkdownComponents = (
             <img
               {...props}
               alt={alt ?? image.fileName}
-              className="max-h-[420px] max-w-full rounded-sm border border-line bg-bg-sunken object-contain"
+              className="max-h-[420px] max-w-full border border-line bg-bg-sunken object-contain"
               loading="eager"
               src={imageUrl}
             />
-            <span className="mt-1 block text-[11px] text-fg-faint">{image.fileName}</span>
+            <span className="mt-1 block text-meta text-fg-faint">{image.fileName}</span>
           </span>
         )
       }
@@ -260,7 +240,7 @@ const createMarkdownComponents = (
         <img
           alt={alt ?? ''}
           className={cn(
-            'my-6 max-h-[440px] max-w-full rounded-sm border border-line bg-bg-sunken object-contain',
+            'my-6 max-h-[440px] max-w-full border border-line bg-bg-sunken object-contain',
             className,
           )}
           loading="lazy"
@@ -306,7 +286,7 @@ const createMarkdownComponents = (
     ol({ className, node: _node, ...props }) {
       return (
         <ol
-          className={cn('my-3 list-decimal space-y-1 pl-[3ch] marker:text-yellow', className)}
+          className={cn('my-3 list-decimal space-y-1 pl-[3ch] marker:text-fg-faint', className)}
           {...props}
         />
       )
@@ -321,7 +301,7 @@ const createMarkdownComponents = (
           // oxlint-disable-next-line jsx-a11y/no-noninteractive-tabindex
           tabIndex={0}
           className={cn(
-            'scrollbar-term my-4 overflow-x-auto rounded-sm border border-line bg-bg-sunken px-[2ch] py-2.5',
+            'scrollbar-term my-4 overflow-x-auto border border-line bg-bg-sunken px-[2ch] py-3',
             className,
           )}
           {...props}
@@ -331,16 +311,13 @@ const createMarkdownComponents = (
     section({ className, node: _node, ...props }) {
       return (
         <section
-          className={cn(
-            'mt-6 border-t border-dashed border-line pt-3 text-[12.5px] text-fg-dim',
-            className,
-          )}
+          className={cn('mt-6 border-t border-line pt-3 text-meta text-fg-dim', className)}
           {...props}
         />
       )
     },
     strong({ className, node: _node, ...props }) {
-      return <strong className={cn('font-bold text-fg', className)} {...props} />
+      return <strong className={cn('font-semibold text-fg', className)} {...props} />
     },
     sup({ className, node: _node, ...props }) {
       return (
@@ -355,12 +332,9 @@ const createMarkdownComponents = (
     },
     table({ className, node: _node, ...props }) {
       return (
-        <div className="scrollbar-term my-4 overflow-x-auto rounded-sm border border-line">
+        <div className="scrollbar-term my-4 overflow-x-auto border border-line">
           <table
-            className={cn(
-              'w-full min-w-[520px] border-collapse text-left text-[12.5px]',
-              className,
-            )}
+            className={cn('w-full min-w-[40ch] border-collapse text-left text-ui', className)}
             {...props}
           />
         </div>
@@ -373,7 +347,7 @@ const createMarkdownComponents = (
       return (
         <td
           className={cn(
-            'border-t border-line px-[1.5ch] py-1.5 align-top text-fg [&[align=center]]:text-center [&[align=right]]:text-right',
+            'border-t border-line px-[2ch] py-1.5 align-top text-fg [&[align=center]]:text-center [&[align=right]]:text-right',
             className,
           )}
           {...props}
@@ -384,7 +358,7 @@ const createMarkdownComponents = (
       return (
         <th
           className={cn(
-            'px-[1.5ch] py-1.5 align-bottom font-bold text-accent [&[align=center]]:text-center [&[align=right]]:text-right',
+            'px-[2ch] py-1.5 align-bottom text-meta font-normal text-fg-faint [&[align=center]]:text-center [&[align=right]]:text-right',
             className,
           )}
           {...props}
@@ -400,7 +374,7 @@ const createMarkdownComponents = (
     ul({ className, node: _node, ...props }) {
       return (
         <ul
-          className={cn("my-3 list-['•_'] space-y-1 pl-[3ch] marker:text-yellow", className)}
+          className={cn("my-3 list-['•_'] space-y-1 pl-[3ch] marker:text-fg-faint", className)}
           {...props}
         />
       )
@@ -441,16 +415,15 @@ function MarkdownHeading({ children, className, rank, ...props }: MarkdownHeadin
   return (
     <Heading
       className={cn(
-        'mt-5 mb-2 scroll-mt-4 font-bold first:mt-0',
-        rank === 1 && 'text-[15px] text-accent',
-        rank === 2 && 'text-[14px] text-yellow',
-        rank === 3 && 'text-[13.5px] text-green',
-        rank >= 4 && 'text-[13.5px] text-cyan',
+        'mt-6 mb-2 scroll-mt-4 text-fg first:mt-0',
+        rank === 1 && 'text-head font-extrabold',
+        rank === 2 && 'text-body font-extrabold',
+        rank >= 3 && 'text-body font-semibold',
         className,
       )}
       {...props}
     >
-      <span aria-hidden="true" className="mr-[1ch] font-normal text-fg-faint">
+      <span aria-hidden="true" className="mr-[1ch] text-[0.875rem] font-normal text-fg-faint">
         {'#'.repeat(rank)}
       </span>
       {children}

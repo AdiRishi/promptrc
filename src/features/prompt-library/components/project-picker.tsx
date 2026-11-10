@@ -113,7 +113,7 @@ export function ProjectPicker({
           aria-describedby={`${id}-hint`}
           aria-expanded={showMenu}
           autoComplete="off"
-          className="w-full min-w-0 bg-transparent text-blue outline-none placeholder:text-fg-faint"
+          className="w-full min-w-0 bg-transparent text-fg outline-none placeholder:text-fg-faint max-md:text-[16px]"
           id={id}
           onBlur={() => {
             setIsOpen(false)
@@ -146,7 +146,7 @@ export function ProjectPicker({
 
       {showMenu ? (
         <ul
-          className="absolute top-full left-0 z-40 mt-1 max-h-60 w-[min(30ch,100%)] min-w-[24ch] animate-pop overflow-y-auto rounded-sm border border-line-strong bg-bg-raised py-1 text-[12.5px] shadow-[0_12px_30px_rgb(0_0_0/0.35)]"
+          className="absolute top-full left-0 z-40 mt-1 max-h-60 w-[min(32ch,100%)] min-w-[24ch] animate-pop overflow-y-auto rounded-md border border-line-strong bg-bg-raised py-1 shadow-overlay"
           id={listId}
         >
           {options.map((option, index) => {
@@ -157,8 +157,8 @@ export function ProjectPicker({
                 <button
                   aria-current={active ? 'true' : undefined}
                   className={cn(
-                    'flex w-full items-center gap-[1ch] px-[1ch] text-left',
-                    active ? 'bg-accent text-accent-fg' : 'text-fg-dim hover:bg-bg-hover',
+                    'flex h-7 w-full items-center gap-[1ch] px-[1.5ch] text-left max-md:h-11',
+                    active ? 'row-selected text-fg' : 'text-fg-dim hover:bg-bg-hover',
                   )}
                   // Keep focus in the input while picking with the mouse.
                   onMouseDown={(event) => {
@@ -171,15 +171,16 @@ export function ProjectPicker({
                 >
                   {option.type === 'project' ? (
                     <>
-                      <span className={active ? undefined : 'text-blue'}>▸</span>
                       <span className="min-w-0 flex-1 truncate">{option.project.label}/</span>
-                      <span className={cn('tabular-nums', active ? 'opacity-70' : 'text-fg-faint')}>
+                      <span className="text-meta text-fg-faint tabular-nums">
                         {option.project.count}
                       </span>
                     </>
                   ) : (
                     <>
-                      <span className={active ? undefined : 'text-yellow'}>+</span>
+                      <span aria-hidden="true" className="text-fg-faint">
+                        +
+                      </span>
                       <span className="min-w-0 flex-1 truncate">new project “{option.label}”</span>
                     </>
                   )}
@@ -212,7 +213,7 @@ function ProjectHint({
 
   if (exact) {
     return (
-      <span className="shrink-0 text-[11.5px] whitespace-nowrap text-green" id={id}>
+      <span className="shrink-0 text-meta whitespace-nowrap text-green" id={id}>
         {exact.label === typed ? '✓' : `→ ${exact.label}`}
         <span className="sr-only"> existing project</span>
       </span>
@@ -221,10 +222,10 @@ function ProjectHint({
 
   if (near) {
     return (
-      <span className="shrink-0 text-[11.5px] whitespace-nowrap text-yellow" id={id}>
+      <span className="shrink-0 text-meta whitespace-nowrap text-fg-dim" id={id}>
         did you mean{' '}
         <button
-          className="underline underline-offset-2 hover:text-fg"
+          className="text-accent underline underline-offset-2"
           // A click must not blur the field first and snap anything.
           onMouseDown={(event) => {
             event.preventDefault()
@@ -241,7 +242,7 @@ function ProjectHint({
   }
 
   return (
-    <span className="shrink-0 text-[11.5px] whitespace-nowrap text-yellow" id={id}>
+    <span className="shrink-0 text-meta whitespace-nowrap text-fg-faint" id={id}>
       + new project
     </span>
   )
