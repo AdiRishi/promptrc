@@ -325,7 +325,7 @@
     }
 
     /* Roomy screens get the whole scale one step larger; widths are in ch and follow. */
-    @media (min-width: 1680px) {
+    @media (min-width: 105rem) {
         :root {
             --text-meta: 0.8125rem;
             --text-ui: 0.9375rem;
