@@ -8,7 +8,7 @@ Keep the prompts, phrasings, sequences and benchmarks that worked — before the
 
 [![CI](https://github.com/AdiRishi/promptrc/actions/workflows/ci.yml/badge.svg)](https://github.com/AdiRishi/promptrc/actions/workflows/ci.yml) [![Deploy](https://github.com/AdiRishi/promptrc/actions/workflows/deploy.yml/badge.svg)](https://github.com/AdiRishi/promptrc/actions/workflows/deploy.yml) ![GitHub License](https://img.shields.io/github/license/AdiRishi/promptrc)
 
-[**promptrc.app**](https://promptrc.app) · [Report a bug](https://github.com/AdiRishi/promptrc/issues)
+[**promptrc.app**](https://promptrc.app) · [About](https://promptrc.app/about) · [Manual](https://promptrc.app/manual) · [Guides](https://promptrc.app/guides) · [Report a bug](https://github.com/AdiRishi/promptrc/issues)
 
 <img src="docs/screenshots/library.jpg" alt="promptrc as a three-pane terminal UI: a ~/.promptrc tree of projects and tags, an fzf-style list of entries, and the Bug Hunt prompt open with one fill-in blank completed, above a vim-style status line" width="100%" />
 
@@ -68,6 +68,12 @@ Every entry lives in a **project** and can carry **notes** (why it works, what g
 - **Local-first, cloud-optional** — everything works signed out (stored in your browser). `:login` to sync to Cloudflare D1 and share read-only links.
 
 <img src="docs/screenshots/colorschemes.jpg" alt="The same benchmark in six colorschemes: promptrc, daylight, green-screen, catppuccin, gruvbox and phosphor" width="100%" />
+
+## Guides
+
+- [Prompt templates with variables](https://promptrc.app/guides/prompt-templates)
+- [Prompt chaining: split one big prompt into steps](https://promptrc.app/guides/prompt-chaining)
+- [How to benchmark a prompt across AI models](https://promptrc.app/guides/prompt-benchmarks)
 
 ## Keys
 

@@ -78,6 +78,8 @@ describe('parseExCommand', () => {
     expect(action('y')).toEqual({ type: 'copy' })
     expect(action('yank 2')).toEqual({ type: 'copy', step: 2 })
     expect(action('yank step3')).toEqual({ type: 'copy', step: 3 })
+    expect(action('y2')).toEqual({ type: 'copy', step: 2 })
+    expect(action('yank12')).toEqual({ type: 'copy', step: 12 })
     expect(error('yank zero')).toMatch(/Invalid step/)
   })
 

@@ -1,4 +1,5 @@
 import { makePromptLibraryReady } from '@/features/prompt-library/lifecycle/prompt-library-hydration'
+import { importWwwHostLibrary } from '@/features/prompt-library/lifecycle/www-host-library-import'
 import {
   type LocalPromptLibraryStorage,
   type PromptLibraryStorage,
@@ -44,6 +45,16 @@ export const startPromptLibrarySession = ({ storage, store }: PromptLibrarySessi
 
       unsubscribe = localPersistence.unsubscribe
       store.getState().actions.setSyncState({ syncMode: storage.mode, syncStatus: 'ready' })
+
+      const { saveNow } = localPersistence
+
+      if (saveNow) {
+        // Started once changes are being saved, so what it brings over is saved too.
+        void importWwwHostLibrary(store, {
+          isActive: () => isActive,
+          saveLibrary: saveNow,
+        }).catch(setSyncError)
+      }
     })
     .catch((error: unknown) => {
       if (isActive) {
@@ -79,6 +90,7 @@ const startLocalPromptLibraryPersistence = ({
   return {
     started: true as const,
     unsubscribe: store.subscribe(persistSnapshot),
+    saveNow: () => persistSnapshot(store.getState()),
   }
 }
 

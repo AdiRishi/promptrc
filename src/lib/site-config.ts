@@ -1,9 +1,14 @@
 export const SITE_NAME = 'promptrc'
 export const SITE_AUTHOR = SITE_NAME
-export const SITE_APP_HEADING = 'promptrc — a terminal for the prompts that worked'
-export const SITE_DEFAULT_TITLE = 'promptrc | a terminal for the prompts that worked'
+/**
+ * The home page's title and description are what a search result shows. They
+ * lead with what people search for, and fit the space a result gives them
+ * (about 60 and 155 characters).
+ */
+export const SITE_DEFAULT_TITLE = 'promptrc: a keyboard-first AI prompt manager and library'
+export const SITE_APP_HEADING = SITE_DEFAULT_TITLE
 export const SITE_DESCRIPTION =
-  'A keyboard-driven, local-first terminal for the prompts that worked: reusable prompts with fill-in variables, phrasing that landed, multi-step sequences, and reproducible benchmarks — captured in seconds, found with a keystroke.'
+  'Save and reuse the AI prompts that worked. Fill-in variables, step-by-step sequences and benchmarks in a fast, terminal-style app. Free and open source.'
 export const SITE_KEYWORD_LIST = [
   'promptrc',
   'AI prompt manager',
@@ -44,8 +49,8 @@ export const SITE_FEATURE_LIST = [
   'Save reusable AI prompts with fill-in {{variables}} you complete before copying',
   'Keep fragments of phrasing, multi-step sequences, and reproducible benchmarks with run logs',
   'Capture an idea in seconds and find anything with a keyboard-first command palette',
-  'Search prompt titles, bodies, notes, collections, and tags instantly',
-  'Organize prompts by category and tag without heavyweight content management',
+  'Search prompt titles, bodies, notes, projects, and tags instantly',
+  'Organize prompts by project and tag without heavyweight content management',
   'Copy prompt bodies into ChatGPT, Claude, coding tools, and writing workflows',
   'Use local-first browser storage with optional signed-in cloud sync',
   'Move quickly with keyboard-first prompt retrieval',

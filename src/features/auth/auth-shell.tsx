@@ -77,9 +77,14 @@ export function AuthShell({ children, mode }: AuthShellProps) {
             <span className="cursor-block cursor-blink" />
           </p>
           <div className="w-full animate-boot">{children}</div>
-          <Link className="link mt-5 self-start" to="/">
-            Continue without an account
-          </Link>
+          <p className="mt-5 flex flex-wrap gap-x-[2ch] gap-y-1">
+            <Link className="link" to="/">
+              Continue without an account
+            </Link>
+            <Link className="link" to="/about">
+              What is promptrc?
+            </Link>
+          </p>
         </div>
       </div>
     </main>

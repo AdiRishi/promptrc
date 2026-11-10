@@ -38,6 +38,7 @@ export default defineConfig(({ mode }) => {
       sitemapPlugin({
         baseUrl: siteUrl,
         verbose: mode !== 'production',
+        excludePaths: ['/www-library'],
       }),
     ],
   }

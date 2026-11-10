@@ -137,18 +137,31 @@ export function LibraryPane({
             </button>
           ))}
         </div>
-        <FooterRow className="max-md:h-8" label="sync">
-          <SyncMark className="mr-[1ch]" mode={syncMode} status={syncStatus} />
-          <span className={cn(syncStatus === 'error' && 'text-red')}>
-            {syncStatus === 'error'
-              ? 'error'
-              : syncStatus === 'loading'
-                ? 'mounting…'
-                : syncMode === 'remote'
-                  ? 'cloud'
-                  : 'local'}
-          </span>
-        </FooterRow>
+        {/* Side by side where a phone has the width; the narrowest ones stack them. */}
+        <div className="max-md:flex max-md:flex-wrap">
+          <FooterRow className="max-md:grow" label="sync">
+            <SyncMark className="mr-[1ch]" mode={syncMode} status={syncStatus} />
+            <span className={cn(syncStatus === 'error' && 'text-red')}>
+              {syncStatus === 'error'
+                ? 'error'
+                : syncStatus === 'loading'
+                  ? 'mounting…'
+                  : syncMode === 'remote'
+                    ? 'cloud'
+                    : 'local'}
+            </span>
+          </FooterRow>
+          <FooterRow className="max-md:grow" label="docs">
+            <span className="flex gap-[1ch]">
+              <a className="link" href="/about">
+                about
+              </a>
+              <a className="link" href="/guides">
+                guides
+              </a>
+            </span>
+          </FooterRow>
+        </div>
         <FooterRow label="scheme">
           <button
             className="-mx-[1ch] flex min-w-0 gap-[1ch] truncate px-[1ch] text-left transition-colors hover:bg-bg-hover hover:text-fg max-md:h-11 max-md:items-center"

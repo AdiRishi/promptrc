@@ -149,7 +149,9 @@ export const parseExCommand = (input: string): ExParseResult => {
     return { ok: false, error: 'E471: Argument required' }
   }
 
-  const match = /^(\S+?)(!?)(?:\s+([\s\S]*))?$/.exec(trimmed)
+  // `:y2` is `:y 2`, the way a count hugs a vim command.
+  const spaced = trimmed.replace(/^(y|yank)(\d+)$/i, '$1 $2')
+  const match = /^(\S+?)(!?)(?:\s+([\s\S]*))?$/.exec(spaced)
   const word = match?.[1]?.toLowerCase() ?? ''
   const bang = match?.[2] === '!'
   const rest = match?.[3]?.trim() ?? ''
