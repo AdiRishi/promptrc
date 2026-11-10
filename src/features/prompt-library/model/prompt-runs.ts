@@ -55,7 +55,7 @@ export const createPromptRun = (
 export const normalizePromptRuns = (runs: readonly PromptRun[]): PromptRun[] => {
   const seen = new Set<string>()
 
-  return [...runs]
+  return runs
     .toSorted((left, right) => right.ranAt.localeCompare(left.ranAt))
     .filter((run) => {
       if (seen.has(run.id)) {
