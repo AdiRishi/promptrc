@@ -1,7 +1,7 @@
 import { type ReactNode, useRef } from 'react'
 
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog'
-import { KeyCombo } from '@/components/ui/kbd'
+import { KeyCombo, useModKeyLabel } from '@/components/ui/kbd'
 import {
   PROMPT_LIBRARY_HELP_GROUPS,
   getPromptLibraryCommand,
@@ -20,15 +20,16 @@ type ManualProps = {
 /** `man promptrc` — every key, command and convention on one scrolling page. */
 export function Manual({ open, onOpenChange }: ManualProps) {
   const scrollRef = useRef<HTMLDivElement>(null)
+  const modLabel = useModKeyLabel()
 
   return (
     <Dialog onOpenChange={onOpenChange} open={open}>
       <DialogContent
-        className="top-[6vh] max-h-[88dvh] translate-y-0 gap-0 overflow-hidden p-0 sm:max-w-[min(96ch,calc(100%-2rem))]"
+        className="top-[12vh] max-h-[80dvh] translate-y-0 gap-0 p-0 sm:max-w-[min(96ch,calc(100%-2rem))]"
         initialFocus={scrollRef}
         showCloseButton={false}
       >
-        <DialogTitle className="sr-only">promptrc manual</DialogTitle>
+        <DialogTitle className="pane-title text-meta font-normal text-fg-dim">manual</DialogTitle>
         <DialogDescription className="sr-only">
           Keyboard shortcuts, commands, template syntax and colorschemes.
         </DialogDescription>
@@ -39,7 +40,7 @@ export function Manual({ open, onOpenChange }: ManualProps) {
         </div>
 
         <div
-          className="scrollbar-term max-h-[calc(88dvh-2.25rem)] overflow-y-auto px-[3ch] pt-5 pb-8 outline-none"
+          className="scrollbar-term max-h-[calc(80dvh-2.25rem)] overflow-y-auto px-[3ch] pt-5 pb-8 outline-none"
           ref={scrollRef}
           tabIndex={-1}
         >
@@ -51,7 +52,7 @@ export function Manual({ open, onOpenChange }: ManualProps) {
 
           <Section title="SYNOPSIS">
             <p>
-              <b className="text-fg">c</b> capture · <b className="text-fg">⌘K</b> find ·{' '}
+              <b className="text-fg">c</b> capture · <b className="text-fg">{modLabel} K</b> find ·{' '}
               <b className="text-fg">:</b>
               <u className="decoration-fg-faint underline-offset-2">command</u> [
               <u className="decoration-fg-faint underline-offset-2">args</u>]
@@ -161,12 +162,7 @@ export function Manual({ open, onOpenChange }: ManualProps) {
 
           <Section title="SEE ALSO">
             <p>
-              <a
-                className="text-accent underline underline-offset-2"
-                href={SITE_GITHUB_URL}
-                rel="noreferrer"
-                target="_blank"
-              >
+              <a className="link" href={SITE_GITHUB_URL} rel="noreferrer" target="_blank">
                 github.com/AdiRishi/promptrc
               </a>
             </p>

@@ -105,18 +105,19 @@ export function LibraryPane({
 
       <div className="border-t border-line py-1.5 text-fg-dim">
         <button
-          className="flex h-7 w-full items-center gap-[1ch] px-[2ch] text-left transition-colors hover:bg-bg-hover max-md:h-11"
+          className="flex h-7 w-full items-center gap-[1ch] px-[2ch] text-left font-semibold text-accent transition-colors hover:bg-bg-hover max-md:h-11"
           onClick={onCapture}
           type="button"
         >
-          <span className="font-bold text-accent">❯</span>
-          <span className="flex-1 font-semibold text-accent">capture</span>
-          <Kbd>c</Kbd>
+          <span aria-hidden="true">+</span>
+          <span className="flex-1">capture</span>
+          <Kbd className="font-normal max-md:hidden">c</Kbd>
         </button>
-        <p className="flex h-7 items-center gap-[1ch] px-[2ch]">
+        <FooterRow label="sync">
           <span
             aria-hidden="true"
             className={cn(
+              'mr-[1ch]',
               syncStatus === 'error'
                 ? 'text-red'
                 : syncStatus === 'loading'
@@ -126,50 +127,56 @@ export function LibraryPane({
           >
             ●
           </span>
-          <span className={cn('min-w-0 flex-1 truncate', syncStatus === 'error' && 'text-red')}>
+          <span className={cn(syncStatus === 'error' && 'text-red')}>
             {syncStatus === 'error'
-              ? 'sync error'
+              ? 'error'
               : syncStatus === 'loading'
                 ? 'mounting…'
                 : syncMode === 'remote'
-                  ? 'synced to the cloud'
-                  : 'local, this device'}
+                  ? 'cloud'
+                  : 'local'}
           </span>
-        </p>
-        <button
-          className="flex h-7 w-full items-center gap-[1ch] px-[2ch] text-left transition-colors hover:bg-bg-hover hover:text-fg max-md:h-11"
-          onClick={colorScheme.cycle}
-          title="Cycle colorscheme (or :colorscheme <name>)"
-          type="button"
-        >
-          <span className="text-fg-faint">scheme</span>
-          <span className="min-w-0 flex-1 truncate text-right">
+        </FooterRow>
+        <FooterRow label="scheme">
+          <button
+            className="-mx-[1ch] min-w-0 truncate px-[1ch] text-left transition-colors hover:bg-bg-hover hover:text-fg max-md:h-11"
+            onClick={colorScheme.cycle}
+            title="Cycle colorscheme (or :colorscheme <name>)"
+            type="button"
+          >
             {colorScheme.scheme}
             {colorScheme.preference === 'system' ? (
               <span className="text-fg-faint"> · auto</span>
             ) : null}
-          </span>
-        </button>
-        <p className="flex h-7 items-center justify-between gap-[1ch] px-[2ch] max-md:h-11">
+          </button>
+        </FooterRow>
+        <FooterRow label="account">
           <Show when="signed-out">
-            <a className="text-accent hover:underline" href="/sign-in">
+            <a className="link" href="/sign-in">
               login
             </a>
           </Show>
           <Show when="signed-in">
             <UserButton appearance={{ elements: { userButtonAvatarBox: 'size-5 rounded-sm' } }} />
           </Show>
-          <a
-            className="text-fg-faint transition-colors hover:text-fg"
-            href={SITE_GITHUB_URL}
-            rel="noreferrer"
-            target="_blank"
-          >
+        </FooterRow>
+        <FooterRow label="source">
+          <a className="link" href={SITE_GITHUB_URL} rel="noreferrer" target="_blank">
             github <span aria-hidden="true">↗</span>
           </a>
-        </p>
+        </FooterRow>
       </div>
     </Pane>
+  )
+}
+
+/** One line of the footer: what it is, then its value. */
+function FooterRow({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <p className="flex h-6 items-center px-[2ch] max-md:h-11">
+      <span className="w-[8ch] shrink-0 text-fg-faint">{label}</span>
+      <span className="flex min-w-0 items-center whitespace-nowrap">{children}</span>
+    </p>
   )
 }
 

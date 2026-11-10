@@ -13,7 +13,7 @@ type AuthShellProps = PropsWithChildren<{
 /** Sign in / sign up as a login session: the pitch as a transcript, the form as `login:`. */
 export function AuthShell({ children, mode }: AuthShellProps) {
   return (
-    <main className="relative z-10 mx-auto flex min-h-dvh max-w-[130ch] flex-col px-2 pb-6 sm:px-3">
+    <main className="relative z-10 mx-auto flex min-h-dvh max-w-[150ch] flex-col px-2 pb-6 sm:px-3">
       <header className="flex h-8 items-center justify-between max-md:h-11">
         <Link to="/">
           <Wordmark />
@@ -21,13 +21,13 @@ export function AuthShell({ children, mode }: AuthShellProps) {
         <span className="text-meta text-fg-faint">tty1</span>
       </header>
 
-      <div className="grid flex-1 content-center items-center gap-x-[6ch] gap-y-8 py-8 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)]">
+      <div className="grid flex-1 content-center items-start gap-x-[6ch] gap-y-8 py-8 lg:grid-cols-[minmax(0,84ch)_minmax(0,1fr)]">
         <Pane className="hidden lg:flex" title="~/.promptrc/README">
           <div className="px-[3ch] pt-7 pb-8">
             <p className="text-meta">
               <Prompt /> promptrc --about
             </p>
-            <p className="voice-title mt-3 text-display text-balance text-fg">
+            <p className="voice-title mt-3 max-w-[22ch] text-display text-balance text-fg">
               Keep the words that <span className="text-accent">worked</span>, before they slip
               away.
             </p>
@@ -68,15 +68,16 @@ export function AuthShell({ children, mode }: AuthShellProps) {
           </div>
         </Pane>
 
-        <div className="mx-auto flex w-full max-w-[400px] flex-col">
-          <p className="mb-4 text-fg-dim">
+        {/* Starts level with the first line inside the README frame. */}
+        <div className="mx-auto flex w-full max-w-[400px] flex-col lg:pt-[29px]">
+          <p className="mb-4 text-meta text-fg-dim">
             <span className="text-fg">promptrc {mode === 'sign-in' ? 'login' : 'useradd'}:</span>{' '}
             {mode === 'sign-in' ? 'welcome back' : 'create an account to sync'}
             <span className="cursor-block cursor-blink" />
           </p>
           <div className="w-full animate-boot">{children}</div>
-          <Link className="mt-5 self-start text-fg-dim transition-colors hover:text-fg" to="/">
-            <span className="text-accent">esc</span> continue without an account
+          <Link className="link mt-5 self-start" to="/">
+            Continue without an account
           </Link>
         </div>
       </div>

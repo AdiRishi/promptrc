@@ -224,14 +224,14 @@ function CommandLineInput({
       {completions.length > 0 ? (
         <ul
           aria-label="Completions"
-          className="scrollbar-term absolute bottom-full left-0 z-30 max-h-[50vh] w-[min(64ch,100%)] animate-pop overflow-y-auto rounded-md border border-line-strong bg-bg-raised py-1 shadow-overlay md:mb-7"
+          className="scrollbar-term absolute bottom-full left-0 z-30 max-h-[50vh] w-[min(72ch,100%)] animate-pop overflow-y-auto rounded-md border border-line-strong bg-bg-raised py-1 shadow-overlay md:mb-7"
         >
           {completions.map((completion, index) => (
             <li key={completion.value}>
               <button
                 aria-current={index === highlighted ? 'true' : undefined}
                 className={cn(
-                  'flex h-7 w-full items-center gap-[2ch] px-[2ch] text-left',
+                  'flex min-h-7 w-full items-baseline gap-[2ch] px-[2ch] py-0.5 text-left',
                   index === highlighted ? 'row-selected text-fg' : 'text-fg-dim hover:bg-bg-hover',
                 )}
                 // Keep focus in the input while clicking a completion.
@@ -243,7 +243,7 @@ function CommandLineInput({
                 type="button"
               >
                 <span className="w-[24ch] shrink-0 truncate text-fg">{completion.label}</span>
-                <span className="truncate text-meta text-fg-faint">{completion.detail}</span>
+                <span className="text-meta text-fg-faint">{completion.detail}</span>
               </button>
             </li>
           ))}

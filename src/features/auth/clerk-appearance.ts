@@ -25,10 +25,12 @@ export const promptrcClerkAppearance = {
     headerTitle: 'text-head font-extrabold text-[var(--fg)]',
     headerSubtitle: 'text-meta text-[var(--fg-dim)]',
     logoBox: 'hidden',
-    formFieldInput: 'h-10 border-[var(--line-strong)] bg-[var(--bg-sunken)] shadow-none',
-    socialButtonsBlockButton: 'h-10 border-[var(--line-strong)] bg-[var(--bg-sunken)] shadow-none',
+    formFieldInput:
+      'h-10 border-[var(--line-strong)] bg-[var(--bg-sunken)] shadow-none max-md:h-11 max-md:text-[16px]',
+    socialButtonsBlockButton:
+      'h-10 border-[var(--line-strong)] bg-[var(--bg-sunken)] shadow-none max-md:h-11',
     formButtonPrimary:
-      'h-10 bg-[var(--accent)] font-semibold text-[var(--accent-fg)] shadow-none hover:bg-[var(--accent)] hover:brightness-110',
+      'h-10 bg-[var(--accent)] font-semibold text-[var(--accent-fg)] shadow-none hover:bg-[var(--accent)] hover:brightness-110 max-md:h-11',
     footer: 'bg-[var(--bg-raised)] [background-image:none]',
     footerActionLink: 'text-[var(--accent)] hover:text-[var(--accent)]',
   },

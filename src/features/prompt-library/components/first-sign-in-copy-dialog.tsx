@@ -64,7 +64,9 @@ export function FirstSignInCopyDialog() {
         }}
         showCloseButton={false}
       >
-        <DialogTitle className="pane-title font-normal text-fg">first sign-in</DialogTitle>
+        <DialogTitle className="pane-title text-meta font-normal text-fg-dim">
+          first sign-in
+        </DialogTitle>
         <div className="px-[3ch] pt-6 pb-4">
           <p className="text-meta text-fg-faint">$ promptrc sync --from=this-browser</p>
           <DialogDescription className="mt-2 text-fg-dim">

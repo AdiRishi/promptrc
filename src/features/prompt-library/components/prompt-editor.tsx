@@ -1,15 +1,13 @@
 import { type ReactNode, useId, useState } from 'react'
 
-import { Choice, ChoiceGroup } from '@/components/ui/choice'
+import { Bracketed, Choice, ChoiceGroup } from '@/components/ui/choice'
 import { useModKeyLabel } from '@/components/ui/kbd'
+import { KeyAction, KeyActionBar } from '@/components/ui/key-action'
 import { Pane } from '@/components/ui/pane'
 import { KindMark } from '@/features/prompt-library/components/kind-mark'
 import { ProjectPicker } from '@/features/prompt-library/components/project-picker'
-import {
-  KeyAction,
-  SectionLabel,
-  promptPath,
-} from '@/features/prompt-library/components/prompt-reader'
+import { promptPath } from '@/features/prompt-library/components/prompt-reader'
+import { SectionLabel } from '@/features/prompt-library/components/section-label'
 import { hasPendingPromptImageUploads } from '@/features/prompt-library/model/prompt-images'
 import { PROMPT_KINDS, getPromptKindDefinition } from '@/features/prompt-library/model/prompt-kinds'
 import { type PromptProject } from '@/features/prompt-library/model/prompt-projects'
@@ -122,7 +120,6 @@ export function PromptEditor({
   return (
     <Pane
       active={active}
-      aside={<span className="text-fg">-- INSERT --</span>}
       className="h-full"
       index={3}
       title={
@@ -140,7 +137,7 @@ export function PromptEditor({
         }}
       >
         <div className="border-b border-line px-[2ch] pt-4 pb-3 md:px-[3ch]">
-          <div className="-mx-[1ch] flex flex-wrap items-center gap-y-1">
+          <KeyActionBar>
             <KeyAction
               keyLabel={`${modLabel} ⏎`}
               label={composer.mode === 'new' ? 'keep it' : 'save'}
@@ -148,7 +145,7 @@ export function PromptEditor({
               type="submit"
             />
             <KeyAction keyLabel="esc" label="cancel" onClick={onCancel} />
-          </div>
+          </KeyActionBar>
         </div>
 
         <div className="scrollbar-term min-h-0 flex-1 overflow-y-auto px-[2ch] pt-5 pb-10 md:px-[3ch]">
@@ -168,10 +165,8 @@ export function PromptEditor({
                     <Choice
                       checked={selected}
                       className={cn(
-                        'inline-flex h-6 items-center gap-[0.5ch] px-[0.75ch] transition-colors max-md:h-11',
-                        selected
-                          ? 'bg-bg-sel font-semibold text-fg'
-                          : 'text-fg-dim hover:bg-bg-hover hover:text-fg',
+                        'inline-flex h-6 items-center transition-colors max-md:h-11',
+                        selected ? 'font-semibold text-fg' : 'text-fg-dim hover:text-fg',
                         isUploading && !selected && 'pointer-events-none opacity-40',
                       )}
                       key={kind}
@@ -181,7 +176,10 @@ export function PromptEditor({
                       title={getPromptKindDefinition(kind).description}
                       value={kind}
                     >
-                      <KindMark kind={kind} label={false} /> {kind}
+                      <Bracketed active={selected}>
+                        <KindMark className="mr-[1ch] w-[1ch]" kind={kind} label={false} />
+                        {kind}
+                      </Bracketed>
                     </Choice>
                   )
                 })}
@@ -231,14 +229,16 @@ export function PromptEditor({
             </p>
 
             <div className="mt-6">
-              <div className="flex items-baseline justify-between gap-[2ch]">
-                <SectionLabel htmlFor={draft.kind === 'sequence' ? undefined : `${id}-body`}>
-                  {definition.bodyLabel.toLowerCase()}
-                </SectionLabel>
-                <span className="text-meta text-fg-faint max-sm:hidden">
-                  markdown · <span className="text-fg-dim">{'{{name}}'}</span> makes a blank
-                </span>
-              </div>
+              <SectionLabel
+                aside={
+                  <span className="max-sm:hidden">
+                    markdown, <span className="text-fg-dim">{'{{name}}'}</span> makes a blank
+                  </span>
+                }
+                htmlFor={draft.kind === 'sequence' ? undefined : `${id}-body`}
+              >
+                {definition.bodyLabel.toLowerCase()}
+              </SectionLabel>
 
               {draft.kind === 'sequence' ? (
                 <SequenceStepsEditor

@@ -1,8 +1,8 @@
 import { type SubmitEvent, useId, useState } from 'react'
 
-import { Choice, ChoiceGroup } from '@/components/ui/choice'
+import { Bracketed, Choice, ChoiceGroup } from '@/components/ui/choice'
 import { type PromptRunRequest } from '@/features/prompt-library/commands/prompt-library-command-executor'
-import { SectionLabel } from '@/features/prompt-library/components/prompt-reader'
+import { SectionLabel } from '@/features/prompt-library/components/section-label'
 import {
   PROMPT_RUN_VERDICTS,
   summarizePromptRuns,
@@ -43,7 +43,7 @@ export function BenchmarkLedger({
   const sparkline = runs.toReversed().slice(-32)
 
   return (
-    <section aria-label="Benchmark" className="mt-8">
+    <section aria-label="Benchmark" className="@container mt-8">
       <SectionLabel>expected</SectionLabel>
       {expected ? (
         <div className="border-l-2 border-kind-benchmark/60 pl-[2ch] text-body whitespace-pre-line text-fg">
@@ -113,7 +113,7 @@ export function BenchmarkLedger({
 
             return (
               <li
-                className="group grid grid-cols-[2ch_6ch_minmax(0,1fr)_auto] items-baseline gap-x-[1ch] border-b border-line py-1.5 sm:grid-cols-[2ch_6ch_22ch_minmax(0,1fr)_auto]"
+                className="group relative grid grid-cols-[2ch_6ch_minmax(0,1fr)_10ch] items-baseline gap-x-[2ch] gap-y-1 border-b border-line py-1.5 @xl:grid-cols-[2ch_6ch_18ch_minmax(0,1fr)_10ch]"
                 key={run.id}
               >
                 <span aria-hidden="true" className={style.text}>
@@ -123,22 +123,25 @@ export function BenchmarkLedger({
                   {style.label}
                 </span>
                 <span className="min-w-0 truncate text-fg">{run.model}</span>
-                <span className="min-w-0 text-fg-dim max-sm:col-span-2 max-sm:col-start-3 max-sm:row-start-2">
+                <span className="min-w-0 [overflow-wrap:anywhere] text-fg-dim @max-xl:col-span-2 @max-xl:col-start-3 @max-xl:row-start-2">
                   {run.note}
                 </span>
-                <span className="flex items-center gap-[1ch] text-meta text-fg-faint tabular-nums">
-                  <time dateTime={run.ranAt}>{run.ranAt.slice(0, 10)}</time>
-                  {onRemoveRun ? (
-                    <button
-                      aria-label={`Remove the ${run.model} run`}
-                      className="opacity-0 group-hover:opacity-100 hover:text-red focus-visible:opacity-100 max-md:opacity-100"
-                      onClick={() => onRemoveRun(run.id)}
-                      type="button"
-                    >
-                      rm
-                    </button>
-                  ) : null}
-                </span>
+                <time
+                  className="text-right text-meta whitespace-nowrap text-fg-faint tabular-nums @max-xl:col-start-4 @max-xl:row-start-1"
+                  dateTime={run.ranAt}
+                >
+                  {run.ranAt.slice(0, 10)}
+                </time>
+                {onRemoveRun ? (
+                  <button
+                    aria-label={`Remove the ${run.model} run`}
+                    className="absolute inset-y-0 right-0 bg-bg-raised pl-[2ch] text-meta text-fg-dim opacity-0 group-hover:opacity-100 hover:text-red focus-visible:opacity-100"
+                    onClick={() => onRemoveRun(run.id)}
+                    type="button"
+                  >
+                    rm
+                  </button>
+                ) : null}
               </li>
             )
           })}
@@ -201,10 +204,10 @@ function LogRunForm({
               <Choice
                 checked={verdict === option}
                 className={cn(
-                  'inline-flex h-6 items-center px-[0.75ch] transition-colors max-md:h-11',
+                  'inline-flex h-6 items-center transition-colors max-md:h-11',
                   verdict === option
-                    ? cn('bg-bg-sel font-semibold', VERDICT_STYLE[option].text)
-                    : 'text-fg-dim hover:bg-bg-hover hover:text-fg',
+                    ? cn('font-semibold', VERDICT_STYLE[option].text)
+                    : 'text-fg-dim hover:text-fg',
                 )}
                 key={option}
                 label={`${option[0]?.toUpperCase() ?? ''}${option.slice(1)}`}
@@ -212,7 +215,9 @@ function LogRunForm({
                 onSelect={setVerdict}
                 value={option}
               >
-                {VERDICT_STYLE[option].mark} {option}
+                <Bracketed active={verdict === option}>
+                  {VERDICT_STYLE[option].mark} {option}
+                </Bracketed>
               </Choice>
             ))}
           </ChoiceGroup>

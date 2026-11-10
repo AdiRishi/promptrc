@@ -1,4 +1,4 @@
-import { Choice, ChoiceGroup } from '@/components/ui/choice'
+import { Bracketed, Choice, ChoiceGroup } from '@/components/ui/choice'
 import { Pane } from '@/components/ui/pane'
 import { KindMark } from '@/features/prompt-library/components/kind-mark'
 import { PROMPT_KIND_DEFINITIONS, PROMPT_KINDS } from '@/features/prompt-library/model/prompt-kinds'
@@ -48,7 +48,6 @@ type PromptListProps = {
   onClearFilter: () => void
   onFilterChange: (patch: Partial<PromptLibraryFilter>) => void
   onCapture: () => void
-  onOpenLibrary: () => void
 }
 
 /**
@@ -87,7 +86,6 @@ export function PromptList({
   onClearFilter,
   onFilterChange,
   onCapture,
-  onOpenLibrary,
 }: PromptListProps) {
   const heading = describePromptLibraryFilter(filter)
 
@@ -95,30 +93,20 @@ export function PromptList({
     <Pane
       active={active}
       aria-labelledby="prompt-list-heading"
-      aside={<span>{query.trim() ? `${prompts.length}/${totalCount}` : prompts.length}</span>}
+      aside={
+        <>
+          {/* A phone has no `c` key to press. */}
+          <button className="text-accent md:hidden" onClick={onCapture} type="button">
+            + capture
+          </button>
+          <span>{query.trim() ? `${prompts.length}/${totalCount}` : prompts.length}</span>
+        </>
+      }
       className={cn('h-full', className)}
       index={2}
       title={<span id="prompt-list-heading">{listPath(filter)}</span>}
     >
-      <div className="flex items-center gap-[1ch] px-[1ch] pt-3 lg:hidden">
-        <button
-          aria-label="Open library navigation"
-          className="inline-flex h-7 items-center gap-[1ch] px-[1ch] text-fg-dim transition-colors hover:bg-bg-hover hover:text-fg max-md:h-11"
-          onClick={onOpenLibrary}
-          type="button"
-        >
-          <span aria-hidden="true">←</span> library
-        </button>
-        <button
-          className="ml-auto inline-flex h-7 items-center gap-[1ch] px-[1ch] font-semibold text-accent transition-colors hover:bg-bg-hover max-md:h-11 md:hidden"
-          onClick={onCapture}
-          type="button"
-        >
-          <span aria-hidden="true">+</span> capture
-        </button>
-      </div>
-
-      <div className="px-[2ch] pt-4 max-lg:pt-2">
+      <div className="px-[2ch] pt-4">
         <FilterToggles counts={counts} filter={filter} onFilterChange={onFilterChange} />
         <label className="mt-2 flex h-8 items-center gap-[1ch] border border-line bg-bg-sunken px-[1ch] transition-colors focus-within:border-accent max-md:h-11">
           <span aria-hidden="true" className="text-fg-faint">
@@ -154,14 +142,14 @@ export function PromptList({
           ) : null}
         </label>
 
-        <div className="mt-2 flex items-center gap-[1ch] text-meta text-fg-faint">
-          <span>sort</span>
-          <ChoiceGroup className="flex items-center gap-[1ch]" label="Sort entries">
+        <div className="mt-2 flex items-center text-meta text-fg-faint max-md:mt-0">
+          <span className="mr-[1ch]">sort</span>
+          <ChoiceGroup className="flex items-center" label="Sort entries">
             {SORT_OPTIONS.map((option) => (
               <Choice
                 checked={sort === option.value}
                 className={cn(
-                  'transition-colors',
+                  'inline-flex items-center transition-colors max-md:h-11',
                   sort === option.value ? 'text-fg' : 'hover:text-fg',
                 )}
                 key={option.value}
@@ -170,7 +158,7 @@ export function PromptList({
                 onSelect={onSortChange}
                 value={option.value}
               >
-                {sort === option.value ? `[${option.label}]` : option.label}
+                <Bracketed active={sort === option.value}>{option.label}</Bracketed>
               </Choice>
             ))}
           </ChoiceGroup>
@@ -246,43 +234,41 @@ function PromptListItem({ prompt, catalogNumber, active, onSelect }: PromptListI
           >
             {prompt.title}
           </span>
-          <span className="flex shrink-0 items-baseline gap-[1ch] text-meta text-fg-faint tabular-nums">
+          <span className="shrink-0 text-meta text-fg-faint tabular-nums">
             <ItemSignal prompt={prompt} />
-            {prompt.uses > 0 ? <span>×{prompt.uses}</span> : null}
-            {prompt.pinned ? (
-              <span aria-label="Pinned" className="text-accent">
-                ★
-              </span>
-            ) : null}
+          </span>
+          {/* Every row keeps the slot, so the facts beside it share one right edge. */}
+          <span className="w-[2ch] shrink-0 text-right text-meta text-yellow">
+            {prompt.pinned ? <span aria-label="Pinned">★</span> : null}
           </span>
         </span>
         {/* Beside the reader the excerpt repeats it; on a phone the list stands alone. */}
         {excerpt && excerpt !== prompt.title ? (
           <span className="block truncate text-meta text-fg-dim md:hidden">{excerpt}</span>
         ) : null}
-        <span className="flex gap-x-[1ch] truncate text-meta text-fg-faint">
-          <span className="tabular-nums">{formatCatalogNumber(catalogNumber)}</span>
-          <span className="text-fg-dim">{prompt.category}/</span>
-          {prompt.tags.slice(0, 3).map((tag) => (
-            <span key={tag}>#{tag}</span>
-          ))}
+        <span className="flex gap-x-[1ch] text-meta text-fg-faint">
+          <span className="shrink-0 tabular-nums">{formatCatalogNumber(catalogNumber)}</span>
+          <span className="shrink-0 text-fg-dim">{prompt.category}/</span>
+          <span className="min-w-0 flex-1 truncate">
+            {prompt.tags.map((tag) => `#${tag}`).join(' ')}
+          </span>
         </span>
       </span>
     </button>
   )
 }
 
-/** Kind-specific detail: a step count, or the latest verdicts as a mini sparkline. */
+/** The one fact worth a glance: steps, the latest verdicts, or how often it was yanked. */
 function ItemSignal({ prompt }: { prompt: PromptRecord }) {
   if (prompt.kind === 'sequence') {
-    return <span>{pluralize(splitSequenceSteps(prompt.body).length, 'step')}</span>
+    return pluralize(splitSequenceSteps(prompt.body).length, 'step')
   }
 
   if (prompt.kind === 'benchmark') {
     const summary = summarizePromptRuns(prompt.runs)
 
     if (!summary.total) {
-      return <span>no runs</span>
+      return 'no runs'
     }
 
     return (
@@ -306,7 +292,7 @@ function ItemSignal({ prompt }: { prompt: PromptRecord }) {
     )
   }
 
-  return null
+  return prompt.uses > 0 ? `×${prompt.uses}` : null
 }
 
 const BOOT_LINES = [
@@ -358,7 +344,7 @@ function ListEmptyState({
           $ grep -ri &quot;{query.trim()}&quot; {listPath(filter)}
         </p>
         <p className="mt-2 text-fg-dim">No entries match “{query.trim()}”.</p>
-        <button className="mt-3 text-accent hover:underline" onClick={onClearQuery} type="button">
+        <button className="link mt-3" onClick={onClearQuery} type="button">
           Clear the filter
         </button>
       </div>
@@ -377,7 +363,7 @@ function ListEmptyState({
           </p>
         ) : null}
         <div className="mt-3 flex flex-col items-start gap-1">
-          <button className="text-accent hover:underline" onClick={onCapture} type="button">
+          <button className="link" onClick={onCapture} type="button">
             Capture one
           </button>
           <button
@@ -402,7 +388,7 @@ function ListEmptyState({
         An empty library. The next time something works exactly right, keep it here before it slips
         away.
       </p>
-      <button className="mt-3 text-accent hover:underline" onClick={onCapture} type="button">
+      <button className="link mt-3" onClick={onCapture} type="button">
         Capture the first one
       </button>
     </div>
@@ -411,12 +397,12 @@ function ListEmptyState({
 
 const toggleClass = (active: boolean, empty: boolean) =>
   cn(
-    'inline-flex h-6 items-center gap-[0.5ch] px-[0.75ch] tabular-nums transition-colors max-md:h-11 max-md:px-[1.25ch]',
+    'inline-flex h-6 items-center tabular-nums transition-colors max-md:h-11',
     active
-      ? 'bg-bg-sel font-semibold text-fg'
+      ? 'font-semibold text-fg'
       : empty
         ? 'text-fg-faint hover:text-fg'
-        : 'text-fg-dim hover:bg-bg-hover hover:text-fg',
+        : 'text-fg-dim hover:text-fg',
   )
 
 /**
@@ -435,7 +421,7 @@ function FilterToggles({
   return (
     <div
       aria-label="Narrow the list"
-      className="-mx-[0.75ch] flex flex-wrap items-center gap-y-1 text-meta"
+      className="-mx-[1ch] flex flex-wrap items-center text-meta"
       role="toolbar"
     >
       <button
@@ -444,7 +430,9 @@ function FilterToggles({
         onClick={() => onFilterChange({ kind: null })}
         type="button"
       >
-        all <span className="font-normal text-fg-faint">{counts.total}</span>
+        <Bracketed active={filter.kind === null}>
+          all <span className="ml-[1ch] font-normal text-fg-faint">{counts.total}</span>
+        </Bracketed>
       </button>
       {PROMPT_KINDS.map((kind) => {
         const active = filter.kind === kind
@@ -459,11 +447,10 @@ function FilterToggles({
             title={PROMPT_KIND_DEFINITIONS[kind].plural}
             type="button"
           >
-            <KindMark kind={kind} label={false} />
-            <span className={active ? undefined : 'sr-only'}>
-              {PROMPT_KIND_DEFINITIONS[kind].plural.toLowerCase()}
-            </span>
-            <span className="font-normal text-fg-faint">{counts.kinds[kind]}</span>
+            <Bracketed active={active}>
+              <KindMark className="w-[1ch]" kind={kind} label={false} />
+              <span className="ml-[1ch] font-normal text-fg-faint">{counts.kinds[kind]}</span>
+            </Bracketed>
           </button>
         )
       })}
@@ -474,13 +461,15 @@ function FilterToggles({
         onClick={() => onFilterChange({ pinned: !filter.pinned })}
         type="button"
       >
-        <span className="text-accent">★</span>
-        <span className="font-normal text-fg-faint">{counts.pinned}</span>
+        <Bracketed active={filter.pinned}>
+          <span className="text-yellow">★</span>
+          <span className="ml-[1ch] font-normal text-fg-faint">{counts.pinned}</span>
+        </Bracketed>
       </button>
       {filter.tag ? (
         <button
           aria-label={`Stop filtering by #${filter.tag}`}
-          className="ml-auto inline-flex h-6 items-center gap-[1ch] bg-bg-sel px-[0.75ch] text-fg transition-colors hover:text-accent max-md:h-11"
+          className="ml-auto inline-flex h-6 items-center gap-[1ch] px-[1ch] text-fg transition-colors hover:text-accent max-md:h-11"
           onClick={() => onFilterChange({ tag: null })}
           type="button"
         >

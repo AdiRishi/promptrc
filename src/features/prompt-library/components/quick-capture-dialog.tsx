@@ -1,12 +1,12 @@
 import { type ReactNode, useId, useState } from 'react'
 
-import { Choice, ChoiceGroup } from '@/components/ui/choice'
+import { Bracketed, Choice, ChoiceGroup } from '@/components/ui/choice'
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog'
 import { useModKeyLabel } from '@/components/ui/kbd'
+import { KeyAction, KeyActionBar } from '@/components/ui/key-action'
 import { type PromptCaptureInput } from '@/features/prompt-library/commands/prompt-library-command-executor'
 import { KindMark } from '@/features/prompt-library/components/kind-mark'
 import { ProjectPicker } from '@/features/prompt-library/components/project-picker'
-import { KeyAction } from '@/features/prompt-library/components/prompt-reader'
 import { PROMPT_KIND_DEFINITIONS, PROMPT_KINDS } from '@/features/prompt-library/model/prompt-kinds'
 import { deriveTitleFromBody } from '@/features/prompt-library/model/prompt-library-integrity'
 import { type PromptProject } from '@/features/prompt-library/model/prompt-projects'
@@ -62,7 +62,9 @@ function CaptureShell({
   const [title, setTitle] = useState('')
   const [category, setCategory] = useState(defaultCategory)
   const [tagsInput, setTagsInput] = useState(defaultTags)
-  const [now] = useState(() => new Date().toISOString().slice(0, 16).replace('T', ' '))
+  const [now] = useState(() =>
+    new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }),
+  )
   const derivedTitle = deriveTitleFromBody(body)
   const modLabel = useModKeyLabel()
 
@@ -88,7 +90,7 @@ function CaptureShell({
         submit()
       }}
     >
-      <DialogTitle className="pane-title font-normal text-fg">capture</DialogTitle>
+      <DialogTitle className="pane-title text-meta font-normal text-fg-dim">capture</DialogTitle>
       <span className="pane-title-right">{now}</span>
       <DialogDescription className="sr-only">
         Capture a prompt, fragment, sequence or benchmark. Press Command or Control with Enter to
@@ -96,7 +98,7 @@ function CaptureShell({
       </DialogDescription>
 
       <div className="px-[3ch] pt-5">
-        <ChoiceGroup className="-mx-[0.75ch] flex flex-wrap items-center gap-y-1" label="Kind">
+        <ChoiceGroup className="-mx-[1ch] flex flex-wrap items-center" label="Kind">
           {PROMPT_KINDS.map((option) => {
             const selected = option === kind
 
@@ -104,10 +106,8 @@ function CaptureShell({
               <Choice
                 checked={selected}
                 className={cn(
-                  'inline-flex h-6 items-center gap-[0.5ch] px-[0.75ch] transition-colors max-md:h-11',
-                  selected
-                    ? 'bg-bg-sel font-semibold text-fg'
-                    : 'text-fg-dim hover:bg-bg-hover hover:text-fg',
+                  'inline-flex h-6 items-center transition-colors max-md:h-11',
+                  selected ? 'font-semibold text-fg' : 'text-fg-dim hover:text-fg',
                 )}
                 key={option}
                 label={PROMPT_KIND_DEFINITIONS[option].label}
@@ -116,7 +116,10 @@ function CaptureShell({
                 title={PROMPT_KIND_DEFINITIONS[option].description}
                 value={option}
               >
-                <KindMark kind={option} label={false} /> {option}
+                <Bracketed active={selected}>
+                  <KindMark className="mr-[1ch] w-[1ch]" kind={option} label={false} />
+                  {option}
+                </Bracketed>
               </Choice>
             )
           })}
@@ -143,7 +146,7 @@ function CaptureShell({
         </div>
       </div>
 
-      <div className="grid gap-x-[3ch] border-t border-line px-[3ch] py-2 sm:grid-cols-2">
+      <div className="grid gap-x-[3ch] px-[3ch] pb-3 sm:grid-cols-2">
         <CaptureField className="sm:col-span-2" label="title">
           <input
             autoComplete="off"
@@ -176,7 +179,7 @@ function CaptureShell({
         </CaptureField>
       </div>
 
-      <div className="flex items-center border-t border-line px-[2ch] py-2">
+      <KeyActionBar className="mx-0 border-t border-line px-[2ch] py-2">
         <KeyAction
           disabled={!body.trim()}
           keyLabel={`${modLabel} ⏎`}
@@ -185,7 +188,7 @@ function CaptureShell({
           type="submit"
         />
         <KeyAction keyLabel="esc" label="discard" onClick={onClose} />
-      </div>
+      </KeyActionBar>
     </form>
   )
 }
@@ -202,7 +205,10 @@ function CaptureField({
   className?: string
   children: ReactNode
 }) {
-  const rowClass = cn('flex min-h-8 min-w-0 items-center gap-[1ch] max-md:min-h-11', className)
+  const rowClass = cn(
+    'flex min-h-8 min-w-0 items-center gap-[1ch] border-b border-line transition-colors focus-within:border-accent max-md:min-h-11',
+    className,
+  )
 
   if (htmlFor) {
     return (

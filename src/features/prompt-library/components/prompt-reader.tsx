@@ -1,11 +1,14 @@
 import { type ReactNode, useState } from 'react'
 
+import { Bracketed } from '@/components/ui/choice'
 import { Kbd } from '@/components/ui/kbd'
+import { KeyAction, KeyActionBar } from '@/components/ui/key-action'
 import { Pane } from '@/components/ui/pane'
 import { type PromptRunRequest } from '@/features/prompt-library/commands/prompt-library-command-executor'
 import { type PromptViewMode } from '@/features/prompt-library/commands/prompt-library-ex-commands'
 import { BenchmarkLedger } from '@/features/prompt-library/components/benchmark-ledger'
 import { KindTag } from '@/features/prompt-library/components/kind-mark'
+import { SectionLabel } from '@/features/prompt-library/components/section-label'
 import { getPromptKindDefinition } from '@/features/prompt-library/model/prompt-kinds'
 import { splitSequenceSteps } from '@/features/prompt-library/model/prompt-sequences'
 import { extractFillablePromptVariables } from '@/features/prompt-library/model/prompt-templates'
@@ -57,7 +60,6 @@ type PromptReaderProps = PromptReaderActions & {
   onResetVariables: () => void
   onSelectTag: (tag: string) => void
   onSelectCategory: (category: string) => void
-  onBack?: () => void
   active?: boolean
 }
 
@@ -84,7 +86,6 @@ export function PromptReader({
   onResetVariables,
   onSelectTag,
   onSelectCategory,
-  onBack,
   active,
   ...actions
 }: PromptReaderProps) {
@@ -106,20 +107,20 @@ export function PromptReader({
         key={prompt.id}
         tabIndex={-1}
       >
-        <header className="px-[2ch] pt-5 md:px-[3ch]">
+        <header className="px-[2ch] pt-5 max-md:pt-4 md:px-[3ch]">
           <div className="measure">
-            <div className="flex flex-wrap items-center gap-x-[1ch] text-meta text-fg-faint">
-              {onBack ? (
-                <button
-                  className="mr-[1ch] inline-flex items-center gap-[1ch] text-fg-dim hover:text-fg max-md:h-11 md:hidden"
-                  onClick={onBack}
-                  type="button"
-                >
-                  <span aria-hidden="true">←</span> back
-                </button>
-              ) : null}
+            <h2
+              className={cn(
+                'voice-title animate-boot text-title text-balance text-fg',
+                prompt.kind === 'fragment' && 'voice-note',
+              )}
+              id="prompt-reader-title"
+            >
+              {prompt.title}
+            </h2>
+
+            <div className="mt-2 flex flex-wrap items-center gap-x-[2ch] text-meta text-fg-faint">
               <KindTag kind={prompt.kind} />
-              <span aria-hidden="true">·</span>
               <button
                 className="transition-colors hover:text-fg"
                 onClick={() => onSelectCategory(prompt.category)}
@@ -128,48 +129,34 @@ export function PromptReader({
               >
                 {prompt.category}/
               </button>
-              <span aria-hidden="true">·</span>
               <span className="tabular-nums">{formatCatalogNumber(catalogNumber)}</span>
-              {prompt.pinned ? (
-                <>
-                  <span aria-hidden="true">·</span>
-                  <span>
-                    <span className="text-accent">★</span> pinned
-                  </span>
-                </>
+              {prompt.tags.length > 0 ? (
+                <span className="flex flex-wrap gap-x-[1ch]">
+                  {prompt.tags.map((tag) => (
+                    <button
+                      className="text-fg-dim transition-colors hover:text-fg"
+                      key={tag}
+                      onClick={() => onSelectTag(tag)}
+                      type="button"
+                    >
+                      #{tag}
+                    </button>
+                  ))}
+                </span>
               ) : null}
-            </div>
-
-            <h2
-              className={cn(
-                'voice-title mt-2 animate-boot text-title text-balance text-fg',
-                prompt.kind === 'fragment' && 'voice-note',
-              )}
-              id="prompt-reader-title"
-            >
-              {prompt.title}
-            </h2>
-
-            <div className="mt-2 flex flex-wrap items-center gap-x-[1ch] text-meta text-fg-faint">
-              {prompt.tags.map((tag) => (
-                <button
-                  className="text-fg-dim transition-colors hover:text-fg"
-                  key={tag}
-                  onClick={() => onSelectTag(tag)}
-                  type="button"
-                >
-                  #{tag}
-                </button>
-              ))}
-              {prompt.tags.length > 0 ? <span aria-hidden="true">·</span> : null}
-              <span title={new Date(prompt.createdAt).toLocaleString()}>
+              <span
+                className="whitespace-nowrap"
+                title={new Date(prompt.createdAt).toLocaleString()}
+              >
                 kept {prompt.createdAt.slice(0, 10)}
               </span>
               {prompt.uses > 0 ? (
-                <>
-                  <span aria-hidden="true">·</span>
-                  <span>yanked {prompt.uses}×</span>
-                </>
+                <span className="whitespace-nowrap">yanked {prompt.uses}×</span>
+              ) : null}
+              {prompt.pinned ? (
+                <span className="whitespace-nowrap">
+                  <span className="text-yellow">★</span> pinned
+                </span>
               ) : null}
             </div>
           </div>
@@ -177,7 +164,7 @@ export function PromptReader({
 
         <ReaderActions prompt={prompt} {...actions} />
 
-        <div className="px-[2ch] pt-6 pb-12 md:px-[3ch]">
+        <div className="px-[2ch] pt-6 pb-12 max-md:pt-4 md:px-[3ch]">
           <div className="measure">
             <PromptVariableProvider value={{ values: variableValues, onChange: onVariableChange }}>
               {variables.length > 0 ? (
@@ -207,13 +194,11 @@ export function PromptReader({
               </Annotation>
             ) : null}
 
-            <footer className="mt-8 flex flex-wrap gap-x-[1ch] border-t border-line pt-3 text-meta text-fg-faint">
+            <footer className="mt-8 flex flex-wrap gap-x-[2ch] border-t border-line pt-3 text-meta text-fg-faint">
               <span>{pluralize(countWords(prompt.body), 'word')}</span>
-              <span aria-hidden="true">·</span>
               <span title="Rough estimate at about four characters per token">
                 ~{pluralize(estimateTokens(prompt.body), 'token')}
               </span>
-              <span aria-hidden="true">·</span>
               <span title={new Date(prompt.updatedAt).toLocaleString()}>
                 modified {relativeTime(prompt.updatedAt)}
               </span>
@@ -233,7 +218,7 @@ export function ViewModeToggle({
   onChange: (mode: PromptViewMode) => void
 }) {
   return (
-    <fieldset aria-label="View" className="flex items-center gap-[1ch]">
+    <fieldset aria-label="View" className="flex items-center">
       {(['rendered', 'raw'] as const).map((option) => (
         <button
           aria-pressed={mode === option}
@@ -246,7 +231,7 @@ export function ViewModeToggle({
           title="Toggle with r"
           type="button"
         >
-          {mode === option ? `[${option}]` : option}
+          <Bracketed active={mode === option}>{option}</Bracketed>
         </button>
       ))}
     </fieldset>
@@ -272,8 +257,8 @@ function ReaderActions({
   onDelete,
 }: ReaderActionsProps) {
   return (
-    <div className="mt-4 border-b border-line px-[2ch] pb-3 md:px-[3ch]">
-      <div className="-mx-[1ch] flex flex-wrap items-center gap-y-1">
+    <div className="mt-4 border-b border-line px-[2ch] pb-3 max-md:mt-2 max-md:pb-2 md:px-[3ch]">
+      <KeyActionBar>
         <KeyAction keyLabel="y" label="yank" onClick={() => onCopy()} primary />
         <KeyAction keyLabel="e" label="edit" onClick={onEdit} />
         <KeyAction keyLabel="p" label={prompt.pinned ? 'unpin' : 'pin'} onClick={onTogglePin} />
@@ -284,54 +269,13 @@ function ReaderActions({
         ) : null}
         <KeyAction
           ariaLabel={isConfirmingDelete ? 'Press again to delete' : 'Delete'}
-          className={isConfirmingDelete ? 'text-red hover:text-red' : undefined}
+          className={isConfirmingDelete ? 'text-red' : undefined}
           keyLabel="x"
-          label={isConfirmingDelete ? 'x again to delete' : 'delete'}
+          label={isConfirmingDelete ? 'press again to delete' : 'delete'}
           onClick={onDelete}
         />
-      </div>
+      </KeyActionBar>
     </div>
-  )
-}
-
-/** `y yank`: the key that does it, then what it does. The pattern for every action bar. */
-export function KeyAction({
-  keyLabel,
-  label,
-  onClick,
-  primary = false,
-  type = 'button',
-  disabled,
-  className,
-  ariaLabel,
-}: {
-  keyLabel?: string
-  label: string
-  onClick?: () => void | Promise<void>
-  /** The action the bar exists for. One per bar. */
-  primary?: boolean
-  type?: 'button' | 'submit'
-  disabled?: boolean
-  className?: string
-  ariaLabel?: string
-}) {
-  return (
-    <button
-      aria-label={ariaLabel ?? label}
-      disabled={disabled}
-      className={cn(
-        'inline-flex h-7 items-center gap-[1ch] px-[1ch] transition-colors disabled:pointer-events-none disabled:opacity-40 max-md:h-11',
-        primary
-          ? 'mr-[1ch] bg-bg-sel font-semibold text-accent hover:bg-accent hover:text-accent-fg'
-          : 'text-fg-dim hover:bg-bg-hover hover:text-fg',
-        className,
-      )}
-      onClick={onClick ? () => void onClick() : undefined}
-      type={type}
-    >
-      {keyLabel ? <span className={primary ? undefined : 'text-accent'}>{keyLabel}</span> : null}
-      {label}
-    </button>
   )
 }
 
@@ -470,18 +414,6 @@ function SequenceSteps({
   )
 }
 
-/** `## expected`: a markdown heading as a quiet section label, or the label of a field. */
-export function SectionLabel({ children, htmlFor }: { children: ReactNode; htmlFor?: string }) {
-  const Label = htmlFor ? 'label' : 'p'
-
-  return (
-    <Label className="mb-2 block text-meta text-fg-faint" htmlFor={htmlFor}>
-      <span aria-hidden="true">## </span>
-      {children}
-    </Label>
-  )
-}
-
 export function BlanksHint({
   filledCount,
   total,
@@ -494,7 +426,7 @@ export function BlanksHint({
   const done = filledCount === total
 
   return (
-    <p className="mb-5 text-meta text-fg-dim">
+    <p className="mb-5 text-meta text-fg-dim max-md:mb-3">
       <span aria-hidden="true" className={done ? 'text-green' : 'text-fg-faint'}>
         {done ? '●' : '○'}{' '}
       </span>
@@ -543,7 +475,7 @@ export function ReaderPlaceholder({
         <EmptyBufferLine />
         <EmptyBufferLine>
           Select an entry with <Kbd>j</Kbd> <Kbd>k</Kbd>, or press <Kbd>c</Kbd> to{' '}
-          <button className="text-accent hover:underline" onClick={onCapture} type="button">
+          <button className="link" onClick={onCapture} type="button">
             capture
           </button>{' '}
           something new.

@@ -794,7 +794,7 @@ function PromptLibraryScreen() {
 
       <TabLine activePane={activePane} onFocusPane={focusPane} />
 
-      <div className="relative grid min-h-0 flex-1 gap-x-3 pt-3 pb-2 md:grid-cols-[minmax(34ch,40ch)_minmax(0,1fr)] lg:grid-cols-[26ch_38ch_minmax(0,1fr)] xl:grid-cols-[28ch_46ch_minmax(0,1fr)]">
+      <div className="relative grid min-h-0 flex-1 gap-x-3 pt-3 pb-2 min-[1680px]:grid-cols-[32ch_60ch_minmax(0,1fr)] md:grid-cols-[minmax(34ch,40ch)_minmax(0,1fr)] lg:grid-cols-[26ch_38ch_minmax(0,1fr)] xl:grid-cols-[28ch_46ch_minmax(0,1fr)]">
         {/* Library: a column on wide screens, a drawer on medium ones, a tab on phones. */}
         <button
           aria-label="Close library"
@@ -810,7 +810,7 @@ function PromptLibraryScreen() {
           className={cn(
             'min-h-0 min-w-0 lg:flex',
             activePane === 1
-              ? 'flex md:fixed md:inset-y-11 md:left-3 md:z-40 md:w-[30ch] md:animate-pop md:shadow-overlay lg:static lg:z-auto lg:w-auto lg:animate-none lg:shadow-none'
+              ? 'flex md:fixed md:inset-y-11 md:left-3 md:z-40 md:w-[min(34ch,calc(100vw-24px))] md:animate-pop md:shadow-overlay lg:static lg:z-auto lg:w-auto lg:animate-none lg:shadow-none'
               : 'hidden',
           )}
         >
@@ -843,7 +843,6 @@ function PromptLibraryScreen() {
                 : changeFilter({ project: null })
             }
             onFilterChange={changeFilter}
-            onOpenLibrary={() => focusPane(1)}
             onQueryChange={actions.setQuery}
             onSelect={selectPrompt}
             onSortChange={actions.setSort}
@@ -888,7 +887,6 @@ function PromptLibraryScreen() {
               hasActivePromptShare={activePromptShare?.promptId === activePromptId}
               isConfirmingDelete={confirmDeleteId === activePrompt.id}
               knownModels={knownModels}
-              onBack={() => focusPane(2)}
               onCopy={copyActivePrompt}
               onDelete={commands.deletePrompt}
               onDuplicate={commands.duplicatePrompt}

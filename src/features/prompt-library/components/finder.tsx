@@ -1,4 +1,4 @@
-import { Command } from 'cmdk'
+import { Command, useCommandState } from 'cmdk'
 import { type ReactNode, useState } from 'react'
 
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
@@ -11,6 +11,7 @@ import { formatCatalogNumber } from '@/features/prompt-library/rendering/prompt-
 import { type PromptLibraryFacets } from '@/features/prompt-library/selectors/prompt-library-selectors'
 import { type PromptLibraryFilter, type PromptRecord } from '@/features/prompt-library/types'
 import { COLOR_SCHEMES, type ColorSchemePreference } from '@/lib/theme'
+import { cn } from '@/lib/utils'
 
 export type FinderAction = {
   id: string
@@ -52,7 +53,7 @@ type FinderItem =
   | { kind: 'scheme'; id: ColorSchemePreference; description: string }
 
 const itemClass =
-  'flex h-8 cursor-pointer items-center gap-[1ch] px-[2ch] text-fg-dim outline-none select-none data-[disabled=true]:pointer-events-none data-[disabled=true]:opacity-40 data-[selected=true]:bg-bg-sel data-[selected=true]:text-fg data-[selected=true]:shadow-[inset_2px_0_0_var(--accent)] max-md:h-11'
+  'flex h-8 cursor-pointer items-center gap-[1ch] px-[2ch] text-fg-dim outline-none select-none data-[disabled=true]:pointer-events-none data-[disabled=true]:opacity-40 data-[selected=true]:bg-bg-sel data-[selected=true]:font-semibold data-[selected=true]:text-fg data-[selected=true]:shadow-[inset_2px_0_0_var(--accent)] max-md:h-11'
 
 const groupClass =
   '[&_[cmdk-group-heading]]:px-[2ch] [&_[cmdk-group-heading]]:pt-3 [&_[cmdk-group-heading]]:pb-1 [&_[cmdk-group-heading]]:text-meta [&_[cmdk-group-heading]]:text-fg-faint'
@@ -67,10 +68,10 @@ export function Finder({ open, onOpenChange, ...props }: FinderProps) {
   return (
     <Dialog onOpenChange={onOpenChange} open={open}>
       <DialogContent
-        className="top-[12vh] translate-y-0 gap-0 overflow-visible p-0 sm:max-w-[min(112ch,calc(100%-2rem))]"
+        className="top-[12vh] translate-y-0 gap-0 p-0 sm:max-w-[min(112ch,calc(100%-2rem))] sm:has-[[data-finder-mode=actions]]:max-w-[min(72ch,calc(100%-2rem))]"
         showCloseButton={false}
       >
-        <DialogTitle className="sr-only">Find</DialogTitle>
+        <DialogTitle className="pane-title text-meta font-normal text-fg-dim">find</DialogTitle>
         {open ? <FinderBody onClose={() => onOpenChange(false)} {...props} /> : null}
       </DialogContent>
     </Dialog>
@@ -185,7 +186,7 @@ function FinderBody({
         >
           <KindMark kind={prompt.kind} label={false} />
           <span className="min-w-0 flex-1 truncate">{prompt.title}</span>
-          <span className="text-meta text-fg-faint tabular-nums">
+          <span className="text-meta font-normal text-fg-faint tabular-nums">
             {formatCatalogNumber(catalogNumbers.get(prompt.id))}
           </span>
         </Command.Item>
@@ -196,6 +197,7 @@ function FinderBody({
   return (
     <Command
       className="grid max-h-[min(560px,76dvh)] min-h-[min(280px,76dvh)] grid-rows-[auto_minmax(0,1fr)_auto]"
+      data-finder-mode={mode}
       filter={(value, query, keywords) =>
         scoreItem(value, query.replace(/^[>]\s*/, ''), keywords, mode)
       }
@@ -205,8 +207,7 @@ function FinderBody({
       shouldFilter
       value={selected}
     >
-      <div className="relative flex h-12 items-center gap-[1ch] border-b border-line px-[2ch]">
-        <span className="pane-title text-fg">find</span>
+      <div className="flex h-12 items-center gap-[1ch] border-b border-line px-[2ch]">
         <span aria-hidden="true" className="font-bold text-accent">
           ❯
         </span>
@@ -221,7 +222,12 @@ function FinderBody({
         />
       </div>
 
-      <div className="grid min-h-0 md:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)]">
+      <div
+        className={cn(
+          'grid min-h-0',
+          mode !== 'actions' && 'md:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)]',
+        )}
+      >
         <Command.List className="scrollbar-term min-h-0 scroll-py-2 overflow-y-auto pb-2">
           <Command.Empty className="px-[2ch] py-6 text-fg-dim">
             No results. Try fewer letters.
@@ -242,7 +248,9 @@ function FinderBody({
                     {item.glyph}
                   </span>
                   <span className="flex-1 truncate">{item.label}</span>
-                  <span className="text-meta text-fg-faint tabular-nums">{item.count}</span>
+                  <span className="text-meta font-normal text-fg-faint tabular-nums">
+                    {item.count}
+                  </span>
                 </Command.Item>
               ))}
             </Command.Group>
@@ -260,7 +268,7 @@ function FinderBody({
                 >
                   <span className="inline-block w-[2ch] shrink-0 text-center text-fg-faint">:</span>
                   <span className="flex-1 truncate">{action.label}</span>
-                  {action.keys ? <KeyCombo keys={action.keys} /> : null}
+                  {action.keys ? <KeyCombo className="font-normal" keys={action.keys} /> : null}
                 </Command.Item>
               ))}
               {schemes.map((scheme) => (
@@ -271,16 +279,23 @@ function FinderBody({
                   value={schemeValue(scheme.id)}
                 >
                   <span className="inline-block w-[2ch] shrink-0 text-center text-fg-faint">:</span>
-                  <span className="flex-1 truncate">colorscheme {scheme.id}</span>
+                  <span className="shrink-0">colorscheme {scheme.id}</span>
+                  {mode === 'actions' ? (
+                    <span className="min-w-0 flex-1 truncate text-right text-meta font-normal text-fg-faint">
+                      {scheme.description}
+                    </span>
+                  ) : null}
                 </Command.Item>
               ))}
             </Command.Group>
           ) : null}
         </Command.List>
 
-        <div className="hidden min-h-0 border-l border-line md:flex md:flex-col">
-          <FinderPreview item={selectedItem} />
-        </div>
+        {mode === 'actions' ? null : (
+          <div className="hidden min-h-0 border-l border-line md:flex md:flex-col">
+            <FinderPreview item={selectedItem} />
+          </div>
+        )}
       </div>
 
       <div className="flex h-9 items-center gap-[2ch] border-t border-line px-[2ch] text-meta text-fg-faint">
@@ -288,12 +303,13 @@ function FinderBody({
           <KeyCombo keys={['ArrowUp', 'ArrowDown']} /> move
         </span>
         <span className="flex items-center gap-[1ch]">
-          <KeyCombo keys={['Enter']} /> open
+          <KeyCombo keys={['Enter']} />{' '}
+          {selectedItem?.kind === 'entry' ? 'open' : selectedItem?.kind === 'filter' ? 'go' : 'run'}
         </span>
         <span className="flex items-center gap-[1ch]">
           <KeyCombo keys={['Esc']} /> close
         </span>
-        <span className="ml-auto max-sm:hidden">{prompts.length} entries</span>
+        <ResultCount />
       </div>
     </Command>
   )
@@ -341,6 +357,17 @@ function FinderPreview({ item }: { item: FinderItem | undefined }) {
         </span>
       ) : null}
     </PreviewNote>
+  )
+}
+
+/** How many rows the current query leaves, whatever mix of entries, places and commands. */
+function ResultCount() {
+  const count = useCommandState((state) => state.filtered.count)
+
+  return (
+    <span className="ml-auto tabular-nums max-sm:hidden">
+      {count === 1 ? '1 result' : `${count} results`}
+    </span>
   )
 }
 

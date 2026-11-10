@@ -35,7 +35,7 @@ Four kinds of things are worth keeping:
 It drives like a terminal:
 
 - **c** captures a thought in seconds, **y** yanks the selection to your clipboard, **r** flips between rendered and raw.
-- **j** / **k** move, **1** **2** **3** jump between panes, **⌘K** finds anything.
+- **j** / **k** move, **1** **2** **3** jump between panes, **⌘K** (or **ctrl K**) finds anything.
 - **:** opens the command line — try \`:sequences\`, \`:colorscheme phosphor\` or \`:new benchmark\`.
 - **?** opens the manual.`,
     notes:

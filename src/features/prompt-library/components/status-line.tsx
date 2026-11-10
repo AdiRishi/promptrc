@@ -49,15 +49,6 @@ export function StatusLine({
   syncMode,
   syncStatus,
 }: StatusLineProps) {
-  const percent =
-    total === 0
-      ? 'Top'
-      : position <= 1
-        ? 'Top'
-        : position >= total
-          ? 'Bot'
-          : `${Math.round((position / total) * 100)}%`
-
   return (
     <footer
       aria-label="Status line"
@@ -75,7 +66,7 @@ export function StatusLine({
           <>
             <KindMark kind={prompt.kind} label={false} />
             <span className="min-w-0 truncate">{promptPath(prompt)}</span>
-            {prompt.pinned ? <span className="ml-[0.5ch] text-accent">★</span> : null}
+            {prompt.pinned ? <span className="ml-[0.5ch] text-yellow">★</span> : null}
           </>
         ) : (
           <span className="px-[0.5ch] text-fg-faint">[No Name]</span>
@@ -89,9 +80,7 @@ export function StatusLine({
             blanks.filled === blanks.total ? 'text-green' : 'text-fg-dim',
           )}
         >
-          {'{{'}
-          {blanks.filled}/{blanks.total}
-          {'}}'}
+          {blanks.filled}/{blanks.total} blanks
         </span>
       ) : null}
       <span className="hidden shrink-0 items-center gap-[1ch] px-[1ch] text-fg-dim md:flex">
@@ -109,9 +98,8 @@ export function StatusLine({
         </span>
         {syncStatus === 'error' ? 'sync error' : syncMode === 'remote' ? 'cloud' : 'local'}
       </span>
-      <span className="shrink-0 px-[1ch] text-fg-faint tabular-nums max-sm:hidden">{percent}</span>
       <span className="shrink-0 bg-bg-hover px-[1.5ch] text-fg tabular-nums">
-        {total === 0 ? '0:0' : `${position}:${total}`}
+        {position}/{total}
       </span>
     </footer>
   )

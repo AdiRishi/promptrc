@@ -3,6 +3,7 @@ import { Link } from '@tanstack/react-router'
 import { useServerFn } from '@tanstack/react-start'
 import { useEffect, useEffectEvent, useState } from 'react'
 
+import { KeyAction } from '@/components/ui/key-action'
 import { Pane } from '@/components/ui/pane'
 import { type PromptViewMode } from '@/features/prompt-library/commands/prompt-library-ex-commands'
 import { EchoLine } from '@/features/prompt-library/components/command-line'
@@ -10,7 +11,6 @@ import { KindTag } from '@/features/prompt-library/components/kind-mark'
 import { Wordmark } from '@/features/prompt-library/components/library-pane'
 import {
   BlanksHint,
-  KeyAction,
   PromptBody,
   ViewModeToggle,
   promptPath,
@@ -116,7 +116,7 @@ export function SharedPromptPage({ shareId }: SharedPromptPageProps) {
           <p className="text-fg">This link no longer works.</p>
           <p className="mt-1 text-fg-dim">Its owner revoked it, or it never existed.</p>
           <p className="mt-4">
-            <Link className="text-accent underline underline-offset-2" to="/">
+            <Link className="link" to="/">
               Start your own library
             </Link>
           </p>
@@ -131,29 +131,25 @@ export function SharedPromptPage({ shareId }: SharedPromptPageProps) {
           title={promptPath(prompt)}
         >
           <article className="measure mx-auto w-full px-[2ch] pt-6 pb-10 sm:px-[3ch]">
-            <div className="flex flex-wrap items-center gap-x-[1ch] text-meta text-fg-faint">
-              <KindTag kind={prompt.kind} />
-              <span aria-hidden="true">·</span>
-              <span>{prompt.category}/</span>
-              <span aria-hidden="true">·</span>
-              <span>shared {formatLongDate(shareQuery.data?.createdAt ?? prompt.createdAt)}</span>
-            </div>
             <h1
               className={cn(
-                'voice-title mt-2 text-title text-balance text-fg',
+                'voice-title text-title text-balance text-fg',
                 prompt.kind === 'fragment' && 'voice-note',
               )}
               id="shared-prompt-title"
             >
               {prompt.title}
             </h1>
-            {prompt.tags.length > 0 ? (
-              <p className="mt-2 flex flex-wrap gap-x-[1ch] text-meta text-fg-dim">
-                {prompt.tags.map((tag) => (
-                  <span key={tag}>#{tag}</span>
-                ))}
-              </p>
-            ) : null}
+            <div className="mt-2 flex flex-wrap items-center gap-x-[2ch] text-meta text-fg-faint">
+              <KindTag kind={prompt.kind} />
+              <span>{prompt.category}/</span>
+              {prompt.tags.length > 0 ? (
+                <span className="text-fg-dim">{prompt.tags.map((tag) => `#${tag}`).join(' ')}</span>
+              ) : null}
+              <span className="whitespace-nowrap">
+                shared {formatLongDate(shareQuery.data?.createdAt ?? prompt.createdAt)}
+              </span>
+            </div>
 
             <div className="my-6 border-t border-line" />
 
@@ -188,8 +184,8 @@ export function SharedPromptPage({ shareId }: SharedPromptPageProps) {
                 onClick={() => copy()}
                 primary
               />
-              <Link className="text-fg-dim transition-colors hover:text-fg" to="/">
-                Keep your own in promptrc <span aria-hidden="true">→</span>
+              <Link className="link" to="/">
+                Keep your own in promptrc
               </Link>
             </div>
           </article>

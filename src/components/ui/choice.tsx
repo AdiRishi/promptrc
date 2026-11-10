@@ -65,3 +65,21 @@ export function Choice<TValue extends string>({
     </label>
   )
 }
+
+/**
+ * Marks the chosen option in a set, the way a TUI does: `[new] used a-z`.
+ * The brackets always take their space, so choosing never shifts the row.
+ */
+export function Bracketed({ active, children }: { active: boolean; children: ReactNode }) {
+  return (
+    <>
+      <span aria-hidden="true" className={active ? 'text-fg-faint' : 'invisible'}>
+        [
+      </span>
+      {children}
+      <span aria-hidden="true" className={active ? 'text-fg-faint' : 'invisible'}>
+        ]
+      </span>
+    </>
+  )
+}
