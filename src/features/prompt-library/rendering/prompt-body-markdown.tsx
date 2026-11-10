@@ -128,7 +128,8 @@ const createMarkdownComponents = (
             className,
           )}
           href={href}
-          rel={isExternal ? 'noreferrer' : undefined}
+          // An entry's body is its author's, and can be published: its links earn no credit here.
+          rel={isExternal ? 'noreferrer nofollow ugc' : undefined}
           target={isExternal ? '_blank' : undefined}
           {...props}
         >

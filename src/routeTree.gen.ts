@@ -12,6 +12,8 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as ManualRouteImport } from './routes/manual'
+import { Route as PromptsRouteImport } from './routes/prompts'
+import { Route as SitemapPromptsDotxmlRouteImport } from './routes/sitemap-prompts[.]xml'
 import { Route as WwwLibraryRouteImport } from './routes/www-library'
 import { Route as GuidesIndexRouteImport } from './routes/guides.index'
 import { Route as GuidesPromptBenchmarksRouteImport } from './routes/guides.prompt-benchmarks'
@@ -36,6 +38,16 @@ const AboutRoute = AboutRouteImport.update({
 const ManualRoute = ManualRouteImport.update({
   id: '/manual',
   path: '/manual',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PromptsRoute = PromptsRouteImport.update({
+  id: '/prompts',
+  path: '/prompts',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SitemapPromptsDotxmlRoute = SitemapPromptsDotxmlRouteImport.update({
+  id: '/sitemap-prompts.xml',
+  path: '/sitemap-prompts.xml',
   getParentRoute: () => rootRouteImport,
 } as any)
 const WwwLibraryRoute = WwwLibraryRouteImport.update({
@@ -94,6 +106,8 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/manual': typeof ManualRoute
+  '/prompts': typeof PromptsRoute
+  '/sitemap-prompts.xml': typeof SitemapPromptsDotxmlRoute
   '/www-library': typeof WwwLibraryRoute
   '/guides/prompt-benchmarks': typeof GuidesPromptBenchmarksRoute
   '/guides/prompt-chaining': typeof GuidesPromptChainingRoute
@@ -109,6 +123,8 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/manual': typeof ManualRoute
+  '/prompts': typeof PromptsRoute
+  '/sitemap-prompts.xml': typeof SitemapPromptsDotxmlRoute
   '/www-library': typeof WwwLibraryRoute
   '/guides/prompt-benchmarks': typeof GuidesPromptBenchmarksRoute
   '/guides/prompt-chaining': typeof GuidesPromptChainingRoute
@@ -125,6 +141,8 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/manual': typeof ManualRoute
+  '/prompts': typeof PromptsRoute
+  '/sitemap-prompts.xml': typeof SitemapPromptsDotxmlRoute
   '/www-library': typeof WwwLibraryRoute
   '/guides/prompt-benchmarks': typeof GuidesPromptBenchmarksRoute
   '/guides/prompt-chaining': typeof GuidesPromptChainingRoute
@@ -142,6 +160,8 @@ export interface FileRouteTypes {
     | '/'
     | '/about'
     | '/manual'
+    | '/prompts'
+    | '/sitemap-prompts.xml'
     | '/www-library'
     | '/guides/prompt-benchmarks'
     | '/guides/prompt-chaining'
@@ -157,6 +177,8 @@ export interface FileRouteTypes {
     | '/'
     | '/about'
     | '/manual'
+    | '/prompts'
+    | '/sitemap-prompts.xml'
     | '/www-library'
     | '/guides/prompt-benchmarks'
     | '/guides/prompt-chaining'
@@ -172,6 +194,8 @@ export interface FileRouteTypes {
     | '/'
     | '/about'
     | '/manual'
+    | '/prompts'
+    | '/sitemap-prompts.xml'
     | '/www-library'
     | '/guides/prompt-benchmarks'
     | '/guides/prompt-chaining'
@@ -188,6 +212,8 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AboutRoute: typeof AboutRoute
   ManualRoute: typeof ManualRoute
+  PromptsRoute: typeof PromptsRoute
+  SitemapPromptsDotxmlRoute: typeof SitemapPromptsDotxmlRoute
   WwwLibraryRoute: typeof WwwLibraryRoute
   GuidesPromptBenchmarksRoute: typeof GuidesPromptBenchmarksRoute
   GuidesPromptChainingRoute: typeof GuidesPromptChainingRoute
@@ -221,6 +247,20 @@ declare module '@tanstack/react-router' {
       path: '/manual'
       fullPath: '/manual'
       preLoaderRoute: typeof ManualRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/prompts': {
+      id: '/prompts'
+      path: '/prompts'
+      fullPath: '/prompts'
+      preLoaderRoute: typeof PromptsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sitemap-prompts.xml': {
+      id: '/sitemap-prompts.xml'
+      path: '/sitemap-prompts.xml'
+      fullPath: '/sitemap-prompts.xml'
+      preLoaderRoute: typeof SitemapPromptsDotxmlRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/www-library': {
@@ -300,6 +340,8 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AboutRoute: AboutRoute,
   ManualRoute: ManualRoute,
+  PromptsRoute: PromptsRoute,
+  SitemapPromptsDotxmlRoute: SitemapPromptsDotxmlRoute,
   WwwLibraryRoute: WwwLibraryRoute,
   GuidesPromptBenchmarksRoute: GuidesPromptBenchmarksRoute,
   GuidesPromptChainingRoute: GuidesPromptChainingRoute,

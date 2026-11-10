@@ -1,6 +1,4 @@
-import { useQuery } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
-import { useServerFn } from '@tanstack/react-start'
 import { useEffect, useEffectEvent, useState } from 'react'
 
 import { KeyAction } from '@/components/ui/key-action'
@@ -24,19 +22,18 @@ import {
 } from '@/features/prompt-library/rendering/prompt-body-markdown'
 import { formatLongDate } from '@/features/prompt-library/rendering/prompt-library-formatting'
 import { PromptVariableProvider } from '@/features/prompt-library/rendering/prompt-variable-slot'
-import { getPublicRemotePromptShare } from '@/features/prompt-library/server/prompt-library-functions'
+import { type PublicPromptShare } from '@/features/prompt-library/types'
 import { echo } from '@/lib/echo'
 import { cn } from '@/lib/utils'
 
 type SharedPromptPageProps = {
   shareId: string
+  /** Loaded by the route, on the server for a first visit. `null` when the link is dead. */
+  share: PublicPromptShare | null
 }
 
-const getPromptShareQueryKey = (shareId: string) => ['prompt-share', shareId] as const
-
 /** A shared entry, printed as if someone ran `cat` on it in their own terminal. */
-export function SharedPromptPage({ shareId }: SharedPromptPageProps) {
-  const getSharedPrompt = useServerFn(getPublicRemotePromptShare)
+export function SharedPromptPage({ shareId, share }: SharedPromptPageProps) {
   const [values, setValues] = useState<Record<string, string>>({})
   const [viewMode, setViewMode] = useState<PromptViewMode>('rendered')
   const imageUrlFor: PromptImageUrlResolver = (imageId, image) =>
@@ -44,15 +41,10 @@ export function SharedPromptPage({ shareId }: SharedPromptPageProps) {
       `/api/shared-prompt-images/${encodeURIComponent(shareId)}/${encodeURIComponent(imageId)}`,
       image,
     )
-  const shareQuery = useQuery({
-    queryKey: getPromptShareQueryKey(shareId),
-    queryFn: () => getSharedPrompt({ data: shareId }),
-    retry: false,
-  })
-  const prompt = shareQuery.data?.prompt ?? null
+  const prompt = share?.prompt ?? null
   const variables = prompt ? extractFillablePromptVariables(prompt.body) : []
   const filledCount = variables.filter((variable) => values[variable.name]?.trim()).length
-  const isMissing = shareQuery.isError || shareQuery.data === null
+  const isMissing = share === null
 
   const copy = async (request: { stepIndex?: number } = {}) => {
     if (!prompt) {
@@ -102,13 +94,14 @@ export function SharedPromptPage({ shareId }: SharedPromptPageProps) {
         <Link to="/">
           <Wordmark />
         </Link>
-        <span className="text-meta text-fg-faint">read-only · shared entry</span>
+        <span className="text-meta text-fg-faint">
+          {share?.listed ? 'read-only · public prompt' : 'read-only · shared entry'}
+        </span>
       </header>
 
       <p className="mt-3 mb-5 text-meta text-fg-faint">
         guest@promptrc:~/shared$ <span className="text-fg-dim">cat</span>{' '}
         <span className="text-fg-dim">{prompt ? promptPath(prompt) : shareId}</span>
-        {shareQuery.isPending ? <span className="cursor-block cursor-blink" /> : null}
       </p>
 
       {isMissing ? (
@@ -147,7 +140,7 @@ export function SharedPromptPage({ shareId }: SharedPromptPageProps) {
                 <span className="text-fg-dim">{prompt.tags.map((tag) => `#${tag}`).join(' ')}</span>
               ) : null}
               <span className="whitespace-nowrap">
-                shared {formatLongDate(shareQuery.data?.createdAt ?? prompt.createdAt)}
+                shared {formatLongDate(share?.createdAt ?? prompt.createdAt)}
               </span>
             </div>
 
@@ -187,6 +180,11 @@ export function SharedPromptPage({ shareId }: SharedPromptPageProps) {
               <Link className="link" to="/">
                 Keep your own in promptrc
               </Link>
+              {share?.listed ? (
+                <Link className="link" to="/prompts">
+                  More public prompts
+                </Link>
+              ) : null}
             </div>
           </article>
         </Pane>
