@@ -103,7 +103,7 @@ Tests should mirror the feature folders under `tests/features/<feature>/`. Use t
 
 ## Version pins worth knowing
 
-- `nitro` is pinned to `3.0.260610-beta`. In `3.0.260903-beta` the workerd dev runner inlines CommonJS dependencies (React) and `pnpm dev` fails with `module is not defined`. In `3.0.261103-rc`, `pnpm dev` loads two copies of React and SSR fails with `Cannot read properties of null (reading 'useRef')`, and the build rejects the trailing commas in `wrangler.jsonc`.
+- `nitro` is pinned to `3.0.260610-beta`. In `3.0.260903-beta` the workerd dev runner inlines CommonJS dependencies (React) and `pnpm dev` fails with `module is not defined`. `3.0.261103-rc` runs `pnpm dev`, but its build rejects the trailing commas in `wrangler.jsonc`: it reads the file with confbox's `parseJSONC` without `allowTrailingComma`.
 - `miniflare@^4` is a direct dev dependency because Wrangler and `@cloudflare/vitest-plugin` now ship miniflare 5 (alpha), while Nitro's `env-runner` needs v4.
 - `vite.config.ts` marks `cloudflare:workers` external for the dependency optimizer too; otherwise the dependency scan aborts on the dynamic import.
 

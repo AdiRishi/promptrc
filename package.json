@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite dev --port 8080",
     "build": "vite build",
-    "cf-typegen": "pnpm build && wrangler types worker-configuration.d.ts --config .output/server/wrangler.json",
+    "cf-typegen": "pnpm build && wrangler types worker-configuration.d.ts --config .output/server/wrangler.json --include-main-module=false",
     "preview": "vite preview",
     "deploy": "wrangler --cwd .output deploy",
     "deploy:dry-run": "wrangler --cwd .output deploy --dry-run",
@@ -20,8 +20,8 @@
   },
   "dependencies": {
     "@base-ui/react": "^1.9.0",
-    "@clerk/tanstack-react-start": "^1.7.11",
-    "@clerk/ui": "^1.42.4",
+    "@clerk/tanstack-react-start": "^1.7.13",
+    "@clerk/ui": "^1.42.6",
     "@fontsource-variable/recursive": "^5.3.0",
     "@tailwindcss/vite": "^4.3.5",
     "@tanstack/react-query": "^5.107.1",
@@ -32,7 +32,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
-    "lucide-react": "^1.70.0",
+    "lucide-react": "^1.73.0",
     "nitro": "3.0.260610-beta",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
@@ -46,7 +46,7 @@
     "zustand": "^5.1.0"
   },
   "devDependencies": {
-    "@cloudflare/vitest-plugin": "1.6.0",
+    "@cloudflare/vitest-plugin": "1.8.2",
     "@testing-library/dom": "^10.4.2",
     "@testing-library/react": "^16.3.3",
     "@types/node": "^26.6.6",
@@ -54,17 +54,17 @@
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.3.0",
     "@vitest/coverage-istanbul": "^5.1.0",
-    "jsdom": "^31.0.0",
+    "jsdom": "^31.0.1",
     "miniflare": "^4.20260730.0",
-    "oxc-transform-react": "^0.157.0",
-    "oxfmt": "^0.77.0",
-    "oxlint": "^1.92.0",
-    "oxlint-tsgolint": "^7.0.2006",
+    "oxc-transform-react": "^0.158.0",
+    "oxfmt": "^0.78.0",
+    "oxlint": "^1.93.0",
+    "oxlint-tsgolint": "^7.0.2007",
     "shadcn": "^4.23.0",
     "typescript": "^7.0.2",
-    "vite": "^8.3.6",
+    "vite": "^8.3.8",
     "vitest": "^5.1.0",
-    "wrangler": "^4.158.0"
+    "wrangler": "^4.162.0"
   },
-  "packageManager": "pnpm@12.18.0"
+  "packageManager": "pnpm@12.21.0"
 }
