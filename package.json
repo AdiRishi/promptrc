@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite dev --port 8080",
     "build": "vite build",
-    "cf-typegen": "pnpm build && wrangler types worker-configuration.d.ts --config .output/server/wrangler.json",
+    "cf-typegen": "pnpm build && wrangler types worker-configuration.d.ts --config .output/server/wrangler.json --include-main-module=false",
     "preview": "vite preview",
     "deploy": "wrangler --cwd .output deploy",
     "deploy:dry-run": "wrangler --cwd .output deploy --dry-run",
